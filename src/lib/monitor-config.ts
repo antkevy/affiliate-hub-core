@@ -2,8 +2,8 @@ import type { Json, Monitor, MonitorConfiguration } from "@/types";
 
 export interface MonitorFormValues {
   name: string;
-  source_id: string | null;
-  marketplace_id: string | null;
+  source_ids: string[];
+  marketplace_ids: string[];
   destination_id: string | null;
   template_id: string | null;
   min_discount: number | null;
@@ -18,7 +18,8 @@ export function configurationOf(monitor: Monitor): MonitorConfiguration {
 
 export function buildConfiguration(values: MonitorFormValues): Json {
   return {
-    marketplace_id: values.marketplace_id || null,
+    source_ids: values.source_ids,
+    marketplace_ids: values.marketplace_ids,
     destination_id: values.destination_id || null,
     template_id: values.template_id || null,
     min_discount: values.min_discount,
@@ -32,10 +33,10 @@ export function initialForm(monitor: Monitor | null | undefined): MonitorFormVal
   const config = (monitor?.configuration ?? {}) as MonitorConfiguration;
   return {
     name: monitor?.name ?? "",
-    source_id: monitor?.source_id ?? "",
-    marketplace_id: config.marketplace_id ?? "",
-    destination_id: config.destination_id ?? "",
-    template_id: config.template_id ?? "",
+    source_ids: config.source_ids ?? [],
+    marketplace_ids: config.marketplace_ids ?? [],
+    destination_id: config.destination_id ?? null,
+    template_id: config.template_id ?? null,
     min_discount: config.min_discount ?? null,
     max_price: config.max_price ?? null,
     keywords: (config.keywords ?? []).join(", "),
