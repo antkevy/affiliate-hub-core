@@ -26,7 +26,7 @@ function Brand() {
       </div>
       <div className="leading-tight">
         <p className="font-display text-sm font-semibold">Affiliate Hub</p>
-        <p className="text-[11px] text-subtle-foreground">Automação para afiliados</p>
+        <p className="text-[11px] text-muted-foreground">Automação para afiliados</p>
       </div>
     </div>
   );
@@ -93,7 +93,7 @@ function UserMenu() {
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{name}</p>
-              <p className="truncate text-[11px] text-subtle-foreground">{user?.email}</p>
+              <p className="truncate text-[11px] text-muted-foreground">{user?.email}</p>
             </div>
           </button>
         </DropdownMenuTrigger>
