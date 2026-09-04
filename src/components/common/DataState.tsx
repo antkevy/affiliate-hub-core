@@ -5,8 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface DataStateProps {
   isLoading: boolean;
   error: unknown;
-  isEmpty: boolean;
-  empty: ReactNode;
+  isEmpty?: boolean;
+  empty?: ReactNode;
   children: ReactNode;
   rows?: number;
 }
@@ -14,8 +14,8 @@ interface DataStateProps {
 export function DataState({
   isLoading,
   error,
-  isEmpty,
-  empty,
+  isEmpty = false,
+  empty = null,
   children,
   rows = 4,
 }: DataStateProps) {
