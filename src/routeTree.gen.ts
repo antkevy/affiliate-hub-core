@@ -18,6 +18,7 @@ import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDestinosRouteImport } from './routes/_authenticated/destinos'
 import { Route as AuthenticatedFontesRouteImport } from './routes/_authenticated/fontes'
+import { Route as AuthenticatedLinksRouteImport } from './routes/_authenticated/links'
 import { Route as AuthenticatedMonitoramentoRouteImport } from './routes/_authenticated/monitoramento'
 import { Route as AuthenticatedOfertasRouteImport } from './routes/_authenticated/ofertas'
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
@@ -67,6 +68,11 @@ const AuthenticatedFontesRoute = AuthenticatedFontesRouteImport.update({
   path: '/fontes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLinksRoute = AuthenticatedLinksRouteImport.update({
+  id: '/links',
+  path: '/links',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMonitoramentoRoute =
   AuthenticatedMonitoramentoRouteImport.update({
     id: '/monitoramento',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/destinos': typeof AuthenticatedDestinosRoute
   '/fontes': typeof AuthenticatedFontesRoute
+  '/links': typeof AuthenticatedLinksRoute
   '/monitoramento': typeof AuthenticatedMonitoramentoRoute
   '/ofertas': typeof AuthenticatedOfertasRoute
   '/templates': typeof AuthenticatedTemplatesRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/destinos': typeof AuthenticatedDestinosRoute
   '/fontes': typeof AuthenticatedFontesRoute
+  '/links': typeof AuthenticatedLinksRoute
   '/monitoramento': typeof AuthenticatedMonitoramentoRoute
   '/ofertas': typeof AuthenticatedOfertasRoute
   '/templates': typeof AuthenticatedTemplatesRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/destinos': typeof AuthenticatedDestinosRoute
   '/_authenticated/fontes': typeof AuthenticatedFontesRoute
+  '/_authenticated/links': typeof AuthenticatedLinksRoute
   '/_authenticated/monitoramento': typeof AuthenticatedMonitoramentoRoute
   '/_authenticated/ofertas': typeof AuthenticatedOfertasRoute
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/destinos'
     | '/fontes'
+    | '/links'
     | '/monitoramento'
     | '/ofertas'
     | '/templates'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/destinos'
     | '/fontes'
+    | '/links'
     | '/monitoramento'
     | '/ofertas'
     | '/templates'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/destinos'
     | '/_authenticated/fontes'
+    | '/_authenticated/links'
     | '/_authenticated/monitoramento'
     | '/_authenticated/ofertas'
     | '/_authenticated/templates'
@@ -239,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFontesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/links': {
+      id: '/_authenticated/links'
+      path: '/links'
+      fullPath: '/links'
+      preLoaderRoute: typeof AuthenticatedLinksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/monitoramento': {
       id: '/_authenticated/monitoramento'
       path: '/monitoramento'
@@ -270,6 +289,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDestinosRoute: typeof AuthenticatedDestinosRoute
   AuthenticatedFontesRoute: typeof AuthenticatedFontesRoute
+  AuthenticatedLinksRoute: typeof AuthenticatedLinksRoute
   AuthenticatedMonitoramentoRoute: typeof AuthenticatedMonitoramentoRoute
   AuthenticatedOfertasRoute: typeof AuthenticatedOfertasRoute
   AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
@@ -282,6 +302,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDestinosRoute: AuthenticatedDestinosRoute,
   AuthenticatedFontesRoute: AuthenticatedFontesRoute,
+  AuthenticatedLinksRoute: AuthenticatedLinksRoute,
   AuthenticatedMonitoramentoRoute: AuthenticatedMonitoramentoRoute,
   AuthenticatedOfertasRoute: AuthenticatedOfertasRoute,
   AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
