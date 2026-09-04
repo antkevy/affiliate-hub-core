@@ -19,6 +19,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDestinosRouteImport } from './routes/_authenticated/destinos'
 import { Route as AuthenticatedEstatisticasRouteImport } from './routes/_authenticated/estatisticas'
 import { Route as AuthenticatedFontesRouteImport } from './routes/_authenticated/fontes'
+import { Route as AuthenticatedIntegracoesRouteImport } from './routes/_authenticated/integracoes'
 import { Route as AuthenticatedLinksRouteImport } from './routes/_authenticated/links'
 import { Route as AuthenticatedMonitoramentoRouteImport } from './routes/_authenticated/monitoramento'
 import { Route as AuthenticatedOfertasRouteImport } from './routes/_authenticated/ofertas'
@@ -76,6 +77,12 @@ const AuthenticatedFontesRoute = AuthenticatedFontesRouteImport.update({
   path: '/fontes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedIntegracoesRoute =
+  AuthenticatedIntegracoesRouteImport.update({
+    id: '/integracoes',
+    path: '/integracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLinksRoute = AuthenticatedLinksRouteImport.update({
   id: '/links',
   path: '/links',
@@ -114,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/destinos': typeof AuthenticatedDestinosRoute
   '/estatisticas': typeof AuthenticatedEstatisticasRoute
   '/fontes': typeof AuthenticatedFontesRoute
+  '/integracoes': typeof AuthenticatedIntegracoesRoute
   '/links': typeof AuthenticatedLinksRoute
   '/monitoramento': typeof AuthenticatedMonitoramentoRoute
   '/ofertas': typeof AuthenticatedOfertasRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
   '/destinos': typeof AuthenticatedDestinosRoute
   '/estatisticas': typeof AuthenticatedEstatisticasRoute
   '/fontes': typeof AuthenticatedFontesRoute
+  '/integracoes': typeof AuthenticatedIntegracoesRoute
   '/links': typeof AuthenticatedLinksRoute
   '/monitoramento': typeof AuthenticatedMonitoramentoRoute
   '/ofertas': typeof AuthenticatedOfertasRoute
@@ -148,6 +157,7 @@ export interface FileRoutesById {
   '/_authenticated/destinos': typeof AuthenticatedDestinosRoute
   '/_authenticated/estatisticas': typeof AuthenticatedEstatisticasRoute
   '/_authenticated/fontes': typeof AuthenticatedFontesRoute
+  '/_authenticated/integracoes': typeof AuthenticatedIntegracoesRoute
   '/_authenticated/links': typeof AuthenticatedLinksRoute
   '/_authenticated/monitoramento': typeof AuthenticatedMonitoramentoRoute
   '/_authenticated/ofertas': typeof AuthenticatedOfertasRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/destinos'
     | '/estatisticas'
     | '/fontes'
+    | '/integracoes'
     | '/links'
     | '/monitoramento'
     | '/ofertas'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/destinos'
     | '/estatisticas'
     | '/fontes'
+    | '/integracoes'
     | '/links'
     | '/monitoramento'
     | '/ofertas'
@@ -199,6 +211,7 @@ export interface FileRouteTypes {
     | '/_authenticated/destinos'
     | '/_authenticated/estatisticas'
     | '/_authenticated/fontes'
+    | '/_authenticated/integracoes'
     | '/_authenticated/links'
     | '/_authenticated/monitoramento'
     | '/_authenticated/ofertas'
@@ -284,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFontesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/integracoes': {
+      id: '/_authenticated/integracoes'
+      path: '/integracoes'
+      fullPath: '/integracoes'
+      preLoaderRoute: typeof AuthenticatedIntegracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/links': {
       id: '/_authenticated/links'
       path: '/links'
@@ -330,6 +350,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDestinosRoute: typeof AuthenticatedDestinosRoute
   AuthenticatedEstatisticasRoute: typeof AuthenticatedEstatisticasRoute
   AuthenticatedFontesRoute: typeof AuthenticatedFontesRoute
+  AuthenticatedIntegracoesRoute: typeof AuthenticatedIntegracoesRoute
   AuthenticatedLinksRoute: typeof AuthenticatedLinksRoute
   AuthenticatedMonitoramentoRoute: typeof AuthenticatedMonitoramentoRoute
   AuthenticatedOfertasRoute: typeof AuthenticatedOfertasRoute
@@ -345,6 +366,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDestinosRoute: AuthenticatedDestinosRoute,
   AuthenticatedEstatisticasRoute: AuthenticatedEstatisticasRoute,
   AuthenticatedFontesRoute: AuthenticatedFontesRoute,
+  AuthenticatedIntegracoesRoute: AuthenticatedIntegracoesRoute,
   AuthenticatedLinksRoute: AuthenticatedLinksRoute,
   AuthenticatedMonitoramentoRoute: AuthenticatedMonitoramentoRoute,
   AuthenticatedOfertasRoute: AuthenticatedOfertasRoute,

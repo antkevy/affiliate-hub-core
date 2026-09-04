@@ -13,9 +13,9 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
     meta: [
       { title: "Configurações — Affiliate Hub" },
-      { name: "description", content: "Dados do perfil e preferências da conta." },
+      { name: "description", content: "Dados da conta e preferências do seu perfil." },
       { property: "og:title", content: "Configurações — Affiliate Hub" },
-      { property: "og:description", content: "Dados do perfil e preferências da conta." },
+      { property: "og:description", content: "Dados da conta e preferências do seu perfil." },
     ],
   }),
   component: SettingsPage,
@@ -30,8 +30,7 @@ function SettingsPage() {
     setName(profile?.name ?? "");
   }, [profile?.name]);
 
-  async function handleSave(event: React.FormEvent) {
-    event.preventDefault();
+  async function save() {
     if (!user) return;
     setSaving(true);
     try {
@@ -50,32 +49,29 @@ function SettingsPage() {
       <PageHeader
         eyebrow="Sistema"
         title="Configurações"
-        description="Gerencie seus dados de perfil e as preferências da conta."
+        description="Gerencie os dados da sua conta."
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <form onSubmit={handleSave} className="panel space-y-4 p-5">
-          <p className="text-eyebrow">Perfil</p>
-          <div className="space-y-1.5">
-            <Label htmlFor="name">Nome</Label>
-            <Input id="name" value={name} onChange={(event) => setName(event.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="email">E-mail</Label>
-            <Input id="email" value={user?.email ?? ""} disabled />
-          </div>
-          <Button type="submit" disabled={saving}>
-            {saving ? "Salvando..." : "Salvar alterações"}
-          </Button>
-        </form>
-
-        <div className="panel space-y-3 p-5">
-          <p className="text-eyebrow">Preferências avançadas</p>
-          <p className="text-sm text-muted-foreground">
-            Notificações, fuso horário e limites de publicação. Esta funcionalidade será configurada
-            posteriormente.
+      <div className="panel max-w-xl space-y-4 p-5">
+        <div className="space-y-1.5">
+          <Label htmlFor="profile-name">Nome</Label>
+          <Input
+            id="profile-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Seu nome"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="profile-email">E-mail</Label>
+          <Input id="profile-email" value={user?.email ?? ""} disabled />
+          <p className="text-xs text-muted-foreground">
+            A alteração de e-mail será configurada posteriormente.
           </p>
         </div>
+        <Button onClick={save} disabled={saving}>
+          {saving ? "Salvando..." : "Salvar alterações"}
+        </Button>
       </div>
     </>
   );
