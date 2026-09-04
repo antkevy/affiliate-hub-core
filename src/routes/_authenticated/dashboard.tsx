@@ -51,7 +51,7 @@ function DashboardPage() {
   });
 
   const activeAutomations = (automations.data ?? []).filter((a) => a.status === "active").length;
-  const publishedCount = (publications.data ?? []).filter((p) => p.status === "sent").length;
+  const publishedCount = (publications.data ?? []).filter((p) => p.status === "published").length;
 
   const chartData = buildChart(publications.data?.map((p) => p.created_at) ?? []);
 
