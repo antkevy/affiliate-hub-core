@@ -30,7 +30,7 @@ export interface DialogField {
   placeholder?: string;
   required?: boolean;
   options?: { value: string; label: string }[];
-  defaultValue?: string;
+  defaultValue?: string | undefined;
 }
 
 interface CreateEntityDialogProps {
@@ -38,7 +38,7 @@ interface CreateEntityDialogProps {
   description?: string;
   triggerLabel?: string;
   fields: DialogField[];
-  onSubmit: (values: Record<string, string>) => Promise<unknown>;
+  onSubmit: (get: (key: string) => string) => Promise<unknown>;
   onSuccess?: () => void;
   trigger?: ReactNode;
 }
@@ -64,7 +64,7 @@ export function CreateEntityDialog({
     event.preventDefault();
     setSaving(true);
     try {
-      await onSubmit(values);
+      await onSubmit((key: string) => values[key] ?? "");
       toast.success("Registro criado com sucesso.");
       setValues(initialValues(fields));
       setOpen(false);

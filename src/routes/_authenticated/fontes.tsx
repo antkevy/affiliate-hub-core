@@ -45,15 +45,15 @@ function SourcesPage() {
                 label: "Tipo",
                 type: "select",
                 options: SOURCE_TYPES.map((item) => ({ value: item.value, label: item.label })),
-                defaultValue: SOURCE_TYPES[0]?.value,
+                defaultValue: SOURCE_TYPES[0]!.value,
               },
               { key: "identifier", label: "Identificador", placeholder: "@canal ou URL do feed" },
             ]}
-            onSubmit={(values) =>
+            onSubmit={(get) =>
               sourcesService.create({
-                name: values.name,
-                type: (values.type || SOURCE_TYPES[0].value) as SourceType,
-                identifier: values.identifier || null,
+                name: get("name"),
+                type: (get("type") || SOURCE_TYPES[0]!.value) as SourceType,
+                identifier: get("identifier") || null,
                 configuration: {},
               })
             }
