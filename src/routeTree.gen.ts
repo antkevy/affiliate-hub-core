@@ -10,11 +10,25 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated/automacoes'
+import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDestinosRouteImport } from './routes/_authenticated/destinos'
+import { Route as AuthenticatedFontesRouteImport } from './routes/_authenticated/fontes'
+import { Route as AuthenticatedMonitoramentoRouteImport } from './routes/_authenticated/monitoramento'
+import { Route as AuthenticatedOfertasRouteImport } from './routes/_authenticated/ofertas'
+import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -22,30 +36,141 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAutomacoesRoute = AuthenticatedAutomacoesRouteImport.update({
+  id: '/automacoes',
+  path: '/automacoes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBannersRoute = AuthenticatedBannersRouteImport.update({
+  id: '/banners',
+  path: '/banners',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedConfiguracoesRoute =
+  AuthenticatedConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDestinosRoute = AuthenticatedDestinosRouteImport.update({
+  id: '/destinos',
+  path: '/destinos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFontesRoute = AuthenticatedFontesRouteImport.update({
+  id: '/fontes',
+  path: '/fontes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMonitoramentoRoute =
+  AuthenticatedMonitoramentoRouteImport.update({
+    id: '/monitoramento',
+    path: '/monitoramento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOfertasRoute = AuthenticatedOfertasRouteImport.update({
+  id: '/ofertas',
+  path: '/ofertas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/banners': typeof AuthenticatedBannersRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/destinos': typeof AuthenticatedDestinosRoute
+  '/fontes': typeof AuthenticatedFontesRoute
+  '/monitoramento': typeof AuthenticatedMonitoramentoRoute
+  '/ofertas': typeof AuthenticatedOfertasRoute
+  '/templates': typeof AuthenticatedTemplatesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/banners': typeof AuthenticatedBannersRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/destinos': typeof AuthenticatedDestinosRoute
+  '/fontes': typeof AuthenticatedFontesRoute
+  '/monitoramento': typeof AuthenticatedMonitoramentoRoute
+  '/ofertas': typeof AuthenticatedOfertasRoute
+  '/templates': typeof AuthenticatedTemplatesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/_authenticated/banners': typeof AuthenticatedBannersRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/destinos': typeof AuthenticatedDestinosRoute
+  '/_authenticated/fontes': typeof AuthenticatedFontesRoute
+  '/_authenticated/monitoramento': typeof AuthenticatedMonitoramentoRoute
+  '/_authenticated/ofertas': typeof AuthenticatedOfertasRoute
+  '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/automacoes'
+    | '/banners'
+    | '/configuracoes'
+    | '/dashboard'
+    | '/destinos'
+    | '/fontes'
+    | '/monitoramento'
+    | '/ofertas'
+    | '/templates'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth'
-  id: '__root__' | '/' | '/auth'
+  to:
+    | '/'
+    | '/auth'
+    | '/automacoes'
+    | '/banners'
+    | '/configuracoes'
+    | '/dashboard'
+    | '/destinos'
+    | '/fontes'
+    | '/monitoramento'
+    | '/ofertas'
+    | '/templates'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/automacoes'
+    | '/_authenticated/banners'
+    | '/_authenticated/configuracoes'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/destinos'
+    | '/_authenticated/fontes'
+    | '/_authenticated/monitoramento'
+    | '/_authenticated/ofertas'
+    | '/_authenticated/templates'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
 }
 
@@ -58,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -65,11 +197,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/automacoes': {
+      id: '/_authenticated/automacoes'
+      path: '/automacoes'
+      fullPath: '/automacoes'
+      preLoaderRoute: typeof AuthenticatedAutomacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/banners': {
+      id: '/_authenticated/banners'
+      path: '/banners'
+      fullPath: '/banners'
+      preLoaderRoute: typeof AuthenticatedBannersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/destinos': {
+      id: '/_authenticated/destinos'
+      path: '/destinos'
+      fullPath: '/destinos'
+      preLoaderRoute: typeof AuthenticatedDestinosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fontes': {
+      id: '/_authenticated/fontes'
+      path: '/fontes'
+      fullPath: '/fontes'
+      preLoaderRoute: typeof AuthenticatedFontesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/monitoramento': {
+      id: '/_authenticated/monitoramento'
+      path: '/monitoramento'
+      fullPath: '/monitoramento'
+      preLoaderRoute: typeof AuthenticatedMonitoramentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ofertas': {
+      id: '/_authenticated/ofertas'
+      path: '/ofertas'
+      fullPath: '/ofertas'
+      preLoaderRoute: typeof AuthenticatedOfertasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/templates': {
+      id: '/_authenticated/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AuthenticatedTemplatesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
+  AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
+  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDestinosRoute: typeof AuthenticatedDestinosRoute
+  AuthenticatedFontesRoute: typeof AuthenticatedFontesRoute
+  AuthenticatedMonitoramentoRoute: typeof AuthenticatedMonitoramentoRoute
+  AuthenticatedOfertasRoute: typeof AuthenticatedOfertasRoute
+  AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
+  AuthenticatedBannersRoute: AuthenticatedBannersRoute,
+  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDestinosRoute: AuthenticatedDestinosRoute,
+  AuthenticatedFontesRoute: AuthenticatedFontesRoute,
+  AuthenticatedMonitoramentoRoute: AuthenticatedMonitoramentoRoute,
+  AuthenticatedOfertasRoute: AuthenticatedOfertasRoute,
+  AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
