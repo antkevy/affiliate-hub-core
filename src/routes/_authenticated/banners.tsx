@@ -40,12 +40,10 @@ function BannersPage() {
             title="Novo banner"
             fields={[
               { key: "name", label: "Nome", required: true, placeholder: "Banner promocional" },
-              { key: "description", label: "Descrição", type: "textarea" },
             ]}
             onSubmit={(get) =>
               bannersService.create({
                 name: get("name"),
-                description: get("description") || null,
                 configuration: {},
               })
             }
@@ -74,8 +72,8 @@ function BannersPage() {
               </div>
               <div>
                 <p className="truncate text-sm font-medium">{banner.name}</p>
-                <p className="line-clamp-2 text-xs text-muted-foreground">
-                  {banner.description ?? "Sem descrição"}
+                <p className="text-xs text-muted-foreground">
+                  Criado em {new Date(banner.created_at).toLocaleDateString("pt-BR")}
                 </p>
               </div>
               <div className="flex gap-2">
