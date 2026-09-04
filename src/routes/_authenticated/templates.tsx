@@ -113,12 +113,13 @@ function TemplatesPage() {
             <div className="flex flex-wrap gap-1.5">
               {TEMPLATE_VARIABLES.map((variable) => (
                 <button
-                  key={variable}
+                  key={variable.token}
                   type="button"
-                  onClick={() => setContent((prev) => `${prev}{${variable}}`)}
+                  title={variable.label}
+                  onClick={() => setContent((prev) => `${prev}${variable.token}`)}
                   className="rounded-md border border-border bg-secondary px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  {`{${variable}}`}
+                  {variable.token}
                 </button>
               ))}
             </div>
