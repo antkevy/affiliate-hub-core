@@ -21,6 +21,7 @@ import { Route as AuthenticatedFontesRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedLinksRouteImport } from './routes/_authenticated/links'
 import { Route as AuthenticatedMonitoramentoRouteImport } from './routes/_authenticated/monitoramento'
 import { Route as AuthenticatedOfertasRouteImport } from './routes/_authenticated/ofertas'
+import { Route as AuthenticatedPublicacoesRouteImport } from './routes/_authenticated/publicacoes'
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 
 const IndexRoute = IndexRouteImport.update({
@@ -84,6 +85,12 @@ const AuthenticatedOfertasRoute = AuthenticatedOfertasRouteImport.update({
   path: '/ofertas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPublicacoesRoute =
+  AuthenticatedPublicacoesRouteImport.update({
+    id: '/publicacoes',
+    path: '/publicacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
@@ -102,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/links': typeof AuthenticatedLinksRoute
   '/monitoramento': typeof AuthenticatedMonitoramentoRoute
   '/ofertas': typeof AuthenticatedOfertasRoute
+  '/publicacoes': typeof AuthenticatedPublicacoesRoute
   '/templates': typeof AuthenticatedTemplatesRoute
 }
 export interface FileRoutesByTo {
@@ -116,6 +124,7 @@ export interface FileRoutesByTo {
   '/links': typeof AuthenticatedLinksRoute
   '/monitoramento': typeof AuthenticatedMonitoramentoRoute
   '/ofertas': typeof AuthenticatedOfertasRoute
+  '/publicacoes': typeof AuthenticatedPublicacoesRoute
   '/templates': typeof AuthenticatedTemplatesRoute
 }
 export interface FileRoutesById {
@@ -132,6 +141,7 @@ export interface FileRoutesById {
   '/_authenticated/links': typeof AuthenticatedLinksRoute
   '/_authenticated/monitoramento': typeof AuthenticatedMonitoramentoRoute
   '/_authenticated/ofertas': typeof AuthenticatedOfertasRoute
+  '/_authenticated/publicacoes': typeof AuthenticatedPublicacoesRoute
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
 }
 export interface FileRouteTypes {
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/links'
     | '/monitoramento'
     | '/ofertas'
+    | '/publicacoes'
     | '/templates'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/links'
     | '/monitoramento'
     | '/ofertas'
+    | '/publicacoes'
     | '/templates'
   id:
     | '__root__'
@@ -177,6 +189,7 @@ export interface FileRouteTypes {
     | '/_authenticated/links'
     | '/_authenticated/monitoramento'
     | '/_authenticated/ofertas'
+    | '/_authenticated/publicacoes'
     | '/_authenticated/templates'
   fileRoutesById: FileRoutesById
 }
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOfertasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/publicacoes': {
+      id: '/_authenticated/publicacoes'
+      path: '/publicacoes'
+      fullPath: '/publicacoes'
+      preLoaderRoute: typeof AuthenticatedPublicacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/templates': {
       id: '/_authenticated/templates'
       path: '/templates'
@@ -292,6 +312,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLinksRoute: typeof AuthenticatedLinksRoute
   AuthenticatedMonitoramentoRoute: typeof AuthenticatedMonitoramentoRoute
   AuthenticatedOfertasRoute: typeof AuthenticatedOfertasRoute
+  AuthenticatedPublicacoesRoute: typeof AuthenticatedPublicacoesRoute
   AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
 }
 
@@ -305,6 +326,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLinksRoute: AuthenticatedLinksRoute,
   AuthenticatedMonitoramentoRoute: AuthenticatedMonitoramentoRoute,
   AuthenticatedOfertasRoute: AuthenticatedOfertasRoute,
+  AuthenticatedPublicacoesRoute: AuthenticatedPublicacoesRoute,
   AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
 }
 
