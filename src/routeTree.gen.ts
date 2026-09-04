@@ -17,6 +17,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDestinosRouteImport } from './routes/_authenticated/destinos'
 import { Route as AuthenticatedFontesRouteImport } from './routes/_authenticated/fontes'
 import { Route as AuthenticatedMonitoramentoRouteImport } from './routes/_authenticated/monitoramento'
+import { Route as AuthenticatedOfertasRouteImport } from './routes/_authenticated/ofertas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,6 +60,11 @@ const AuthenticatedMonitoramentoRoute =
     path: '/monitoramento',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOfertasRoute = AuthenticatedOfertasRouteImport.update({
+  id: '/ofertas',
+  path: '/ofertas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/destinos': typeof AuthenticatedDestinosRoute
   '/fontes': typeof AuthenticatedFontesRoute
   '/monitoramento': typeof AuthenticatedMonitoramentoRoute
+  '/ofertas': typeof AuthenticatedOfertasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/destinos': typeof AuthenticatedDestinosRoute
   '/fontes': typeof AuthenticatedFontesRoute
   '/monitoramento': typeof AuthenticatedMonitoramentoRoute
+  '/ofertas': typeof AuthenticatedOfertasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/_authenticated/destinos': typeof AuthenticatedDestinosRoute
   '/_authenticated/fontes': typeof AuthenticatedFontesRoute
   '/_authenticated/monitoramento': typeof AuthenticatedMonitoramentoRoute
+  '/_authenticated/ofertas': typeof AuthenticatedOfertasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/destinos'
     | '/fontes'
     | '/monitoramento'
+    | '/ofertas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/destinos'
     | '/fontes'
     | '/monitoramento'
+    | '/ofertas'
   id:
     | '__root__'
     | '/'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/_authenticated/destinos'
     | '/_authenticated/fontes'
     | '/_authenticated/monitoramento'
+    | '/_authenticated/ofertas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMonitoramentoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ofertas': {
+      id: '/_authenticated/ofertas'
+      path: '/ofertas'
+      fullPath: '/ofertas'
+      preLoaderRoute: typeof AuthenticatedOfertasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -193,6 +212,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDestinosRoute: typeof AuthenticatedDestinosRoute
   AuthenticatedFontesRoute: typeof AuthenticatedFontesRoute
   AuthenticatedMonitoramentoRoute: typeof AuthenticatedMonitoramentoRoute
+  AuthenticatedOfertasRoute: typeof AuthenticatedOfertasRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -201,6 +221,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDestinosRoute: AuthenticatedDestinosRoute,
   AuthenticatedFontesRoute: AuthenticatedFontesRoute,
   AuthenticatedMonitoramentoRoute: AuthenticatedMonitoramentoRoute,
+  AuthenticatedOfertasRoute: AuthenticatedOfertasRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
