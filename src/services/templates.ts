@@ -21,7 +21,10 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
         titulo: offer.title ?? SAMPLE.titulo,
         preco: formatMoney(offer.sale_price),
         preco_antigo: formatMoney(offer.original_price),
-        desconto: offer.discount_percentage ? `${offer.discount_percentage}%` : "—",
+        desconto:
+          offer.discount_percentage !== null && offer.discount_percentage !== undefined
+            ? `${offer.discount_percentage}%`
+            : "—",
         cupom: offer.coupon ?? "—",
         link: offer.affiliate_url ?? offer.original_url ?? "—",
         marketplace: offer.marketplace ?? "—",
