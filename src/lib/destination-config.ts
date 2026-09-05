@@ -3,7 +3,6 @@ import { type Destination, type DestinationType, type Json } from "@/types";
 export interface DestinationFormValues {
   name: string;
   type: DestinationType;
-  identifier: string;
   botToken: string;
   chatId: string;
   webhookUrl: string;
@@ -43,7 +42,6 @@ export function initialDestinationForm(
     return {
       name: "",
       type: "telegram",
-      identifier: "",
       botToken: "",
       chatId: "",
       webhookUrl: "",
@@ -54,7 +52,6 @@ export function initialDestinationForm(
   return {
     name: destination.name,
     type: destination.type,
-    identifier: destination.identifier ?? "",
     botToken: config.token ?? "",
     chatId: config.chat_id ?? "",
     webhookUrl: config.url ?? "",

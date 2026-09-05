@@ -97,7 +97,7 @@ function DestinationsPage() {
     const payload = {
       name: values.name,
       type: values.type,
-      identifier: values.identifier || null,
+      identifier: values.chatId.trim() || values.webhookUrl.trim() || null,
       configuration: buildDestinationConfiguration(values),
     };
     if (destination) {
@@ -258,7 +258,17 @@ function DestinationsPage() {
                     <p className="truncate text-xs text-muted-foreground">
                       {DESTINATION_TYPES.find((item) => item.value === destination.type)?.label ??
                         destination.type}
-                      {destination.identifier ? ` · ${destination.identifier}` : ""}
+                      {(
+                        destination.type === "other"
+                          ? config.url
+                          : (config.chat_id ?? destination.identifier)
+                      )
+                        ? ` · ${
+                            destination.type === "other"
+                              ? (config.url ?? destination.identifier)
+                              : (config.chat_id ?? destination.identifier)
+                          }`
+                        : ""}
                     </p>
                   </div>
                   <StatusPill tone={entityTone(destination.status)}>
@@ -336,20 +346,22 @@ function CredentialsLine({
   destination: Destination;
   config: DestinationCredentials;
 }) {
+  const target =
+    destination.type === "other" ? config.url : (config.chat_id ?? destination.identifier);
+
   if (destination.type === "other") {
     return (
       <p className="line-clamp-2 text-xs text-muted-foreground">
-        {config.url ? `Webhook: ${config.url}` : "Webhook não configurado"}
+        {target ? `Webhook: ${target}` : "Webhook não configurado"}
       </p>
     );
   }
 
   const token = config.token;
-  const login = Boolean(destination.identifier);
   return (
-    <p className={cn("text-xs", token && login ? "text-muted-foreground" : "text-amber-600")}>
+    <p className={cn("text-xs", token && target ? "text-muted-foreground" : "text-amber-600")}>
       {token ? `Bot: ••••${token.slice(-4)}` : "Sem token do bot"}
-      {login ? ` · Destino: ${destination.identifier}` : " · Destino não informado"}
+      {target ? ` · Publica em: ${target}` : " · Canal não informado"}
     </p>
   );
 }
