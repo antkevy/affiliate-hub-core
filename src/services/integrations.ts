@@ -1,4 +1,4 @@
-import { notImplemented } from "./base";
+import { listMarketplaces, affiliateAccountsService } from "./affiliate";
 import type { IntegrationDefinition } from "@/types";
 
 export const INTEGRATIONS: IntegrationDefinition[] = [
@@ -65,12 +65,84 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
   },
 ];
 
+/** Campo que identifica a conta do afiliado em cada marketplace. */
+const TAG_KEY_BY_SLUG: Record<string, string> = {
+  amazon: "partner_tag",
+  shopee: "app_id",
+  aliexpress: "app_key",
+  "mercado-livre": "client_id",
+};
+
 export const integrationsService = {
   definitions: INTEGRATIONS,
-  connect(): never {
-    return notImplemented("conexão de integrações");
+
+  /**
+   * Conecta um marketplace: cria ou atualiza a conta de afiliado,
+   * salvando a configuração (incluindo a tag usada na conversão de links).
+   */
+  async connectMarketplace(
+    slug: string,
+    values: Record<string, string>,
+  ): Promise<{ accountId: string }> {
+    const definition = INTEGRATIONS.find((item) => item.slug === slug);
+    if (!definition) throw new Error(`Integração "${slug}" não encontrada.`);
+
+    const marketplaces = await listMarketplaces();
+    const marketplace = marketplaces.find((item) => item.slug?.toLowerCase() === slug);
+    if (!marketplace) {
+      throw new Error(
+        `Marketplace "${definition.name}" não cadastrado. Verifique o slug "${slug}" na tabela de marketplaces.`,
+      );
+    }
+
+    const existing = await affiliateAccountsService.list({
+      filters: { marketplace_id: marketplace.id },
+    });
+    const account =
+      existing.find((item) => item.status === "connected" || item.status === "error") ??
+      existing[0];
+
+    const configuration: Record<string, string> = {};
+    if (account?.configuration && typeof account.configuration === "object") {
+      for (const [key, value] of Object.entries(account.configuration)) {
+        if (typeof value === "string") configuration[key] = value;
+      }
+    }
+    for (const field of definition.fields) {
+      const value = values[field.key]?.trim();
+      if (value) configuration[field.key] = value;
+    }
+    const tagKey = TAG_KEY_BY_SLUG[slug];
+    if (tagKey && configuration[tagKey]) configuration["tag"] = configuration[tagKey];
+
+    if (account) {
+      await affiliateAccountsService.update(account.id, {
+        configuration,
+        status: "connected",
+        name: definition.name,
+      });
+      return { accountId: account.id };
+    }
+
+    const created = await affiliateAccountsService.create({
+      name: definition.name,
+      marketplace_id: marketplace.id,
+      configuration,
+      status: "connected",
+    });
+    return { accountId: created.id };
   },
-  disconnect(): never {
-    return notImplemented("conexão de integrações");
+
+  /** Desconecta o marketplace mantendo a conta (e a configuração) para reconectar depois. */
+  async disconnectMarketplace(slug: string): Promise<void> {
+    const marketplaces = await listMarketplaces();
+    const marketplace = marketplaces.find((item) => item.slug?.toLowerCase() === slug);
+    if (!marketplace) return;
+    const existing = await affiliateAccountsService.list({
+      filters: { marketplace_id: marketplace.id },
+    });
+    for (const account of existing) {
+      await affiliateAccountsService.update(account.id, { status: "disconnected" });
+    }
   },
 };

@@ -26,7 +26,7 @@ import { toUserMessage } from "@/services/base";
 export interface DialogField {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "select" | "url" | "number";
+  type?: "text" | "textarea" | "select" | "url" | "number" | "password";
   placeholder?: string;
   required?: boolean;
   options?: { value: string; label: string }[];
@@ -122,7 +122,13 @@ export function CreateEntityDialog({
               ) : (
                 <Input
                   id={field.key}
-                  type={field.type === "number" ? "number" : "text"}
+                  type={
+                    field.type === "number"
+                      ? "number"
+                      : field.type === "password"
+                        ? "password"
+                        : "text"
+                  }
                   required={field.required}
                   placeholder={field.placeholder}
                   value={values[field.key] ?? ""}
