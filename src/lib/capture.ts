@@ -417,6 +417,138 @@ async function publishToDestination(
   return { ok: false, error: `Publicação via ${destination.type} ainda requer integração.` };
 }
 
+export type CaptureSummaryShape = Pick<
+  CaptureReport,
+  "offersCaptured" | "offersPublished" | "offersIgnored" | "offersFailed" | "errors"
+>;
+
+export type AutomationReport = CaptureSummaryShape;
+
+/**
+ * Executa o fluxo de uma automação: captura da fonte vinculada,
+ * aplica o template e publica no destino. Reutiliza as mesmas
+ * regras do motor (deduplicação e publicação real).
+ */
+export async function runAutomation(automation: {
+  source_id: string | null;
+  destination_id: string | null;
+  template_id: string | null;
+}): Promise<AutomationReport> {
+  await requireUserId();
+  const report: AutomationReport = {
+    offersCaptured: 0,
+    offersIgnored: 0,
+    offersPublished: 0,
+    offersFailed: 0,
+    errors: [],
+  };
+
+  const marketplaces = await listMarketplaces();
+  const marketplaceName = new Map(marketplaces.map((item) => [item.id, item.name]));
+
+  if (!automation.source_id) {
+    report.errors.push("Automação sem fonte vinculada.");
+    return report;
+  }
+  const source = await sourcesRepo.getById(automation.source_id);
+  if (!source) {
+    report.errors.push("Fonte vinculada não encontrada.");
+    return report;
+  }
+  if (source.status !== "active") {
+    report.errors.push(`Fonte "${source.name}" está pausada. Ative-a para executar.`);
+    return report;
+  }
+  if (!isScrapable(source)) {
+    report.errors.push(
+      `Fonte "${source.name}": captura via ${source.type} requer integração externa.`,
+    );
+    return report;
+  }
+  if (!source.identifier) {
+    report.errors.push(`Fonte "${source.name}" sem URL para capturar.`);
+    return report;
+  }
+
+  const existingOffers = await offersRepo.list();
+  const knownKeys = new Set<string>();
+  for (const offer of existingOffers) {
+    if (offer.original_url) knownKeys.add(`${offer.source_id ?? ""}::${offer.original_url}`);
+    knownKeys.add(`${offer.source_id ?? ""}::${offer.title.toLowerCase()}`);
+  }
+
+  const found = await captureFromSource(source);
+  for (const candidate of found) {
+    const key = candidate.original_url
+      ? `${candidate.source_id ?? ""}::${candidate.original_url}`
+      : `${candidate.source_id ?? ""}::${candidate.title.toLowerCase()}`;
+    if (knownKeys.has(key)) {
+      report.offersIgnored++;
+      continue;
+    }
+    knownKeys.add(key);
+    try {
+      await offersRepo.create(candidate);
+      report.offersCaptured++;
+    } catch (error) {
+      report.errors.push(`Falha ao salvar "${candidate.title}": ${toUserMessage(error)}`);
+    }
+  }
+
+  const destination = automation.destination_id
+    ? await destinationsRepo.getById(automation.destination_id)
+    : null;
+  if (!destination) {
+    report.errors.push("Automação sem destino configurado para publicar.");
+  }
+  const template = automation.template_id
+    ? await templatesRepo.getById(automation.template_id)
+    : null;
+
+  if (destination) {
+    const publicationList = await publicationsRepo.list();
+    const freshOffers = (await offersRepo.list()).filter(
+      (offer) => offer.source_id === source.id && PROCESSABLE_OFFER_STATUS.includes(offer.status),
+    );
+    for (const offer of freshOffers) {
+      if (
+        publicationList.some(
+          (item) => item.offer_id === offer.id && item.destination_id === destination.id,
+        )
+      ) {
+        continue;
+      }
+      const content = template
+        ? renderTemplate(template.content, {
+            ...offer,
+            marketplace: marketplaceName.get(offer.marketplace_id ?? "") ?? "—",
+          })
+        : defaultContent(offer, marketplaceName);
+      const attempt = await publishToDestination(destination, offer, content);
+      const now = new Date().toISOString();
+      await publicationsRepo.create({
+        offer_id: offer.id,
+        destination_id: destination.id,
+        content,
+        status: attempt.ok ? "published" : "failed",
+        published_at: attempt.ok ? now : null,
+        error_message: attempt.ok ? null : (attempt.error ?? "Falha ao publicar"),
+      });
+      await offersRepo.update(offer.id, {
+        status: attempt.ok ? "published" : "error",
+        processed_at: now,
+      });
+      if (attempt.ok) report.offersPublished++;
+      else {
+        report.offersFailed++;
+        report.errors.push(`${offer.title}: ${attempt.error ?? "Falha ao publicar"}`);
+      }
+    }
+  }
+
+  return report;
+}
+
 /** Envia mensagem pelo Bot API do Telegram (suporta CORS no navegador). */
 export async function sendTelegramMessage(
   token: string,

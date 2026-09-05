@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Workflow, ArrowRight } from "lucide-react";
+import { Workflow, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
@@ -14,13 +14,17 @@ import { sourcesService } from "@/services/sources";
 import { destinationsService } from "@/services/destinations";
 import { templatesService } from "@/services/templates";
 import { toUserMessage } from "@/services/base";
+import { useCapture } from "@/hooks/useCapture";
 import { ENTITY_STATUS_LABEL, type Automation } from "@/types";
 
 export const Route = createFileRoute("/_authenticated/automacoes")({
   head: () => ({
     meta: [
       { title: "Automações — Affiliate Hub" },
-      { name: "description", content: "Fluxos de captura, filtro, conversão e publicação de ofertas." },
+      {
+        name: "description",
+        content: "Fluxos de captura, filtro, conversão e publicação de ofertas.",
+      },
       { property: "og:title", content: "Automações — Affiliate Hub" },
       {
         property: "og:description",
@@ -44,6 +48,9 @@ const BLOCKS = [
 function AutomationsPage() {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Automation | null>(null);
+  const { running, run } = useCapture(
+    selected ? () => automationsService.run(selected.id) : undefined,
+  );
 
   const automations = useQuery({
     queryKey: ["automations"],
@@ -67,7 +74,7 @@ function AutomationsPage() {
       <PageHeader
         eyebrow="Principal"
         title="Automações"
-        description="Monte fluxos em blocos. A execução real será configurada posteriormente."
+        description="Monte fluxos em blocos e execute para capturar da fonte e publicar no destino."
         actions={
           <CreateEntityDialog
             title="Nova automação"
@@ -168,15 +175,15 @@ function AutomationsPage() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    onClick={() => {
-                      try {
-                        automationsService.run();
-                      } catch (error) {
-                        toast.info(toUserMessage(error));
-                      }
+                    disabled={running}
+                    onClick={async () => {
+                      if (!current) return;
+                      const report = await run();
+                      if (report) invalidate();
                     }}
                   >
-                    Executar
+                    {running ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
+                    {running ? "Executando..." : "Executar"}
                   </Button>
                   <Button
                     size="sm"
@@ -222,7 +229,8 @@ function AutomationsPage() {
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Esta funcionalidade será configurada posteriormente.
+                O fluxo usa a fonte, o template e o destino vinculados. Clique em Executar para
+                processar agora.
               </p>
             </div>
           ) : (

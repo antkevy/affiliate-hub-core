@@ -1,20 +1,20 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { runCapture, type CaptureReport } from "@/lib/capture";
+import { runCapture, type CaptureSummaryShape } from "@/lib/capture";
 import { toUserMessage } from "@/services/base";
 
 /** Executa um ciclo de captura/publicação com estado e feedback de toast. */
-export function useCapture() {
+export function useCapture(runFn?: () => Promise<CaptureSummaryShape>) {
   const [running, setRunning] = useState(false);
 
-  async function run(): Promise<CaptureReport | null> {
+  async function run(): Promise<CaptureSummaryShape | null> {
     setRunning(true);
     try {
-      const report = await runCapture();
+      const report = await (runFn ? runFn() : runCapture());
       toast.success("Captura concluída", { description: captureSummary(report) });
       return report;
     } catch (error) {
-      toast.error("Não foi possível executar a captura", {
+      toast.error("Não foi possível executar", {
         description: toUserMessage(error),
       });
       return null;
@@ -26,7 +26,7 @@ export function useCapture() {
   return { running, run };
 }
 
-export function captureSummary(report: CaptureReport): string {
+export function captureSummary(report: CaptureSummaryShape): string {
   const parts = [
     report.offersCaptured > 0 ? `${report.offersCaptured} oferta(s) capturada(s)` : "",
     report.offersPublished > 0 ? `${report.offersPublished} publicada(s)` : "",

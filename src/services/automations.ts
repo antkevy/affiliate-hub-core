@@ -1,5 +1,6 @@
-import { createCrud, notImplemented } from "./base";
+import { createCrud } from "./base";
 import { supabase } from "@/integrations/supabase/client";
+import { runAutomation, type AutomationReport } from "@/lib/capture";
 import type { Automation, AutomationRule } from "@/types";
 
 export const automationsService = {
@@ -41,9 +42,18 @@ export const automationsService = {
     return created;
   },
 
-  /** Execução real do fluxo da automação. */
-  run(): never {
-    return notImplemented("execução de automações");
+  /**
+   * Executa o fluxo da automação: captura da fonte, aplica o template
+   * e publica no destino vinculado.
+   */
+  async run(id: string): Promise<AutomationReport> {
+    const automation = await this.getById(id);
+    if (!automation) throw new Error("Automação não encontrada.");
+    return runAutomation({
+      source_id: automation.source_id,
+      destination_id: automation.destination_id,
+      template_id: automation.template_id,
+    });
   },
 };
 
