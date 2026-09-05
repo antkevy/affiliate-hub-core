@@ -1,5 +1,6 @@
-import { createCrud, notImplemented } from "./base";
+import { createCrud } from "./base";
 import { supabase } from "@/integrations/supabase/client";
+import { runCapture, type CaptureReport } from "@/lib/capture";
 
 export const monitorsService = {
   ...createCrud("monitors"),
@@ -23,8 +24,8 @@ export const monitorsService = {
     return counts;
   },
 
-  /** Monitoramento real de fontes (Telegram, WhatsApp, feeds, APIs). */
-  start(): never {
-    return notImplemented("monitoramento de fontes");
+  /** Executa um ciclo completo de captura e publicação. */
+  start(): Promise<CaptureReport> {
+    return runCapture();
   },
 };

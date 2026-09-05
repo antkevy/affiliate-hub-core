@@ -138,16 +138,6 @@ export function DestinationDialog({
             </RadioGroup>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="destination-identifier">Identificador</Label>
-            <Input
-              id="destination-identifier"
-              placeholder={isOther ? "https://hook.exemplo.com/..." : "@canal ou ID do grupo"}
-              value={form.identifier}
-              onChange={(event) => setForm((form) => ({ ...form, identifier: event.target.value }))}
-            />
-          </div>
-
           {isOther ? (
             <div className="space-y-1.5">
               <Label htmlFor="destination-webhook">URL do webhook</Label>
@@ -187,7 +177,7 @@ export function DestinationDialog({
                 ) : null}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="destination-chat">Chat ID do canal / grupo</Label>
+                <Label htmlFor="destination-chat">Canal / grupo de publicação</Label>
                 <Input
                   id="destination-chat"
                   placeholder="@canal ou ID numérico (ex.: -100123456789)"
@@ -195,8 +185,9 @@ export function DestinationDialog({
                   onChange={(event) => setForm((form) => ({ ...form, chatId: event.target.value }))}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Use <code className="rounded bg-muted px-1">@userinfobot</code> para descobrir o
-                  ID de um canal.
+                  Canal público: basta <code className="rounded bg-muted px-1">@canal</code>.
+                  Privado: use o ID numérico (consulte{" "}
+                  <code className="rounded bg-muted px-1">@userinfobot</code>).
                 </p>
               </div>
             </>

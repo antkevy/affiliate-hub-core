@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { PackageSearch, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react";
+import { Loader2, PackageSearch, Pause, Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
@@ -10,6 +10,7 @@ import { StatusPill, entityTone } from "@/components/common/StatusPill";
 import { MonitorDialog } from "@/components/common/MonitorDialog";
 import { buildConfiguration, configurationOf, type MonitorFormValues } from "@/lib/monitor-config";
 import { Button } from "@/components/ui/button";
+import { useCapture } from "@/hooks/useCapture";
 import { monitorsService } from "@/services/monitors";
 import { sourcesService } from "@/services/sources";
 import { destinationsService } from "@/services/destinations";
@@ -62,6 +63,7 @@ function MonitoringPage() {
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ["monitors"] });
+    queryClient.invalidateQueries({ queryKey: ["offer-counts"] });
   }
 
   function edit(monitor: Monitor) {
@@ -78,28 +80,44 @@ function MonitoringPage() {
     }
   }
 
+  const { running, run } = useCapture();
+
   return (
     <>
       <PageHeader
         eyebrow="Principal"
         title="Monitoramento"
-        description="Monitores conectados às suas fontes. A captura em tempo real será configurada posteriormente."
+        description="Monitores conectados às suas fontes. Use “Processar agora” para capturar e publicar."
         actions={
-          <MonitorDialog
-            title="Novo monitor"
-            description="Escolha os grupos, os marketplaces e os filtros das ofertas capturadas."
-            sources={sources.data ?? []}
-            marketplaces={marketplaces.data ?? []}
-            destinations={destinations.data ?? []}
-            templates={templates.data ?? []}
-            trigger={
-              <Button size="sm">
-                <Plus className="mr-1.5 size-4" /> Novo monitor
-              </Button>
-            }
-            onSubmit={(values) => handleSubmit(values, null)}
-            onSuccess={invalidate}
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={running}
+              onClick={async () => {
+                const report = await run();
+                if (report) invalidate();
+              }}
+            >
+              <Loader2 className={`mr-1.5 ${running ? "size-4 animate-spin" : "size-4"}`} />
+              {running ? "Processando..." : "Processar agora"}
+            </Button>
+            <MonitorDialog
+              title="Novo monitor"
+              description="Escolha os grupos, os marketplaces e os filtros das ofertas capturadas."
+              sources={sources.data ?? []}
+              marketplaces={marketplaces.data ?? []}
+              destinations={destinations.data ?? []}
+              templates={templates.data ?? []}
+              trigger={
+                <Button size="sm">
+                  <Plus className="mr-1.5 size-4" /> Novo monitor
+                </Button>
+              }
+              onSubmit={(values) => handleSubmit(values, null)}
+              onSuccess={invalidate}
+            />
+          </div>
         }
       />
 

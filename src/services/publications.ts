@@ -1,11 +1,12 @@
-import { createCrud, notImplemented } from "./base";
+import { createCrud } from "./base";
+import { runCapture, type CaptureReport } from "@/lib/capture";
 
 export const publicationsService = {
   ...createCrud("publications"),
 
   /** Publicação real nos destinos configurados. */
-  publishNow(): never {
-    return notImplemented("publicação automática");
+  publishNow(): Promise<CaptureReport> {
+    return runCapture();
   },
 };
 

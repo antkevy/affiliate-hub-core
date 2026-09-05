@@ -1,5 +1,6 @@
-import { createCrud, notImplemented } from "./base";
+import { createCrud } from "./base";
 import { supabase } from "@/integrations/supabase/client";
+import { runCapture, type CaptureReport } from "@/lib/capture";
 import type { Offer, OfferMedia } from "@/types";
 
 export const offersService = {
@@ -37,8 +38,8 @@ export const offersService = {
   },
 
   /** Captura automática a partir de fontes monitoradas. */
-  captureFromSource(): never {
-    return notImplemented("captura automática de ofertas");
+  captureFromSource(): Promise<CaptureReport> {
+    return runCapture();
   },
 };
 

@@ -296,12 +296,13 @@ function SourcesPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      title="Testar conexão (em breve)"
-                      onClick={() => {
+                      title="Testar conexão"
+                      onClick={async () => {
                         try {
-                          sourcesService.testConnection();
+                          const message = await sourcesService.testConnection(source.id);
+                          toast.success(`Conexão verificada`, { description: message });
                         } catch (error) {
-                          toast.info(toUserMessage(error));
+                          toast.error(toUserMessage(error));
                         }
                       }}
                     >

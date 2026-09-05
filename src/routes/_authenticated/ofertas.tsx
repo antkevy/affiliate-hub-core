@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Tags } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2, Tags, UploadCloud } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCapture } from "@/hooks/useCapture";
 import { offersService } from "@/services/offers";
 import { OFFER_STATUSES, OFFER_STATUS_LABEL } from "@/types";
 
@@ -21,7 +23,10 @@ export const Route = createFileRoute("/_authenticated/ofertas")({
   head: () => ({
     meta: [
       { title: "Ofertas — Affiliate Hub" },
-      { name: "description", content: "Ofertas capturadas, processadas e prontas para publicação." },
+      {
+        name: "description",
+        content: "Ofertas capturadas, processadas e prontas para publicação.",
+      },
       { property: "og:title", content: "Ofertas — Affiliate Hub" },
       {
         property: "og:description",
@@ -35,6 +40,8 @@ export const Route = createFileRoute("/_authenticated/ofertas")({
 function OffersPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const queryClient = useQueryClient();
+  const { running, run } = useCapture();
 
   const query = useQuery({
     queryKey: ["offers", search, status],
@@ -51,6 +58,28 @@ function OffersPage() {
         eyebrow="Principal"
         title="Ofertas"
         description="Todas as ofertas capturadas pelas suas fontes e automações."
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={running}
+            onClick={async () => {
+              const report = await run();
+              if (report) {
+                queryClient.invalidateQueries({ queryKey: ["offers"] });
+                queryClient.invalidateQueries({ queryKey: ["monitors"] });
+                queryClient.invalidateQueries({ queryKey: ["offer-counts"] });
+              }
+            }}
+          >
+            {running ? (
+              <Loader2 className="mr-1.5 size-4 animate-spin" />
+            ) : (
+              <UploadCloud className="mr-1.5 size-4" />
+            )}
+            {running ? "Capturando..." : "Capturar agora"}
+          </Button>
+        }
       />
 
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">
