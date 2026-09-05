@@ -9,6 +9,8 @@ export interface MonitorFormValues {
   min_discount: number | null;
   max_price: number | null;
   keywords: string;
+  blocked_keywords: string;
+  spacing_minutes: number | null;
   notes: string;
 }
 
@@ -25,6 +27,8 @@ export function buildConfiguration(values: MonitorFormValues): Json {
     min_discount: values.min_discount,
     max_price: values.max_price,
     keywords: parseKeywords(values.keywords),
+    blocked_keywords: parseKeywords(values.blocked_keywords),
+    spacing_minutes: values.spacing_minutes,
     notes: values.notes || null,
   };
 }
@@ -40,6 +44,8 @@ export function initialForm(monitor: Monitor | null | undefined): MonitorFormVal
     min_discount: config.min_discount ?? null,
     max_price: config.max_price ?? null,
     keywords: (config.keywords ?? []).join(", "),
+    blocked_keywords: (config.blocked_keywords ?? []).join(", "),
+    spacing_minutes: config.spacing_minutes ?? null,
     notes: config.notes ?? "",
   };
 }

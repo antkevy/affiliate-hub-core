@@ -222,6 +222,17 @@ export function MonitorDialog({
                 onChange={(event) => setForm((form) => ({ ...form, keywords: event.target.value }))}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="monitor-blocked">Palavras a excluir</Label>
+              <Input
+                id="monitor-blocked"
+                placeholder="usado, recondicionado, genérico, importado"
+                value={form.blocked_keywords}
+                onChange={(event) =>
+                  setForm((form) => ({ ...form, blocked_keywords: event.target.value }))
+                }
+              />
+            </div>
           </Section>
 
           <Section
@@ -250,6 +261,20 @@ export function MonitorDialog({
                   placeholder="Sem template vinculado"
                 />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="monitor-spacing">Intervalo entre posts (min)</Label>
+              <Input
+                id="monitor-spacing"
+                type="number"
+                min={1}
+                step={1}
+                placeholder="Ex.: 30 — em branco publica todas"
+                value={form.spacing_minutes ?? ""}
+                onChange={(event) =>
+                  setForm((form) => ({ ...form, spacing_minutes: parseNumber(event.target.value) }))
+                }
+              />
             </div>
           </Section>
 

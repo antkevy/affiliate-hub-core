@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link2 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,7 +11,7 @@ import { CreateEntityDialog } from "@/components/common/CreateEntityDialog";
 import { Button } from "@/components/ui/button";
 import { affiliateLinksService, listMarketplaces } from "@/services/affiliate";
 import { toUserMessage } from "@/services/base";
-import { LINK_STATUS_LABEL } from "@/types";
+import { LINK_STATUS_LABEL, type AffiliateLink } from "@/types";
 
 export const Route = createFileRoute("/_authenticated/links")({
   head: () => ({
@@ -26,18 +27,32 @@ export const Route = createFileRoute("/_authenticated/links")({
 
 function LinksPage() {
   const queryClient = useQueryClient();
+  const [generating, setGenerating] = useState<string | null>(null);
   const links = useQuery({
     queryKey: ["affiliate-links"],
     queryFn: () => affiliateLinksService.list(),
   });
   const marketplaces = useQuery({ queryKey: ["marketplaces"], queryFn: listMarketplaces });
 
+  async function handleGenerate(link: AffiliateLink) {
+    setGenerating(link.id);
+    try {
+      await affiliateLinksService.generate(link.id);
+      toast.success("Link de afiliado gerado.");
+      await queryClient.invalidateQueries({ queryKey: ["affiliate-links"] });
+    } catch (error) {
+      toast.error("Não foi possível gerar o link", { description: toUserMessage(error) });
+    } finally {
+      setGenerating(null);
+    }
+  }
+
   return (
     <>
       <PageHeader
         eyebrow="Afiliados"
         title="Links de Afiliado"
-        description="A conversão automática de links será configurada posteriormente."
+        description="Converta URLs originais em links de afiliado automaticamente."
         actions={
           <CreateEntityDialog
             title="Novo link"
@@ -100,15 +115,10 @@ function LinksPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => {
-                    try {
-                      affiliateLinksService.generate();
-                    } catch (error) {
-                      toast.info(toUserMessage(error));
-                    }
-                  }}
+                  disabled={generating === link.id}
+                  onClick={() => handleGenerate(link)}
                 >
-                  Gerar
+                  {generating === link.id ? "Gerando..." : "Gerar"}
                 </Button>
               </div>
             </div>

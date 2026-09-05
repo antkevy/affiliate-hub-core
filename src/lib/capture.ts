@@ -3,6 +3,7 @@ import { listMarketplaces } from "@/services/affiliate";
 import { renderTemplate } from "@/services/templates";
 import { configurationOf } from "@/lib/monitor-config";
 import { destinationConfiguration } from "@/lib/destination-config";
+import { normalizeText } from "@/lib/affiliate-converter";
 import {
   type Destination,
   type Monitor,
@@ -333,6 +334,7 @@ async function processMonitor(
 
   const destination = destinations.find((item) => item.id === config.destination_id);
   const template = templates.find((item) => item.id === config.template_id);
+  const spacingMinutes = config.spacing_minutes ?? 0;
 
   for (const offer of candidates) {
     if (!destination) continue;
@@ -364,8 +366,10 @@ async function processMonitor(
       status: attempt.ok ? "published" : "error",
       processed_at: now,
     });
-    if (attempt.ok) result.published++;
-    else {
+    if (attempt.ok) {
+      result.published++;
+      if (spacingMinutes > 0) break;
+    } else {
       result.failed++;
       result.errors.push(`${offer.title}: ${attempt.error ?? "Falha ao publicar"}`);
     }
@@ -389,9 +393,15 @@ function passesFilters(offer: Offer, config: MonitorConfiguration): boolean {
   if (config.max_price !== null && config.max_price !== undefined) {
     if ((offer.sale_price ?? Number.POSITIVE_INFINITY) > config.max_price) return false;
   }
+  if (config.blocked_keywords && config.blocked_keywords.length > 0) {
+    const normalized = normalizeText(offer.title);
+    if (config.blocked_keywords.some((keyword) => normalized.includes(normalizeText(keyword)))) {
+      return false;
+    }
+  }
   if (config.keywords && config.keywords.length > 0) {
-    const title = offer.title.toLowerCase();
-    if (!config.keywords.some((keyword) => title.includes(keyword.trim().toLowerCase()))) {
+    const normalized = normalizeText(offer.title);
+    if (!config.keywords.some((keyword) => normalized.includes(normalizeText(keyword)))) {
       return false;
     }
   }

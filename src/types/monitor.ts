@@ -16,5 +16,12 @@ export interface MonitorConfiguration {
   min_discount?: number | null;
   max_price?: number | null;
   keywords?: string[];
+  /** Palavras que excluem a oferta (blacklist). Caixa e acento são ignorados. */
+  blocked_keywords?: string[];
+  /**
+   * Espaço mínimo entre publicações (minutos), para evitar spam.
+   * 1 = no máximo 1 oferta por ciclo. Só publica ofertas novas além do intervalo.
+   */
+  spacing_minutes?: number | null;
   notes?: string | null;
 }
