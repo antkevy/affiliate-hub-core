@@ -8,10 +8,10 @@ import { captureTelegramSource } from "@/lib/telegram.server";
 import { formatOfferWithAI } from "@/lib/ai.server";
 import {
   buildOfferBannerConfig,
-  loadImageAsBlob,
   loadImageAsDataUrl,
   renderBannerToBlob,
 } from "@/lib/banner-render";
+import { callTelegramApi } from "@/lib/telegram-proxy.server";
 import { bannerConfigOf } from "@/lib/banner-config";
 import { supabase } from "@/integrations/supabase/client";
 import type { BannerConfig } from "@/types/banner";
@@ -481,7 +481,7 @@ async function publishToDestination(
   destination: Destination,
   offer: Offer,
   content: string,
-  media: TelegramMediaItem[] = [],
+  media: TelegramUploadItem[] = [],
 ): Promise<{ ok: boolean; error?: string }> {
   const config = destinationConfiguration(destination);
   if (destination.type === "telegram") {
@@ -667,92 +667,51 @@ export async function runAutomation(automation: {
   return report;
 }
 
-/** Envia mensagem pelo Bot API do Telegram (suporta CORS no navegador). */
+/** Envia mensagem pelo Bot API do Telegram via proxy do servidor (sem CORS). */
 export async function sendTelegramMessage(
   token: string,
   chatId: string,
   text: string,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: false }),
+    return await callTelegramApi({
+      data: { token, method: "sendMessage", chat_id: chatId, text },
     });
-    const body = (await response.json().catch(() => ({}))) as {
-      ok?: boolean;
-      description?: string;
-    };
-    if (!response.ok || body.ok !== true) {
-      return { ok: false, error: body.description ?? `Telegram HTTP ${response.status}` };
-    }
-    return { ok: true };
   } catch (error) {
     return { ok: false, error: toUserMessage(error) };
   }
 }
 
-/** Escreve o texto final salvo na publicação (indiferente ao tipo de mídia). */
-export interface TelegramMediaItem {
+/** Item de mídia anexado à publicação: bytes do banner ou URL da imagem do produto. */
+export interface TelegramUploadItem {
   name: string;
-  blob: Blob;
+  base64?: string;
+  url?: string;
 }
 
 /**
- * Envia fotos ao Telegram. Com 1 item usa sendPhoto; com 2+ usa
- * sendMediaGroup (multipart com referências attach://fileN).
+ * Envia fotos ao Telegram via proxy do servidor.
+ * 1 item = sendPhoto; 2+ = sendMediaGroup (attach://fileN).
  */
 export async function sendTelegramMedia(
   token: string,
   chatId: string,
-  media: TelegramMediaItem[],
+  media: TelegramUploadItem[],
   caption: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const shortCaption = caption.slice(0, 1000);
   try {
-    if (media.length === 1) {
-      const first = media[0];
-      if (!first) return { ok: false, error: "Mídia vazia." };
-      const form = new FormData();
-      form.append("chat_id", chatId);
-      form.append("caption", shortCaption);
-      form.append("photo", first.blob, first.name);
-      return await postTelegramForm(token, "sendPhoto", form);
-    }
-    const form = new FormData();
-    form.append("chat_id", chatId);
-    const photos = media.map((item, index) => ({
-      type: "photo" as const,
-      media: `attach://${item.name}`,
-      ...(index === 0 ? { caption: shortCaption } : {}),
-    }));
-    form.append("media", JSON.stringify(photos));
-    for (const item of media) form.append(item.name, item.blob, item.name);
-    return await postTelegramForm(token, "sendMediaGroup", form);
+    return await callTelegramApi({
+      data: {
+        token,
+        method: media.length === 1 ? "sendPhoto" : "sendMediaGroup",
+        chat_id: chatId,
+        text: caption,
+        files: media,
+      },
+    });
   } catch (error) {
     return { ok: false, error: toUserMessage(error) };
   }
-}
-
-async function postTelegramForm(
-  token: string,
-  method: string,
-  form: FormData,
-): Promise<{ ok: boolean; error?: string }> {
-  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-    method: "POST",
-    body: form,
-  });
-  const body = (await response.json().catch(() => ({}))) as unknown;
-  const ok = Array.isArray(body) ? response.ok : (body as { ok?: boolean })?.ok === true;
-  if (!response.ok || !ok) {
-    const description = (body as { description?: string })?.description;
-    return {
-      ok: false,
-      error: description ?? `Telegram HTTP ${response.status}`,
-    };
-  }
-  return { ok: true };
 }
 
 /** Reescreve a mensagem com IA (Groq). Falhas caem no conteúdo original. */
@@ -788,8 +747,8 @@ async function buildPublicationMedia(
   offer: Offer,
   config: { banner_id?: string | null },
   marketplaceName: string | null,
-): Promise<TelegramMediaItem[]> {
-  const items: TelegramMediaItem[] = [];
+): Promise<TelegramUploadItem[]> {
+  const items: TelegramUploadItem[] = [];
   try {
     const imageUrl = await getOfferImageUrl(offer.id);
     const imageDataUrl = await loadImageAsDataUrl(imageUrl);
@@ -801,15 +760,28 @@ async function buildPublicationMedia(
     }
 
     const bannerConfig = buildOfferBannerConfig(offer, marketplaceName, imageDataUrl, saved);
-    const bannerBlob = await renderBannerToBlob(bannerConfig);
-    if (bannerBlob) items.push({ name: "banner.png", blob: bannerBlob });
+    const bannerBlob = await renderBannerToBlob(bannerConfig, 1);
+    if (bannerBlob) items.push({ name: "banner.png", base64: await blobToBase64(bannerBlob) });
 
-    const productBlob = await loadImageAsBlob(imageUrl);
-    if (productBlob) items.push({ name: "product.png", blob: productBlob });
+    if (imageUrl) items.push({ name: "product.png", url: imageUrl });
   } catch {
     return [];
   }
   return items;
+}
+
+/** Converte um Blob em base64 (sem prefixo de data URL). */
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler a imagem."));
+    reader.readAsDataURL(blob);
+  });
 }
 
 /** Primeira imagem do produto cadastrada (offer_media). */
