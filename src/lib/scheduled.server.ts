@@ -27,7 +27,7 @@ const PROCESSABLE_OFFER_STATUS = ["captured", "processing", "processed", "approv
  * SERVIDOR (sem navegador aberto) com o cliente de service role.
  *
  * É disparado pelo job agendado (Cloud de Lovable / cron externo) via
- * /api/scheduled/run, autenticado com LOVABLE_CRON_SECRET.
+ * /api/scheduled/run, autenticado com LOVABLE_CRON_SECRET ou PUBLISH_CRON_SECRET.
  *
  * Diferenças vs. execução pelo navegador:
  * - Banner (html para imagem) não é gerado aqui (exige DOM); no lugar, anexa

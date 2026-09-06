@@ -2,7 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { authenticateCronRequest } from "./integrations/supabase/cron-auth";
+import { authenticateScheduledRun } from "./lib/scheduled-auth";
 import { runScheduledPublishing } from "./lib/scheduled.server";
 
 type ServerEntry = {
@@ -24,11 +24,13 @@ const SCHEDULED_PATH = "/api/scheduled/run";
 
 /**
  * Endpoint consumido pelo job agendado (Cloud → Jobs do Lovable ou cron
- * externo). Executa captura → filtro → IA → publicação no servidor, de forma
- * totalmente automática, sem precisar do navegador aberto.
+ * externo via cron-job.org/GitHub Actions). Executa captura → filtro → IA →
+ * publicação no servidor, de forma totalmente automática, sem precisar do
+ * navegador aberto. Autenticado com o segredo do Lovable (LOVABLE_CRON_SECRET)
+ * ou com PUBLISH_CRON_SECRET, definido pelo usuário.
  */
 async function handleScheduledRun(request: Request): Promise<Response> {
-  const unauthorized = await authenticateCronRequest(request);
+  const unauthorized = await authenticateScheduledRun(request);
   if (unauthorized) return unauthorized;
 
   try {
