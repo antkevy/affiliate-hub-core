@@ -373,18 +373,15 @@ async function publishToDestinationServer(
     if (!dc.token || !dc.chat_id) {
       return { ok: false, error: "Destino sem token ou canal configurado." };
     }
-    if (config.include_banner) {
-      const imageUrl = await firstOfferImage(db, offer.id);
-      if (imageUrl) {
-        const payload: TelegramProxyPayload = {
-          token: dc.token,
-          method: "sendPhoto",
-          chat_id: dc.chat_id,
-          text: content,
-          files: [{ name: "product.png", url: imageUrl }],
-        };
-        return postTelegram(payload);
-      }
+    const imageUrl = await firstOfferImage(db, offer.id);
+    if (imageUrl) {
+      return postTelegram({
+        token: dc.token,
+        method: "sendPhoto",
+        chat_id: dc.chat_id,
+        text: content,
+        files: [{ name: "product.png", url: imageUrl }],
+      });
     }
     return postTelegram({
       token: dc.token,
