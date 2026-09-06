@@ -23,5 +23,13 @@ export interface MonitorConfiguration {
    * 1 = no máximo 1 oferta por ciclo. Só publica ofertas novas além do intervalo.
    */
   spacing_minutes?: number | null;
+  /** Reescreve a mensagem com IA (Groq) antes de publicar. */
+  ai_enabled?: boolean;
+  /** Instrução de estilo/idioma para a IA. */
+  ai_instruction?: string | null;
+  /** Gera e anexa um banner (com a imagem do produto) na publicação. */
+  include_banner?: boolean;
+  /** Banner salvo usado como base visual. Vazio = template padrão. */
+  banner_id?: string | null;
   notes?: string | null;
 }

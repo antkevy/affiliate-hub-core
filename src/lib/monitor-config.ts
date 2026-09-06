@@ -11,6 +11,10 @@ export interface MonitorFormValues {
   keywords: string;
   blocked_keywords: string;
   spacing_minutes: number | null;
+  ai_enabled: boolean;
+  ai_instruction: string;
+  include_banner: boolean;
+  banner_id: string | null;
   notes: string;
 }
 
@@ -29,6 +33,10 @@ export function buildConfiguration(values: MonitorFormValues): Json {
     keywords: parseKeywords(values.keywords),
     blocked_keywords: parseKeywords(values.blocked_keywords),
     spacing_minutes: values.spacing_minutes,
+    ai_enabled: values.ai_enabled,
+    ai_instruction: values.ai_instruction.trim() || null,
+    include_banner: values.include_banner,
+    banner_id: values.banner_id || null,
     notes: values.notes || null,
   };
 }
@@ -46,6 +54,10 @@ export function initialForm(monitor: Monitor | null | undefined): MonitorFormVal
     keywords: (config.keywords ?? []).join(", "),
     blocked_keywords: (config.blocked_keywords ?? []).join(", "),
     spacing_minutes: config.spacing_minutes ?? null,
+    ai_enabled: config.ai_enabled ?? false,
+    ai_instruction: config.ai_instruction ?? "",
+    include_banner: config.include_banner ?? false,
+    banner_id: config.banner_id ?? null,
     notes: config.notes ?? "",
   };
 }

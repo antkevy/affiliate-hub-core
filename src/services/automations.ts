@@ -49,10 +49,17 @@ export const automationsService = {
   async run(id: string): Promise<AutomationReport> {
     const automation = await this.getById(id);
     if (!automation) throw new Error("Automação não encontrada.");
+    const config = (automation.configuration ?? {}) as {
+      ai_enabled?: boolean;
+      ai_instruction?: string | null;
+      include_banner?: boolean;
+      banner_id?: string | null;
+    };
     return runAutomation({
       source_id: automation.source_id,
       destination_id: automation.destination_id,
       template_id: automation.template_id,
+      configuration: config,
     });
   },
 };

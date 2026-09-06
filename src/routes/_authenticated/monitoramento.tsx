@@ -15,6 +15,7 @@ import { monitorsService } from "@/services/monitors";
 import { sourcesService } from "@/services/sources";
 import { destinationsService } from "@/services/destinations";
 import { templatesService } from "@/services/templates";
+import { bannersService } from "@/services/banners";
 import { listMarketplaces } from "@/services/affiliate";
 import { toUserMessage } from "@/services/base";
 import {
@@ -56,6 +57,7 @@ function MonitoringPage() {
     queryFn: () => destinationsService.list(),
   });
   const templates = useQuery({ queryKey: ["templates"], queryFn: () => templatesService.list() });
+  const banners = useQuery({ queryKey: ["banners"], queryFn: () => bannersService.list() });
   const offerCounts = useQuery({
     queryKey: ["offer-counts"],
     queryFn: () => monitorsService.offerCounts(),
@@ -109,6 +111,7 @@ function MonitoringPage() {
               marketplaces={marketplaces.data ?? []}
               destinations={destinations.data ?? []}
               templates={templates.data ?? []}
+              banners={banners.data ?? []}
               trigger={
                 <Button size="sm">
                   <Plus className="mr-1.5 size-4" /> Novo monitor
@@ -130,6 +133,7 @@ function MonitoringPage() {
         marketplaces={marketplaces.data ?? []}
         destinations={destinations.data ?? []}
         templates={templates.data ?? []}
+        banners={banners.data ?? []}
         onSubmit={(values) => handleSubmit(values, editing)}
         onSuccess={invalidate}
       />
@@ -306,6 +310,8 @@ function ConfigSummary({
   if (config.keywords && config.keywords.length > 0) {
     parts.push(`${config.keywords.length} palavra(s)-chave`);
   }
+  if (config.ai_enabled) parts.push("IA");
+  if (config.include_banner) parts.push("Banner");
 
   return (
     <p className="truncate text-xs text-muted-foreground">

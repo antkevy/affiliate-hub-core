@@ -1,20 +1,24 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Workflow, ArrowRight, Loader2 } from "lucide-react";
+import { Workflow, ArrowRight, Loader2, Settings2, Clock, Bot, Image } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
+import { type DialogField } from "@/components/common/CreateEntityDialog";
 import { CreateEntityDialog } from "@/components/common/CreateEntityDialog";
 import { Button } from "@/components/ui/button";
 import { automationsService } from "@/services/automations";
 import { sourcesService } from "@/services/sources";
 import { destinationsService } from "@/services/destinations";
 import { templatesService } from "@/services/templates";
+import { bannersService } from "@/services/banners";
 import { toUserMessage } from "@/services/base";
 import { useCapture } from "@/hooks/useCapture";
+import { useAutomationScheduler } from "@/hooks/useAutomationScheduler";
+import { automationConfigOf, automationConfigValues } from "@/lib/automation-config";
 import { ENTITY_STATUS_LABEL, type Automation } from "@/types";
 
 export const Route = createFileRoute("/_authenticated/automacoes")({
@@ -45,6 +49,47 @@ const BLOCKS = [
   { title: "Destino", detail: "Publicação final" },
 ];
 
+function configFields(banners: { value: string; label: string }[]): DialogField[] {
+  return [
+    {
+      key: "interval_minutes",
+      label: "Intervalo (minutos)",
+      type: "number",
+      placeholder: "Ex.: 60 (0 = só manual)",
+    },
+    {
+      key: "ai_enabled",
+      label: "Reescrever com IA",
+      type: "select",
+      options: [
+        { value: "yes", label: "Sim (Groq)" },
+        { value: "no", label: "Não" },
+      ],
+    },
+    { key: "ai_instruction", label: "Instrução de estilo (IA)", type: "textarea" },
+    {
+      key: "include_banner",
+      label: "Anexar banner + imagem",
+      type: "select",
+      options: [
+        { value: "yes", label: "Sim" },
+        { value: "no", label: "Não" },
+      ],
+    },
+    {
+      key: "banner_id",
+      label: "Banner base",
+      type: "select",
+      options: [{ value: "", label: "Template padrão" }, ...banners],
+    },
+  ];
+}
+
+function toNumberOrNull(value: string): number | null {
+  const parsed = Number(value.replace(",", "."));
+  return Number.isFinite(parsed) && value.trim() !== "" ? parsed : null;
+}
+
 function AutomationsPage() {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Automation | null>(null);
@@ -62,12 +107,21 @@ function AutomationsPage() {
     queryFn: () => destinationsService.list(),
   });
   const templates = useQuery({ queryKey: ["templates"], queryFn: () => templatesService.list() });
+  const banners = useQuery({ queryKey: ["banners"], queryFn: () => bannersService.list() });
+  const bannerOptions = (banners.data ?? []).map((item) => ({
+    value: item.id,
+    label: item.name,
+  }));
 
   const current = selected ?? automations.data?.[0] ?? null;
+
+  useAutomationScheduler(automations.data ?? []);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ["automations"] });
   }
+
+  const automationConfig = current ? automationConfigOf(current) : null;
 
   return (
     <>
@@ -108,6 +162,7 @@ function AutomationsPage() {
                   label: item.name,
                 })),
               },
+              ...configFields(bannerOptions),
             ]}
             onSubmit={(get) =>
               automationsService.create({
@@ -116,7 +171,13 @@ function AutomationsPage() {
                 source_id: get("source_id") || null,
                 destination_id: get("destination_id") || null,
                 template_id: get("template_id") || null,
-                configuration: {},
+                configuration: automationConfigValues({
+                  interval_minutes: toNumberOrNull(get("interval_minutes")),
+                  ai_enabled: get("ai_enabled") === "yes",
+                  ai_instruction: get("ai_instruction"),
+                  include_banner: get("include_banner") === "yes",
+                  banner_id: get("banner_id") || null,
+                }),
               })
             }
             onSuccess={invalidate}
@@ -185,6 +246,76 @@ function AutomationsPage() {
                     {running ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
                     {running ? "Executando..." : "Executar"}
                   </Button>
+                  <CreateEntityDialog
+                    title="Editar configuração"
+                    triggerLabel=""
+                    trigger={
+                      <Button size="sm" variant="outline">
+                        <Settings2 className="mr-1.5 size-4" /> Configurar
+                      </Button>
+                    }
+                    fields={
+                      current && automationConfig
+                        ? [
+                            {
+                              key: "interval_minutes",
+                              label: "Intervalo (minutos)",
+                              type: "number",
+                              defaultValue:
+                                automationConfig.interval_minutes === null
+                                  ? ""
+                                  : String(automationConfig.interval_minutes),
+                            },
+                            {
+                              key: "ai_enabled",
+                              label: "Reescrever com IA",
+                              type: "select",
+                              options: [
+                                { value: "yes", label: "Sim (Groq)" },
+                                { value: "no", label: "Não" },
+                              ],
+                              defaultValue: automationConfig.ai_enabled ? "yes" : "no",
+                            },
+                            {
+                              key: "ai_instruction",
+                              label: "Instrução de estilo (IA)",
+                              type: "textarea",
+                              defaultValue: automationConfig.ai_instruction,
+                            },
+                            {
+                              key: "include_banner",
+                              label: "Anexar banner + imagem",
+                              type: "select",
+                              options: [
+                                { value: "yes", label: "Sim" },
+                                { value: "no", label: "Não" },
+                              ],
+                              defaultValue: automationConfig.include_banner ? "yes" : "no",
+                            },
+                            {
+                              key: "banner_id",
+                              label: "Banner base",
+                              type: "select",
+                              options: [{ value: "", label: "Template padrão" }, ...bannerOptions],
+                              defaultValue: automationConfig.banner_id ?? "",
+                            },
+                          ]
+                        : []
+                    }
+                    onSubmit={(get) => {
+                      if (!current) return Promise.resolve();
+                      return automationsService.update(current.id, {
+                        configuration: automationConfigValues({
+                          interval_minutes: toNumberOrNull(get("interval_minutes")),
+                          ai_enabled: get("ai_enabled") === "yes",
+                          ai_instruction: get("ai_instruction"),
+                          include_banner: get("include_banner") === "yes",
+                          banner_id: get("banner_id") || null,
+                        }),
+                      });
+                    }}
+                    onSuccess={invalidate}
+                  />
                   <Button
                     size="sm"
                     variant="outline"
@@ -213,6 +344,25 @@ function AutomationsPage() {
                   </Button>
                 </div>
               </div>
+
+              {automationConfig ? (
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                    <Clock className="size-3.5" />
+                    {automationConfig.interval_minutes
+                      ? `A cada ${automationConfig.interval_minutes} min`
+                      : "Sem agendamento"}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                    <Bot className="size-3.5" />
+                    {automationConfig.ai_enabled ? "IA ativa" : "Sem IA"}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                    <Image className="size-3.5" />
+                    {automationConfig.include_banner ? "Banner ativo" : "Texto simples"}
+                  </span>
+                </div>
+              ) : null}
 
               <div className="flex flex-wrap items-stretch gap-2">
                 {BLOCKS.map((block, index) => (

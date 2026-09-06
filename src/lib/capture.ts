@@ -5,7 +5,16 @@ import { configurationOf } from "@/lib/monitor-config";
 import { destinationConfiguration } from "@/lib/destination-config";
 import { normalizeText } from "@/lib/affiliate-converter";
 import { captureTelegramSource } from "@/lib/telegram.server";
+import { formatOfferWithAI } from "@/lib/ai.server";
+import {
+  buildOfferBannerConfig,
+  loadImageAsBlob,
+  loadImageAsDataUrl,
+  renderBannerToBlob,
+} from "@/lib/banner-render";
+import { bannerConfigOf } from "@/lib/banner-config";
 import { supabase } from "@/integrations/supabase/client";
+import type { BannerConfig } from "@/types/banner";
 import {
   type Destination,
   type Monitor,
@@ -22,6 +31,7 @@ const offersRepo = createCrud("offers");
 const destinationsRepo = createCrud("destinations");
 const templatesRepo = createCrud("templates");
 const publicationsRepo = createCrud("publications");
+const bannersRepo = createCrud("banners");
 
 export interface CaptureReport {
   sourcesChecked: number;
@@ -375,12 +385,23 @@ async function processMonitor(
         })
       : defaultContent(offer, marketplaceName);
 
-    const attempt = await publishToDestination(destination, offer, content);
+    const finalContent = config.ai_enabled
+      ? await applyAI(offer, content, config.ai_instruction)
+      : content;
+    const media =
+      destination.type === "telegram" && config.include_banner
+        ? await buildPublicationMedia(
+            offer,
+            { banner_id: config.banner_id ?? null },
+            marketplaceName.get(offer.marketplace_id ?? "") ?? null,
+          )
+        : [];
+    const attempt = await publishToDestination(destination, offer, finalContent, media);
     const now = new Date().toISOString();
     await publicationsRepo.create({
       offer_id: offer.id,
       destination_id: destination.id,
-      content,
+      content: finalContent,
       status: attempt.ok ? "published" : "failed",
       published_at: attempt.ok ? now : null,
       error_message: attempt.ok ? null : (attempt.error ?? "Falha ao publicar"),
@@ -435,11 +456,15 @@ async function publishToDestination(
   destination: Destination,
   offer: Offer,
   content: string,
+  media: TelegramMediaItem[] = [],
 ): Promise<{ ok: boolean; error?: string }> {
   const config = destinationConfiguration(destination);
   if (destination.type === "telegram") {
     if (!config.token || !config.chat_id) {
       return { ok: false, error: "Destino sem token ou canal configurado." };
+    }
+    if (media.length > 0) {
+      return sendTelegramMedia(config.token, config.chat_id, media, content);
     }
     return sendTelegramMessage(config.token, config.chat_id, content);
   }
@@ -466,6 +491,12 @@ export async function runAutomation(automation: {
   source_id: string | null;
   destination_id: string | null;
   template_id: string | null;
+  configuration?: {
+    ai_enabled?: boolean;
+    ai_instruction?: string | null;
+    include_banner?: boolean;
+    banner_id?: string | null;
+  };
 }): Promise<AutomationReport> {
   const userId = await requireUserId();
   const report: AutomationReport = {
@@ -572,12 +603,23 @@ export async function runAutomation(automation: {
             marketplace: marketplaceName.get(offer.marketplace_id ?? "") ?? "—",
           })
         : defaultContent(offer, marketplaceName);
-      const attempt = await publishToDestination(destination, offer, content);
+      const finalContent = automation.configuration?.ai_enabled
+        ? await applyAI(offer, content, automation.configuration.ai_instruction)
+        : content;
+      const media =
+        destination.type === "telegram" && automation.configuration?.include_banner
+          ? await buildPublicationMedia(
+              offer,
+              { banner_id: automation.configuration.banner_id ?? null },
+              marketplaceName.get(offer.marketplace_id ?? "") ?? null,
+            )
+          : [];
+      const attempt = await publishToDestination(destination, offer, finalContent, media);
       const now = new Date().toISOString();
       await publicationsRepo.create({
         offer_id: offer.id,
         destination_id: destination.id,
-        content,
+        content: finalContent,
         status: attempt.ok ? "published" : "failed",
         published_at: attempt.ok ? now : null,
         error_message: attempt.ok ? null : (attempt.error ?? "Falha ao publicar"),
@@ -620,6 +662,135 @@ export async function sendTelegramMessage(
   } catch (error) {
     return { ok: false, error: toUserMessage(error) };
   }
+}
+
+/** Escreve o texto final salvo na publicação (indiferente ao tipo de mídia). */
+export interface TelegramMediaItem {
+  name: string;
+  blob: Blob;
+}
+
+/**
+ * Envia fotos ao Telegram. Com 1 item usa sendPhoto; com 2+ usa
+ * sendMediaGroup (multipart com referências attach://fileN).
+ */
+export async function sendTelegramMedia(
+  token: string,
+  chatId: string,
+  media: TelegramMediaItem[],
+  caption: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (media.length === 1) {
+      const first = media[0];
+      if (!first) return { ok: false, error: "Mídia vazia." };
+      const form = new FormData();
+      form.append("chat_id", chatId);
+      form.append("caption", caption);
+      form.append("photo", first.blob, first.name);
+      return await postTelegramForm(token, "sendPhoto", form);
+    }
+    const form = new FormData();
+    form.append("chat_id", chatId);
+    const photos = media.map((item, index) => ({
+      type: "photo" as const,
+      media: `attach://${item.name}`,
+      ...(index === 0 ? { caption } : {}),
+    }));
+    form.append("media", JSON.stringify(photos));
+    for (const item of media) form.append(item.name, item.blob, item.name);
+    return await postTelegramForm(token, "sendMediaGroup", form);
+  } catch (error) {
+    return { ok: false, error: toUserMessage(error) };
+  }
+}
+
+async function postTelegramForm(
+  token: string,
+  method: string,
+  form: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: "POST",
+    body: form,
+  });
+  const body = (await response.json().catch(() => ({}))) as {
+    ok?: boolean;
+    description?: string;
+  };
+  if (!response.ok || body.ok !== true) {
+    return { ok: false, error: body.description ?? `Telegram HTTP ${response.status}` };
+  }
+  return { ok: true };
+}
+
+/** Reescreve a mensagem com IA (Groq). Falhas caem no conteúdo original. */
+async function applyAI(
+  offer: Offer,
+  content: string,
+  instruction?: string | null,
+): Promise<string> {
+  try {
+    const result = await formatOfferWithAI({
+      data: {
+        offer: {
+          title: offer.title,
+          sale_price: offer.sale_price,
+          original_price: offer.original_price,
+          discount_percentage: offer.discount_percentage,
+          coupon: offer.coupon,
+          url: offer.affiliate_url ?? offer.original_url,
+        },
+        content,
+        instruction: instruction ?? null,
+      },
+    });
+    if (result.ok && result.text) return result.text;
+    return content;
+  } catch {
+    return content;
+  }
+}
+
+/** Gera o banner (baseado na oferta + configuração) e anexa a imagem do produto. */
+async function buildPublicationMedia(
+  offer: Offer,
+  config: { banner_id?: string | null },
+  marketplaceName: string | null,
+): Promise<TelegramMediaItem[]> {
+  const items: TelegramMediaItem[] = [];
+  try {
+    const imageUrl = await getOfferImageUrl(offer.id);
+    const imageDataUrl = await loadImageAsDataUrl(imageUrl);
+
+    let saved: BannerConfig | null = null;
+    if (config.banner_id) {
+      const banner = await bannersRepo.getById(config.banner_id);
+      if (banner) saved = bannerConfigOf(banner);
+    }
+
+    const bannerConfig = buildOfferBannerConfig(offer, marketplaceName, imageDataUrl, saved);
+    const bannerBlob = await renderBannerToBlob(bannerConfig);
+    if (bannerBlob) items.push({ name: "banner.png", blob: bannerBlob });
+
+    const productBlob = await loadImageAsBlob(imageUrl);
+    if (productBlob) items.push({ name: "product.png", blob: productBlob });
+  } catch {
+    return [];
+  }
+  return items;
+}
+
+/** Primeira imagem do produto cadastrada (offer_media). */
+async function getOfferImageUrl(offerId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("offer_media")
+    .select("url")
+    .eq("offer_id", offerId)
+    .order("position", { ascending: true })
+    .limit(1);
+  if (error) return null;
+  return data?.[0]?.url ?? null;
 }
 
 async function sendWebhook(url: string, offer: Offer): Promise<{ ok: boolean; error?: string }> {

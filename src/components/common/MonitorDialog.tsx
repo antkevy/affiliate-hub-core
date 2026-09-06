@@ -1,5 +1,14 @@
 import { useState, type ReactNode } from "react";
-import { Inbox, Landmark, Megaphone, SlidersHorizontal, Tag, Users } from "lucide-react";
+import {
+  Bot,
+  Inbox,
+  Landmark,
+  Megaphone,
+  Image,
+  SlidersHorizontal,
+  Tag,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -26,6 +36,7 @@ import { toUserMessage } from "@/services/base";
 import { initialForm, type MonitorFormValues } from "@/lib/monitor-config";
 import {
   SOURCE_TYPES,
+  type Banner,
   type Destination,
   type Marketplace,
   type Monitor,
@@ -41,6 +52,7 @@ interface MonitorDialogProps {
   marketplaces: Marketplace[];
   destinations: Destination[];
   templates: Template[];
+  banners?: Banner[];
   trigger?: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -61,6 +73,7 @@ export function MonitorDialog({
   marketplaces,
   destinations,
   templates,
+  banners = [],
   trigger,
   open: openProp,
   onOpenChange,
@@ -276,6 +289,72 @@ export function MonitorDialog({
                 }
               />
             </div>
+          </Section>
+
+          <Section
+            icon={Bot}
+            title="Inteligência e mídia"
+            hint="Reescreva a mensagem com IA e anexe um banner com a imagem do produto no Telegram."
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="monitor-ai">Reescrever mensagem com IA</Label>
+                <p className="text-xs text-muted-foreground">
+                  Usa Groq; sem chave configurada cai no template.
+                </p>
+              </div>
+              <Switch
+                id="monitor-ai"
+                checked={form.ai_enabled}
+                onCheckedChange={(ai_enabled) => setForm((form) => ({ ...form, ai_enabled }))}
+              />
+            </div>
+            {form.ai_enabled ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="monitor-ai-instruction">Instrução de estilo (opcional)</Label>
+                <Textarea
+                  id="monitor-ai-instruction"
+                  rows={2}
+                  placeholder="Ex.: tom divertido, poucos emojis, destaque o prazo da promoção."
+                  value={form.ai_instruction}
+                  onChange={(event) =>
+                    setForm((form) => ({ ...form, ai_instruction: event.target.value }))
+                  }
+                />
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="monitor-banner">Anexar banner + imagem do produto</Label>
+                <p className="text-xs text-muted-foreground">
+                  Gera o PNG do banner e envia junto com a foto do produto (media group).
+                </p>
+              </div>
+              <Switch
+                id="monitor-banner"
+                checked={form.include_banner}
+                onCheckedChange={(include_banner) =>
+                  setForm((form) => ({ ...form, include_banner }))
+                }
+              />
+            </div>
+            {form.include_banner ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="monitor-banner-base">Banner base</Label>
+                <FieldSelect
+                  id="monitor-banner-base"
+                  value={form.banner_id ?? ""}
+                  onValueChange={(value) =>
+                    setForm((form) => ({ ...form, banner_id: value || null }))
+                  }
+                  options={[
+                    { value: "", label: "Template padrão" },
+                    ...banners.map((item) => ({ value: item.id, label: item.name })),
+                  ]}
+                  placeholder="Template padrão"
+                />
+              </div>
+            ) : null}
           </Section>
 
           <Section icon={Tag} title="Configurações" hint="Ajustes adicionais e observações.">
