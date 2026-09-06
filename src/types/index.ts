@@ -6,6 +6,7 @@ export type Insert<T extends keyof Tables> = Tables[T]["Insert"];
 export type Update<T extends keyof Tables> = Tables[T]["Update"];
 export type Enums = Database["public"]["Enums"];
 
+export * from "./banner";
 export * from "./offer";
 export * from "./automation";
 export * from "./monitor";

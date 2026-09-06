@@ -4,6 +4,8 @@ import { renderTemplate } from "@/services/templates";
 import { configurationOf } from "@/lib/monitor-config";
 import { destinationConfiguration } from "@/lib/destination-config";
 import { normalizeText } from "@/lib/affiliate-converter";
+import { captureTelegramSource } from "@/lib/telegram.server";
+import { supabase } from "@/integrations/supabase/client";
 import {
   type Destination,
   type Monitor,
@@ -56,7 +58,7 @@ const PROCESSABLE_OFFER_STATUS: Offer["status"][] = [
  * 3. Para cada monitor ativo, aplica filtros e publica no destino configurado.
  */
 export async function runCapture(): Promise<CaptureReport> {
-  await requireUserId();
+  const userId = await requireUserId();
   const report: CaptureReport = {
     sourcesChecked: 0,
     offersCaptured: 0,
@@ -90,6 +92,21 @@ export async function runCapture(): Promise<CaptureReport> {
       continue;
     }
     report.sourcesChecked++;
+    if (source.type === "telegram") {
+      const result = await captureTelegramSource({
+        data: {
+          token: await accessToken(),
+          identifier: source.identifier,
+          sourceId: source.id,
+          userId,
+        },
+      });
+      report.offersCaptured += result.offersCaptured;
+      report.offersIgnored += result.offersIgnored;
+      report.offersFailed += result.offersFailed;
+      report.errors.push(...result.errors);
+      continue;
+    }
     const found = await captureFromSource(source);
     for (const candidate of found) {
       const key = candidate.original_url
@@ -149,7 +166,7 @@ export async function runCapture(): Promise<CaptureReport> {
 }
 
 function isScrapable(source: Source): boolean {
-  return source.type === "feed" || source.type === "api";
+  return source.type === "feed" || source.type === "api" || source.type === "telegram";
 }
 
 async function captureFromSource(source: Source): Promise<Candidate[]> {
@@ -175,6 +192,12 @@ export async function fetchText(url: string, timeoutMs = 15000): Promise<string 
   } catch {
     return null;
   }
+}
+
+/** Access token da sessão atual, repassado às funções de servidor. */
+async function accessToken(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? "";
 }
 
 function parseFeedXml(xml: string, sourceId: string): Candidate[] {
@@ -444,7 +467,7 @@ export async function runAutomation(automation: {
   destination_id: string | null;
   template_id: string | null;
 }): Promise<AutomationReport> {
-  await requireUserId();
+  const userId = await requireUserId();
   const report: AutomationReport = {
     offersCaptured: 0,
     offersIgnored: 0,
@@ -487,21 +510,36 @@ export async function runAutomation(automation: {
     knownKeys.add(`${offer.source_id ?? ""}::${offer.title.toLowerCase()}`);
   }
 
-  const found = await captureFromSource(source);
-  for (const candidate of found) {
-    const key = candidate.original_url
-      ? `${candidate.source_id ?? ""}::${candidate.original_url}`
-      : `${candidate.source_id ?? ""}::${candidate.title.toLowerCase()}`;
-    if (knownKeys.has(key)) {
-      report.offersIgnored++;
-      continue;
-    }
-    knownKeys.add(key);
-    try {
-      await offersRepo.create(candidate);
-      report.offersCaptured++;
-    } catch (error) {
-      report.errors.push(`Falha ao salvar "${candidate.title}": ${toUserMessage(error)}`);
+  if (source.type === "telegram") {
+    const result = await captureTelegramSource({
+      data: {
+        token: await accessToken(),
+        identifier: source.identifier,
+        sourceId: source.id,
+        userId,
+      },
+    });
+    report.offersCaptured += result.offersCaptured;
+    report.offersIgnored += result.offersIgnored;
+    report.offersFailed += result.offersFailed;
+    report.errors.push(...result.errors);
+  } else {
+    const found = await captureFromSource(source);
+    for (const candidate of found) {
+      const key = candidate.original_url
+        ? `${candidate.source_id ?? ""}::${candidate.original_url}`
+        : `${candidate.source_id ?? ""}::${candidate.title.toLowerCase()}`;
+      if (knownKeys.has(key)) {
+        report.offersIgnored++;
+        continue;
+      }
+      knownKeys.add(key);
+      try {
+        await offersRepo.create(candidate);
+        report.offersCaptured++;
+      } catch (error) {
+        report.errors.push(`Falha ao salvar "${candidate.title}": ${toUserMessage(error)}`);
+      }
     }
   }
 

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -56,8 +56,23 @@ export function CreateEntityDialog({
   const [saving, setSaving] = useState(false);
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(fields));
 
+  const fieldsSignature = useMemo(
+    () => JSON.stringify(fields.map((field) => [field.key, field.defaultValue ?? ""])),
+    [fields],
+  );
+
+  useEffect(() => {
+    setValues(initialValues(fields));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldsSignature]);
+
   function set(key: string, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleOpenChange(next: boolean) {
+    if (next) setValues(initialValues(fields));
+    setOpen(next);
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -65,7 +80,7 @@ export function CreateEntityDialog({
     setSaving(true);
     try {
       await onSubmit((key: string) => values[key] ?? "");
-      toast.success("Registro criado com sucesso.");
+      toast.success("Registro salvo com sucesso.");
       setValues(initialValues(fields));
       setOpen(false);
       onSuccess?.();
@@ -77,7 +92,7 @@ export function CreateEntityDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ?? (
           <Button size="sm">
