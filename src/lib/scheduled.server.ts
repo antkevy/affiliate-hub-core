@@ -3,7 +3,11 @@ import { automationConfigOf } from "@/lib/automation-config";
 import { destinationConfiguration } from "@/lib/destination-config";
 import { normalizeText } from "@/lib/affiliate-converter";
 import { captureTelegramChannel } from "@/lib/telegram.server";
-import { postTelegram, type TelegramProxyPayload } from "@/lib/telegram-proxy.server";
+import {
+  downloadImageBase64,
+  postTelegram,
+  type TelegramProxyPayload,
+} from "@/lib/telegram-proxy.server";
 import { rewriteOfferWithAI } from "@/lib/ai.server";
 import type { Destination, Monitor, Offer, Source } from "@/types";
 
@@ -374,13 +378,14 @@ async function publishToDestinationServer(
       return { ok: false, error: "Destino sem token ou canal configurado." };
     }
     const imageUrl = await firstOfferImage(db, offer.id);
-    if (imageUrl) {
+    const imageBase64 = imageUrl ? await downloadImageBase64(imageUrl) : null;
+    if (imageBase64) {
       return postTelegram({
         token: dc.token,
         method: "sendPhoto",
         chat_id: dc.chat_id,
         text: content,
-        files: [{ name: "product.png", url: imageUrl }],
+        files: [{ name: "product.png", base64: imageBase64 }],
       });
     }
     return postTelegram({

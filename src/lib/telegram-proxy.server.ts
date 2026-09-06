@@ -63,6 +63,31 @@ async function telegramFetch(token: string, url: string, init: RequestInit): Pro
   return slot;
 }
 
+/**
+ * Baixa uma imagem em base64 — usado para decidir se o post sai com foto ou
+ * cai para texto quando a URL da imagem expirou (CDN do Telegram ~1h).
+ */
+export async function downloadImageBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Serão usados pelo readFile:
+ *   - base64: bytes enviados pelo cliente (banner renderizado)
+ *   - url: baixado pelo servidor (imagem do produto — sem CORS no servidor)
+ */
 async function readFile(file: {
   name: string;
   base64?: string | null;
