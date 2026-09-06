@@ -13,7 +13,7 @@ export const bannersService = {
     return response.blob();
   },
 
-  /** Faz upload da prévia no storage público e devolve a URL pública. */
+  /** Faz upload da prévia no storage privado e devolve o caminho do arquivo. */
   async uploadPreview(userId: string, bannerId: string, blob: Blob): Promise<string> {
     const path = `${userId}/${bannerId}.png`;
     const { error } = await supabase.storage.from("banners").upload(path, blob, {
@@ -21,8 +21,22 @@ export const bannersService = {
       upsert: true,
     });
     if (error) throw new Error(error.message);
-    const { data } = supabase.storage.from("banners").getPublicUrl(path);
-    return data.publicUrl;
+    return path;
+  },
+
+  /** Gera uma URL assinada temporária para exibir a prévia do banner. */
+  async signedPreviewUrl(pathOrUrl: string, expiresIn = 3600): Promise<string | null> {
+    if (/^https?:\/\//i.test(pathOrUrl)) {
+      const marker = "/banners/";
+      const index = pathOrUrl.indexOf(marker);
+      if (index === -1) return null;
+      pathOrUrl = pathOrUrl.slice(index + marker.length);
+    }
+    const { data, error } = await supabase.storage
+      .from("banners")
+      .createSignedUrl(pathOrUrl, expiresIn);
+    if (error) return null;
+    return data.signedUrl;
   },
 
   /** Atualiza a URL de prévia do banner na tabela. */
