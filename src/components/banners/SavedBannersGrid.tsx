@@ -75,18 +75,7 @@ export function SavedBannersGrid({ banners, onSelectEdit, onDelete }: SavedBanne
               aria-label={`Editar ${banner.name}`}
               className="group relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden bg-secondary"
             >
-              {banner.preview_url ? (
-                <img
-                  src={banner.preview_url}
-                  alt={banner.name}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                />
-              ) : (
-                <span className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <ImageIcon className="size-6" />
-                  <span className="text-xs">Sem imagem gerada</span>
-                </span>
-              )}
+              <BannerPreview banner={banner} />
             </button>
 
             <div className="flex items-center gap-2 border-t border-border p-3">
