@@ -21,6 +21,48 @@ export interface TelegramProxyResult {
   error?: string;
 }
 
+const MIN_SEND_INTERVAL_MS = 2000;
+const sendSlots = new Map<string, Promise<void>>();
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Serializa envios por bot + espaçamento mínimo entre mensagens (evita o
+ * flood control do Telegram) e tenta de novo quando o Bot API responde 429.
+ */
+async function telegramFetch(token: string, url: string, init: RequestInit): Promise<Response> {
+  const previous = sendSlots.get(token) ?? Promise.resolve();
+  const slot = previous
+    .catch(() => undefined)
+    .then(async () => {
+      await sleep(MIN_SEND_INTERVAL_MS);
+      let response = await fetch(url, init);
+      if (response.status === 429) {
+        const body = (await response.json().catch(() => ({}))) as {
+          parameters?: { retry_after?: number };
+        };
+        const retryAfter = Number(
+          body?.parameters?.retry_after ?? response.headers.get("retry-after") ?? 0,
+        );
+        if (retryAfter > 0 && retryAfter <= 60) {
+          await sleep(retryAfter * 1000);
+          response = await fetch(url, init);
+        }
+      }
+      return response;
+    });
+  sendSlots.set(
+    token,
+    slot.then(
+      () => undefined,
+      () => undefined,
+    ),
+  );
+  return slot;
+}
+
 async function readFile(file: {
   name: string;
   base64?: string | null;
@@ -81,7 +123,7 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
     const url = `https://api.telegram.org/bot${token}/${method}`;
 
     if (method === "sendMessage") {
-      const response = await fetch(url, {
+      const response = await telegramFetch(token, url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat_id, text }),
@@ -116,7 +158,7 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
       for (const item of uploaded) form.append(item.name, item.blob, item.name);
     }
 
-    const response = await fetch(url, { method: "POST", body: form });
+    const response = await telegramFetch(token, url, { method: "POST", body: form });
     return await parseResult(response);
   } catch (error) {
     return {

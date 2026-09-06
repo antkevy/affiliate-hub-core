@@ -185,7 +185,10 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
     offersBySource.set(offer.source_id ?? "", bucket);
   }
 
-  const publishedRes = await db.from("publications").select("offer_id, destination_id");
+  const publishedRes = await db
+    .from("publications")
+    .select("offer_id, destination_id")
+    .eq("status", "published");
   const publishedKeys = new Set<string>();
   for (const row of publishedRes.data ?? []) {
     if (row.offer_id && row.destination_id) {
@@ -765,7 +768,8 @@ export async function publishOfferForSource(
   const publishedRes = await db
     .from("publications")
     .select("offer_id, destination_id")
-    .eq("offer_id", offer.id);
+    .eq("offer_id", offer.id)
+    .eq("status", "published");
   const publishedKeys = new Set<string>();
   for (const row of publishedRes.data ?? []) {
     if (row.offer_id && row.destination_id) {
