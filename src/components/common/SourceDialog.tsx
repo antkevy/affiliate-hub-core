@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ClipboardList, MessageCircle, Rss, Send, Webhook, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,10 @@ export function SourceDialog({
   const [form, setForm] = useState<SourceFormValues>(() => initialSourceForm(source));
 
   const open = openProp ?? openLocal;
+
+  useEffect(() => {
+    if (open) setForm(initialSourceForm(source ?? null));
+  }, [open, source]);
 
   function handleOpenChange(next: boolean) {
     if (next) setForm(initialSourceForm(source ?? null));

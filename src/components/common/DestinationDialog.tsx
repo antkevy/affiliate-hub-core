@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Globe, MessageCircle, Send, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,10 @@ export function DestinationDialog({
   );
 
   const open = openProp ?? openLocal;
+
+  useEffect(() => {
+    if (open) setForm(initialDestinationForm(destination ?? null));
+  }, [open, destination]);
 
   function handleOpenChange(next: boolean) {
     if (next) setForm(initialDestinationForm(destination ?? null));

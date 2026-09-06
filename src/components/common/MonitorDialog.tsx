@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Bot,
   Inbox,
@@ -85,6 +85,10 @@ export function MonitorDialog({
   const [form, setForm] = useState<MonitorFormValues>(() => initialForm(monitor));
 
   const open = openProp ?? openLocal;
+
+  useEffect(() => {
+    if (open) setForm(initialForm(monitor ?? null));
+  }, [open, monitor]);
 
   function handleOpenChange(next: boolean) {
     if (next) setForm(initialForm(monitor ?? null));
