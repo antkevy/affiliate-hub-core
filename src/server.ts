@@ -4,6 +4,11 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { authenticateScheduledRun } from "./lib/scheduled-auth";
 import { runScheduledPublishing } from "./lib/scheduled.server";
+import {
+  handleTelegramWebhook,
+  setupTelegramWebhooks,
+  TELEGRAM_WEBHOOK_PATH,
+} from "./lib/telegram-webhook.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -21,6 +26,7 @@ async function getServerEntry(): Promise<ServerEntry> {
 }
 
 const SCHEDULED_PATH = "/api/scheduled/run";
+const WEBHOOK_SETUP_PATH = "/api/telegram/webhook/setup";
 
 /**
  * Endpoint consumido pelo job agendado (Cloud → Jobs do Lovable ou cron
@@ -95,6 +101,18 @@ export default {
         (request.method === "GET" || request.method === "POST")
       ) {
         return await handleScheduledRun(request);
+      }
+      if (url.pathname === TELEGRAM_WEBHOOK_PATH && request.method === "POST") {
+        return await handleTelegramWebhook(request);
+      }
+      if (url.pathname === WEBHOOK_SETUP_PATH) {
+        const unauthorized = await authenticateScheduledRun(request);
+        if (unauthorized) return unauthorized;
+        const setup = await setupTelegramWebhooks(request);
+        return new Response(JSON.stringify(setup), {
+          status: setup.ok ? 200 : 400,
+          headers: { "content-type": "application/json; charset=utf-8" },
+        });
       }
 
       const handler = await getServerEntry();

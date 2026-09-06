@@ -97,14 +97,7 @@ export async function captureTelegramChannel(
     }
     report.sourcesChecked++;
 
-    const { data: marketplaces } = await client
-      .from("marketplaces")
-      .select("id, slug")
-      .eq("is_active", true);
-    const marketplaceIdBySlug = new Map<string, string>();
-    for (const marketplace of marketplaces ?? []) {
-      if (marketplace.slug) marketplaceIdBySlug.set(marketplace.slug.toLowerCase(), marketplace.id);
-    }
+    const marketplaceIdBySlug = await loadMarketplaceIds(client);
 
     const html = await fetchTmePublicPreview(username);
     if (!html) {
@@ -115,10 +108,16 @@ export async function captureTelegramChannel(
     const posts = parseTmePosts(html);
     let processed = 0;
     for (const post of posts.slice(0, MAX_CAPTURES_PER_SOURCE)) {
-      const captured = await capturePost(client, payload, username, post, marketplaceIdBySlug);
-      if (captured === "captured") report.offersCaptured++;
-      else if (captured === "ignored") report.offersIgnored++;
-      else if (captured === "failed") report.offersFailed++;
+      const result = await captureTelegramPost(
+        client,
+        payload,
+        username,
+        post,
+        marketplaceIdBySlug,
+      );
+      if (result.outcome === "captured") report.offersCaptured++;
+      else if (result.outcome === "ignored") report.offersIgnored++;
+      else if (result.outcome === "failed") report.offersFailed++;
       processed++;
     }
     if (processed === 0) {
@@ -135,31 +134,54 @@ export async function captureTelegramChannel(
 
 type CaptureOutcome = "captured" | "ignored" | "failed";
 
-async function capturePost(
+export interface TelegramPostCaptureResult {
+  outcome: CaptureOutcome;
+  offer: Record<string, unknown> | null;
+}
+
+/** Mapa marketplace slug → id (usado por captura por varredura e por webhook). */
+export async function loadMarketplaceIds(client: Db): Promise<Map<string, string>> {
+  const { data: marketplaces } = await client
+    .from("marketplaces")
+    .select("id, slug")
+    .eq("is_active", true);
+  const map = new Map<string, string>();
+  for (const marketplace of marketplaces ?? []) {
+    if (marketplace.slug) map.set(marketplace.slug.toLowerCase(), marketplace.id);
+  }
+  return map;
+}
+
+/**
+ * Processa UM post (da prévia t.me ou de update de webhook) gerando oferta no
+ * banco com dedup por post/hash. Reutilizado pela varredura agendada e pelo
+ * webhook do Telegram (acionado só quando surge oferta nova).
+ */
+export async function captureTelegramPost(
   client: Db,
   payload: { identifier: string; sourceId: string; userId: string },
   username: string,
   post: { id: string; textHtml: string; time: string | null; image: string | null },
   marketplaceIdBySlug: Map<string, string>,
-): Promise<CaptureOutcome> {
+): Promise<TelegramPostCaptureResult> {
   const text = stripTags(post.textHtml);
   const urls = extractUrls(post.textHtml);
   const originalUrl = pickProductUrl(urls);
 
   if (!originalUrl) {
-    return "ignored";
+    return { outcome: "ignored", offer: null };
   }
   if (!shouldCaptureProduct(text)) {
-    return "ignored";
+    return { outcome: "ignored", offer: null };
   }
 
   const salePrice = extractPrice(text);
   if (salePrice === null) {
-    return "ignored";
+    return { outcome: "ignored", offer: null };
   }
 
   if (await isAlreadyProcessed(client, payload, username, post.id, originalUrl, text)) {
-    return "ignored";
+    return { outcome: "ignored", offer: null };
   }
 
   const discount = extractDiscount(text);
@@ -197,11 +219,11 @@ async function capturePost(
       marketplace_id: marketplaceId,
       captured_at: capturedAt,
     })
-    .select("id")
+    .select("*")
     .single();
 
   if (error || !offer) {
-    return "failed";
+    return { outcome: "failed", offer: null };
   }
 
   if (candidate.image) {
@@ -221,7 +243,7 @@ async function capturePost(
     processed_at: capturedAt,
   });
 
-  return "captured";
+  return { outcome: "captured", offer };
 }
 
 async function isAlreadyProcessed(

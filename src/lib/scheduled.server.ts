@@ -709,3 +709,190 @@ function firstNonEmpty(...values: unknown[]): string {
   }
   return "";
 }
+
+export interface InlinePublishResult {
+  published: number;
+  failed: number;
+  skipped: number;
+  errors: string[];
+}
+
+/**
+ * Publica UMA oferta recém-capturada pelos monitores/automações ativas que
+ * apontam para a fonte. Usado pelo webhook do Telegram: a publicação acontece
+ * imediatamente quando uma oferta nova chega, sem depender do sweep agendado.
+ */
+export async function publishOfferForSource(
+  db: Db,
+  sourceId: string,
+  offer: Offer,
+): Promise<InlinePublishResult> {
+  const result: InlinePublishResult = { published: 0, failed: 0, skipped: 0, errors: [] };
+  const inlineReport: ScheduledRunReport = {
+    offersCaptured: 0,
+    offersIgnored: 0,
+    offersPublished: 0,
+    offersFailed: 0,
+    errors: [],
+  };
+
+  const [monitorsRes, automationsRes, destinationsRes, templatesRes, marketplacesRes] =
+    await Promise.all([
+      db.from("monitors").select("*"),
+      db.from("automations").select("*"),
+      db.from("destinations").select("*"),
+      db.from("templates").select("*"),
+      db.from("marketplaces").select("id, name"),
+    ]);
+
+  for (const res of [monitorsRes, automationsRes, destinationsRes, templatesRes, marketplacesRes]) {
+    if (res.error) result.errors.push(`Banco de dados: ${res.error.message}`);
+  }
+  if (result.errors.length > 0) return result;
+
+  const monitors = (monitorsRes.data ?? []) as Monitor[];
+  const automations = automationsRes.data ?? [];
+  const destinations = (destinationsRes.data ?? []) as Destination[];
+  const templates = templatesRes.data ?? [];
+  const marketplaceName = new Map<string, string>(
+    (marketplacesRes.data ?? []).map((item: { id: string; name: string }) => [item.id, item.name]),
+  );
+  const destinationsById = new Map<string, Destination>(destinations.map((d) => [d.id, d]));
+  const templatesById = new Map<string, { id: string; content: string }>(
+    (templates as Array<{ id: string; content: string }>).map((item) => [item.id, item]),
+  );
+
+  const publishedRes = await db
+    .from("publications")
+    .select("offer_id, destination_id")
+    .eq("offer_id", offer.id);
+  const publishedKeys = new Set<string>();
+  for (const row of publishedRes.data ?? []) {
+    if (row.offer_id && row.destination_id) {
+      publishedKeys.add(`${row.offer_id}::${row.destination_id}`);
+    }
+  }
+
+  const touchedMonitorIds = new Set<string>();
+  for (const monitor of monitors) {
+    if (monitor.status !== "active") continue;
+    const config = configurationOf(monitor);
+    if (!(config.source_ids ?? []).includes(sourceId)) continue;
+    touchedMonitorIds.add(monitor.id);
+
+    const destination = config.destination_id ? destinationsById.get(config.destination_id) : null;
+    if (!destination) {
+      result.errors.push(`${monitor.name}: sem destino configurado para publicar.`);
+      continue;
+    }
+    if (publishedKeys.has(`${offer.id}::${destination.id}`)) {
+      result.skipped++;
+      continue;
+    }
+    if (
+      (config.spacing_minutes ?? 0) > 0 &&
+      (await isWithinSpacingWindow(db, destination.id, config.spacing_minutes))
+    ) {
+      result.skipped++;
+      continue;
+    }
+    if (!passesFilters(offer, config)) {
+      result.skipped++;
+      continue;
+    }
+
+    const template = config.template_id ? templatesById.get(config.template_id) : null;
+    const content = resolveContent(offer, template?.content, marketplaceName);
+    const finalContent =
+      config.ai_enabled && content
+        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName)
+        : content;
+    const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
+    await recordPublication(
+      db,
+      offer,
+      destination,
+      finalContent,
+      attempt,
+      inlineReport,
+      publishedKeys,
+    );
+    if (attempt.ok) result.published++;
+    else result.failed++;
+  }
+
+  const touchedAutomationIds = new Set<string>();
+  for (const automation of automations) {
+    if (automation.status !== "active" || automation.source_id !== sourceId) continue;
+    touchedAutomationIds.add(automation.id);
+
+    const destination = automation.destination_id
+      ? destinationsById.get(automation.destination_id)
+      : null;
+    if (!destination) {
+      result.errors.push(`Automação "${automation.name}": sem destino configurado.`);
+      continue;
+    }
+    if (publishedKeys.has(`${offer.id}::${destination.id}`)) {
+      result.skipped++;
+      continue;
+    }
+
+    const config = automationConfigOf(automation);
+    const template = automation.template_id ? templatesById.get(automation.template_id) : null;
+    const content = resolveContent(offer, template?.content, marketplaceName);
+    const finalContent =
+      config.ai_enabled && content
+        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName)
+        : content;
+    const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
+    await recordPublication(
+      db,
+      offer,
+      destination,
+      finalContent,
+      attempt,
+      inlineReport,
+      publishedKeys,
+    );
+    if (attempt.ok) result.published++;
+    else result.failed++;
+  }
+
+  result.errors.push(...inlineReport.errors);
+
+  const now = new Date().toISOString();
+  if (touchedMonitorIds.size > 0) {
+    await db
+      .from("monitors")
+      .update({ last_activity_at: now })
+      .in("id", [...touchedMonitorIds]);
+  }
+  if (touchedAutomationIds.size > 0) {
+    await db
+      .from("automations")
+      .update({ last_activity_at: now })
+      .in("id", [...touchedAutomationIds]);
+  }
+
+  return result;
+}
+
+async function isWithinSpacingWindow(
+  db: Db,
+  destinationId: string,
+  spacingMinutes: number | null | undefined,
+): Promise<boolean> {
+  if (!spacingMinutes || spacingMinutes <= 0) return false;
+  const { data } = await db
+    .from("publications")
+    .select("published_at")
+    .eq("destination_id", destinationId)
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(1);
+  const last = data?.[0]?.published_at;
+  if (!last) return false;
+  const elapsedMs = Date.now() - new Date(last).getTime();
+  return elapsedMs < spacingMinutes * 60 * 1000;
+}
