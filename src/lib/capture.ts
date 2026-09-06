@@ -59,6 +59,7 @@ const PROCESSABLE_OFFER_STATUS: Offer["status"][] = [
   "processing",
   "processed",
   "approved",
+  "error",
 ];
 
 /**
@@ -369,8 +370,32 @@ async function processMonitor(
   const template = templates.find((item) => item.id === config.template_id);
   const spacingMinutes = config.spacing_minutes ?? 0;
 
+  if (!destination) {
+    const reason = config.destination_id
+      ? "destino não encontrado (confira o vínculo)."
+      : "sem destino vinculado. Abra o monitor e configure o Destino.";
+    result.errors.push(`${monitor.name}: ${reason}`);
+    await monitorsRepo.update(monitor.id, { last_activity_at: new Date().toISOString() });
+    return result;
+  }
+
+  if (candidates.length === 0) {
+    result.errors.push(`${monitor.name}: nenhuma oferta nova para publicar.`);
+    await monitorsRepo.update(monitor.id, { last_activity_at: new Date().toISOString() });
+    return result;
+  }
+
   for (const offer of candidates) {
-    if (!destination) continue;
+    if (
+      publications.some(
+        (item) =>
+          item.offer_id === offer.id &&
+          item.destination_id === destination.id &&
+          item.status === "published",
+      )
+    ) {
+      continue;
+    }
     if (
       publications.some(
         (item) => item.offer_id === offer.id && item.destination_id === destination.id,
@@ -592,7 +617,10 @@ export async function runAutomation(automation: {
     for (const offer of freshOffers) {
       if (
         publicationList.some(
-          (item) => item.offer_id === offer.id && item.destination_id === destination.id,
+          (item) =>
+            item.offer_id === offer.id &&
+            item.destination_id === destination.id &&
+            item.status === "published",
         )
       ) {
         continue;
