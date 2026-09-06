@@ -14,7 +14,10 @@ export const Route = createFileRoute("/_authenticated/publicacoes")({
       { title: "Publicações — Affiliate Hub" },
       { name: "description", content: "Histórico de publicações enviadas aos seus destinos." },
       { property: "og:title", content: "Publicações — Affiliate Hub" },
-      { property: "og:description", content: "Histórico de publicações enviadas aos seus destinos." },
+      {
+        property: "og:description",
+        content: "Histórico de publicações enviadas aos seus destinos.",
+      },
     ],
   }),
   component: PublicationsPage,
@@ -61,6 +64,11 @@ function PublicationsPage() {
                     ? new Date(publication.published_at).toLocaleString("pt-BR")
                     : `Criada em ${new Date(publication.created_at).toLocaleString("pt-BR")}`}
                 </p>
+                {publication.status === "failed" && publication.error_message ? (
+                  <p className="mt-1 truncate text-xs text-destructive">
+                    {publication.error_message}
+                  </p>
+                ) : null}
               </div>
               <StatusPill tone={entityTone(publication.status)}>
                 {PUBLICATION_STATUS_LABEL[publication.status]}

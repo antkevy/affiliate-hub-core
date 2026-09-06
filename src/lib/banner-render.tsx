@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { toPng } from "html-to-image";
 import { BannerCanvas } from "@/components/banners/BannerCanvas";
 import { BANNER_TEMPLATES } from "@/components/banners/bannerTemplatesData";
@@ -103,7 +104,9 @@ export async function renderBannerToBlob(config: BannerConfig, scale = 2): Promi
 
   const root = createRoot(host);
   try {
-    root.render(<BannerCanvas config={config} isPreview />);
+    flushSync(() => {
+      root.render(<BannerCanvas config={config} isPreview />);
+    });
     await waitForImages(host);
     const canvas = host.querySelector("div") as HTMLElement | null;
     if (!canvas) return null;
