@@ -72,53 +72,56 @@ async function parseResult(response: Response): Promise<TelegramProxyResult> {
  */
 export const callTelegramApi = createServerFn({ method: "POST" })
   .validator((payload: TelegramProxyPayload) => payload)
-  .handler(async ({ data }): Promise<TelegramProxyResult> => {
-    try {
-      const { token, method, chat_id, text } = data;
-      const url = `https://api.telegram.org/bot${token}/${method}`;
+  .handler(async ({ data }): Promise<TelegramProxyResult> => postTelegram(data));
 
-      if (method === "sendMessage") {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id, text }),
-        });
-        return await parseResult(response);
-      }
+/** Núcleo reutilizável por server fn e pelo job agendado do servidor. */
+export async function postTelegram(data: TelegramProxyPayload): Promise<TelegramProxyResult> {
+  try {
+    const { token, method, chat_id, text } = data;
+    const url = `https://api.telegram.org/bot${token}/${method}`;
 
-      const form = new FormData();
-      form.append("chat_id", chat_id);
-      const uploaded: { name: string; blob: Blob }[] = [];
-      for (const file of data.files ?? []) {
-        const blob = await readFile(file);
-        if (blob) uploaded.push({ name: file.name, blob });
-      }
-      if (uploaded.length === 0) {
-        return { ok: false, error: "Nenhuma imagem pôde ser carregada." };
-      }
-
-      const shortCaption = text ? text.slice(0, 1000) : undefined;
-      if (method === "sendPhoto") {
-        const first = uploaded[0];
-        if (!first) return { ok: false, error: "Nenhuma imagem anexada." };
-        form.append("photo", first.blob, first.name);
-        if (shortCaption) form.append("caption", shortCaption);
-      } else {
-        const photos = uploaded.map((item, index) => ({
-          type: "photo" as const,
-          media: `attach://${item.name}`,
-          ...(index === 0 && shortCaption ? { caption: shortCaption } : {}),
-        }));
-        form.append("media", JSON.stringify(photos));
-        for (const item of uploaded) form.append(item.name, item.blob, item.name);
-      }
-
-      const response = await fetch(url, { method: "POST", body: form });
+    if (method === "sendMessage") {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id, text }),
+      });
       return await parseResult(response);
-    } catch (error) {
-      return {
-        ok: false,
-        error: error instanceof Error ? error.message : "Falha ao contactar o Telegram.",
-      };
     }
-  });
+
+    const form = new FormData();
+    form.append("chat_id", chat_id);
+    const uploaded: { name: string; blob: Blob }[] = [];
+    for (const file of data.files ?? []) {
+      const blob = await readFile(file);
+      if (blob) uploaded.push({ name: file.name, blob });
+    }
+    if (uploaded.length === 0) {
+      return { ok: false, error: "Nenhuma imagem pôde ser carregada." };
+    }
+
+    const shortCaption = text ? text.slice(0, 1000) : undefined;
+    if (method === "sendPhoto") {
+      const first = uploaded[0];
+      if (!first) return { ok: false, error: "Nenhuma imagem anexada." };
+      form.append("photo", first.blob, first.name);
+      if (shortCaption) form.append("caption", shortCaption);
+    } else {
+      const photos = uploaded.map((item, index) => ({
+        type: "photo" as const,
+        media: `attach://${item.name}`,
+        ...(index === 0 && shortCaption ? { caption: shortCaption } : {}),
+      }));
+      form.append("media", JSON.stringify(photos));
+      for (const item of uploaded) form.append(item.name, item.blob, item.name);
+    }
+
+    const response = await fetch(url, { method: "POST", body: form });
+    return await parseResult(response);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Falha ao contactar o Telegram.",
+    };
+  }
+}

@@ -45,6 +45,9 @@ interface CapturePayload {
 export const captureTelegramSource = createServerFn({ method: "POST" })
   .validator((payload: CapturePayload) => payload)
   .handler(async ({ data }): Promise<TelegramCaptureResult> => {
+    const url = process.env["SUPABASE_URL"] ?? import.meta.env["VITE_SUPABASE_URL"];
+    const publishableKey =
+      process.env["SUPABASE_PUBLISHABLE_KEY"] ?? import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
     const report: TelegramCaptureResult = {
       sourcesChecked: 0,
       offersCaptured: 0,
@@ -52,10 +55,6 @@ export const captureTelegramSource = createServerFn({ method: "POST" })
       offersFailed: 0,
       errors: [],
     };
-
-    const url = process.env["SUPABASE_URL"] ?? import.meta.env["VITE_SUPABASE_URL"];
-    const publishableKey =
-      process.env["SUPABASE_PUBLISHABLE_KEY"] ?? import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
     if (!url || !publishableKey) {
       report.errors.push("Servidor sem configuração do Supabase.");
       return report;
@@ -70,49 +69,7 @@ export const captureTelegramSource = createServerFn({ method: "POST" })
       global: { headers: { Authorization: `Bearer ${data.token}` } },
     });
 
-    try {
-      const username = extractTelegramUsername(data.identifier);
-      if (!username) {
-        report.errors.push("Identificador do canal inválido (use @usuario).");
-        return report;
-      }
-      report.sourcesChecked++;
-
-      const { data: marketplaces } = await client
-        .from("marketplaces")
-        .select("id, slug")
-        .eq("is_active", true);
-      const marketplaceIdBySlug = new Map<string, string>();
-      for (const marketplace of marketplaces ?? []) {
-        if (marketplace.slug)
-          marketplaceIdBySlug.set(marketplace.slug.toLowerCase(), marketplace.id);
-      }
-
-      const html = await fetchTmePublicPreview(username);
-      if (!html) {
-        report.errors.push(`${username}: não foi possível acessar a prévia do canal.`);
-        return report;
-      }
-
-      const posts = parseTmePosts(html);
-      let processed = 0;
-      for (const post of posts.slice(0, MAX_CAPTURES_PER_SOURCE)) {
-        const captured = await capturePost(client, data, username, post, marketplaceIdBySlug);
-        if (captured === "captured") report.offersCaptured++;
-        else if (captured === "ignored") report.offersIgnored++;
-        else if (captured === "failed") report.offersFailed++;
-        processed++;
-      }
-      if (processed === 0) {
-        report.errors.push(`${username}: nenhum post encontrado na prévia.`);
-      }
-    } catch (error) {
-      report.errors.push(
-        `${data.identifier}: ${error instanceof Error ? error.message : "erro inesperado"}`,
-      );
-    }
-
-    return report;
+    return captureTelegramChannel(client, data);
   });
 
 // Cliente Supabase sem tipagem estática — as colunas foram conferidas contra o
@@ -120,11 +77,67 @@ export const captureTelegramSource = createServerFn({ method: "POST" })
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = any;
 
+/** Núcleo da captura, reutilizável com cliente de usuário (RPC) ou admin (job agendado). */
+export async function captureTelegramChannel(
+  client: Db,
+  payload: { identifier: string; sourceId: string; userId: string },
+): Promise<TelegramCaptureResult> {
+  const report: TelegramCaptureResult = {
+    sourcesChecked: 0,
+    offersCaptured: 0,
+    offersIgnored: 0,
+    offersFailed: 0,
+    errors: [],
+  };
+  try {
+    const username = extractTelegramUsername(payload.identifier);
+    if (!username) {
+      report.errors.push("Identificador do canal inválido (use @usuario).");
+      return report;
+    }
+    report.sourcesChecked++;
+
+    const { data: marketplaces } = await client
+      .from("marketplaces")
+      .select("id, slug")
+      .eq("is_active", true);
+    const marketplaceIdBySlug = new Map<string, string>();
+    for (const marketplace of marketplaces ?? []) {
+      if (marketplace.slug) marketplaceIdBySlug.set(marketplace.slug.toLowerCase(), marketplace.id);
+    }
+
+    const html = await fetchTmePublicPreview(username);
+    if (!html) {
+      report.errors.push(`${username}: não foi possível acessar a prévia do canal.`);
+      return report;
+    }
+
+    const posts = parseTmePosts(html);
+    let processed = 0;
+    for (const post of posts.slice(0, MAX_CAPTURES_PER_SOURCE)) {
+      const captured = await capturePost(client, payload, username, post, marketplaceIdBySlug);
+      if (captured === "captured") report.offersCaptured++;
+      else if (captured === "ignored") report.offersIgnored++;
+      else if (captured === "failed") report.offersFailed++;
+      processed++;
+    }
+    if (processed === 0) {
+      report.errors.push(`${username}: nenhum post encontrado na prévia.`);
+    }
+  } catch (error) {
+    report.errors.push(
+      `${payload.identifier}: ${error instanceof Error ? error.message : "erro inesperado"}`,
+    );
+  }
+
+  return report;
+}
+
 type CaptureOutcome = "captured" | "ignored" | "failed";
 
 async function capturePost(
   client: Db,
-  payload: CapturePayload,
+  payload: { identifier: string; sourceId: string; userId: string },
   username: string,
   post: { id: string; textHtml: string; time: string | null; image: string | null },
   marketplaceIdBySlug: Map<string, string>,
@@ -213,7 +226,7 @@ async function capturePost(
 
 async function isAlreadyProcessed(
   client: Db,
-  payload: CapturePayload,
+  payload: { identifier: string; sourceId: string; userId: string },
   username: string,
   postId: string,
   url: string,
@@ -231,7 +244,7 @@ async function isAlreadyProcessed(
 }
 
 function contentHash(
-  payload: CapturePayload,
+  payload: { identifier: string; sourceId: string; userId: string },
   username: string,
   postId: string,
   url: string,
