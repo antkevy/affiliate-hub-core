@@ -708,13 +708,14 @@ export async function sendTelegramMedia(
   media: TelegramMediaItem[],
   caption: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  const shortCaption = caption.slice(0, 1000);
   try {
     if (media.length === 1) {
       const first = media[0];
       if (!first) return { ok: false, error: "Mídia vazia." };
       const form = new FormData();
       form.append("chat_id", chatId);
-      form.append("caption", caption);
+      form.append("caption", shortCaption);
       form.append("photo", first.blob, first.name);
       return await postTelegramForm(token, "sendPhoto", form);
     }
@@ -723,7 +724,7 @@ export async function sendTelegramMedia(
     const photos = media.map((item, index) => ({
       type: "photo" as const,
       media: `attach://${item.name}`,
-      ...(index === 0 ? { caption } : {}),
+      ...(index === 0 ? { caption: shortCaption } : {}),
     }));
     form.append("media", JSON.stringify(photos));
     for (const item of media) form.append(item.name, item.blob, item.name);
@@ -742,12 +743,14 @@ async function postTelegramForm(
     method: "POST",
     body: form,
   });
-  const body = (await response.json().catch(() => ({}))) as {
-    ok?: boolean;
-    description?: string;
-  };
-  if (!response.ok || body.ok !== true) {
-    return { ok: false, error: body.description ?? `Telegram HTTP ${response.status}` };
+  const body = (await response.json().catch(() => ({}))) as unknown;
+  const ok = Array.isArray(body) ? response.ok : (body as { ok?: boolean })?.ok === true;
+  if (!response.ok || !ok) {
+    const description = (body as { description?: string })?.description;
+    return {
+      ok: false,
+      error: description ?? `Telegram HTTP ${response.status}`,
+    };
   }
   return { ok: true };
 }
