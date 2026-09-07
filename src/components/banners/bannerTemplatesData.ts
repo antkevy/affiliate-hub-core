@@ -9,7 +9,7 @@ export const BANNER_TEMPLATES: BannerTemplate[] = [
       "Modelo original clássico Affiliate Hub com fundo escuro texturizado, selo amarelo, preços e botão CTA.",
     defaultConfig: {
       templateId: "black-gold-default",
-      title: "➡️ Creatine Turbo Refil - 1Kg - Sem sabor - BlackSkull - Creatina Mono",
+      title: "Creatine Turbo Refil - 1Kg - BlackSkull",
       subtitle: "",
       originalPrice: "R$ 42,00",
       currentPrice: "R$ 42,00",

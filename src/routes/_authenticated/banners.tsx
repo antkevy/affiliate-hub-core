@@ -323,12 +323,24 @@ function BannerStudio({
     const box = previewBoxRef.current;
     const node = previewScalerRef.current;
     if (!box || !node) return;
-    const width = node.offsetWidth;
-    const height = node.offsetHeight;
-    const boxWidth = box.clientWidth - 32;
-    const boxHeight = box.clientHeight - 32;
-    if (!width || !height || !boxWidth || !boxHeight) return;
-    setPreviewScale(Math.min(1, boxWidth / width, boxHeight / height));
+
+    const measure = () => {
+      const width = node.offsetWidth;
+      const height = node.offsetHeight;
+      const boxWidth = box.clientWidth - 32;
+      const boxHeight = box.clientHeight - 32;
+      if (width > 0 && height > 0 && boxWidth > 0 && boxHeight > 0) {
+        setPreviewScale(Math.min(1, boxWidth / width, boxHeight / height));
+      }
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(box);
+    observer.observe(node);
+
+    return () => observer.disconnect();
   }, [draft]);
 
   return (
