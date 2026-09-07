@@ -10,7 +10,7 @@ export interface AutomationConfigValues {
 
 const EMPTY: AutomationConfigValues = {
   interval_minutes: null,
-  ai_enabled: false,
+  ai_enabled: true,
   ai_instruction: "",
   include_banner: false,
   banner_id: null,
@@ -21,7 +21,7 @@ export function automationConfigOf(automation: Automation): AutomationConfigValu
   return {
     interval_minutes:
       typeof config["interval_minutes"] === "number" ? config["interval_minutes"] : null,
-    ai_enabled: config["ai_enabled"] === true,
+    ai_enabled: config["ai_enabled"] !== false,
     ai_instruction: typeof config["ai_instruction"] === "string" ? config["ai_instruction"] : "",
     include_banner: config["include_banner"] === true,
     banner_id: typeof config["banner_id"] === "string" ? config["banner_id"] : null,

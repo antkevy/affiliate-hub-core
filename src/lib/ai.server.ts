@@ -65,7 +65,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "Esta captura é sobre um CUPOM DE DESCONTO. Pegue o texto original/título e reescreva-o " +
     "com palavras DIFERENTES e atraentes para o público de afiliados, utilizando o seguinte formato base:\n" +
     "➡️ 🔥 [Título ou chamada sobre o cupom reescrita com palavras diferentes]\n\n" +
-    "🔥 [Preço ou Valor do cupom: ex: R$ 60,00]\n" +
+    "✅ [Preço ou Valor do cupom: ex: R$ 60,00]\n" +
     "⚡ [Desconto] OFF\n" +
     "🏷️ Cupom: `[Código do cupom, se houver]`\n\n" +
     "🛒 [Link]\n" +
@@ -76,7 +76,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "Escreva em português do Brasil, tom persuasivo para canal de ofertas. " +
     "Use exatamente este formato, linha por linha (troque tudo entre {} pelos valores reais):\n" +
     "➡️ {titulo}\n\n" +
-    "🔥 {preco}\n" +
+    "✅ {preco}\n" +
     "⚡ {desconto} OFF\n" +
     "🏷️ Cupom: {cupom}\n\n" +
     "🛒 {link}\n" +
@@ -116,7 +116,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "Quando a captura for sobre CUPOM, você deve PEGAR O TEXTO ORIGINAL E REESCREVER " +
     "a chamada com palavras DIFERENTES e atraentes, estruturando no padrão base:\n" +
     "➡️ 🔥 [Título ou chamada reescrita com palavras diferentes]\n\n" +
-    "🔥 [Preço ou Valor do cupom]\n" +
+    "✅ [Preço ou Valor do cupom]\n" +
     "⚡ [Desconto] OFF\n" +
     "🏷️ Cupom: `[Código do cupom (se houver)]`\n\n" +
     "🛒 [Link]\n" +
@@ -128,7 +128,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "produzir a mensagem final pronta para publicação em um canal do Telegram/WhatsApp " +
     "seguindo a estrutura:\n" +
     "➡️ [Título]\n\n" +
-    "🔥 [Preço]\n" +
+    "✅ [Preço]\n" +
     "⚡ [Desconto] OFF\n" +
     "🏷️ Cupom: [Cupom]\n\n" +
     "🛒 [Link]\n" +

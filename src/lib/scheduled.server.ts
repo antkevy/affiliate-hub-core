@@ -767,7 +767,7 @@ function defaultContentServer(offer: Offer, marketplaceName: Map<string, string>
 
   const priceLines: string[] = [];
   if (offer.sale_price !== null) {
-    priceLines.push(`🔥 ${money(offer.sale_price)}`);
+    priceLines.push(`✅ ${money(offer.sale_price)}`);
   }
   if (offer.discount_percentage !== null && offer.discount_percentage !== undefined) {
     priceLines.push(`⚡ ${offer.discount_percentage}% OFF`);

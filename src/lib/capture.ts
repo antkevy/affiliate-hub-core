@@ -631,14 +631,16 @@ export async function runAutomation(automation: {
             marketplace: marketplaceName.get(offer.marketplace_id ?? "") ?? "—",
           })
         : defaultContent(offer, marketplaceName);
-      const finalContent = automation.configuration?.ai_enabled
-        ? await applyAI(offer, content, automation.configuration.ai_instruction, Boolean(template))
-        : content;
+      const automationConfig = automation.configuration ?? {};
+      const finalContent =
+        automationConfig.ai_enabled !== false
+          ? await applyAI(offer, content, automationConfig.ai_instruction, Boolean(template))
+          : content;
       const media =
-        destination.type === "telegram" && automation.configuration?.include_banner
+        destination.type === "telegram" && automationConfig.include_banner
           ? await buildPublicationMedia(
               offer,
-              { banner_id: automation.configuration.banner_id ?? null },
+              { banner_id: automationConfig.banner_id ?? null },
               marketplaceName.get(offer.marketplace_id ?? "") ?? null,
             )
           : [];
@@ -762,10 +764,11 @@ async function buildPublicationMedia(
     }
     if (!saved) {
       const allBanners = await bannersRepo.list();
-      const defaultBanner = allBanners.find((b) => {
-        const c = bannerConfigOf(b);
-        return c.isDefault === true;
-      }) ?? allBanners[0];
+      const defaultBanner =
+        allBanners.find((b) => {
+          const c = bannerConfigOf(b);
+          return c.isDefault === true;
+        }) ?? allBanners[0];
       if (defaultBanner) saved = bannerConfigOf(defaultBanner);
     }
 
@@ -830,9 +833,7 @@ async function sendWebhook(url: string, offer: Offer): Promise<{ ok: boolean; er
 
 function defaultContent(offer: Offer, marketplaceName: Map<string, string>): string {
   const parts: string[] = [];
-  const isCoupon =
-    Boolean(offer.coupon?.trim()) ||
-    /cupom|cupons|voucher/i.test(offer.title ?? "");
+  const isCoupon = Boolean(offer.coupon?.trim()) || /cupom|cupons|voucher/i.test(offer.title ?? "");
 
   if (offer.title) {
     if (offer.title.startsWith("➡️")) {
@@ -846,7 +847,7 @@ function defaultContent(offer: Offer, marketplaceName: Map<string, string>): str
 
   const priceLines: string[] = [];
   if (offer.sale_price !== null) {
-    priceLines.push(`🔥 ${money(offer.sale_price)}`);
+    priceLines.push(`✅ ${money(offer.sale_price)}`);
   }
   if (offer.discount_percentage !== null && offer.discount_percentage !== undefined) {
     priceLines.push(`⚡ ${offer.discount_percentage}% OFF`);

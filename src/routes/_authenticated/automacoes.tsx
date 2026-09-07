@@ -19,6 +19,7 @@ import { toUserMessage } from "@/services/base";
 import { useCapture } from "@/hooks/useCapture";
 import { useAutomationScheduler } from "@/hooks/useAutomationScheduler";
 import { automationConfigOf, automationConfigValues } from "@/lib/automation-config";
+import { AI_DEFAULT_INSTRUCTION } from "@/lib/monitor-config";
 import { ENTITY_STATUS_LABEL, type Automation } from "@/types";
 
 export const Route = createFileRoute("/_authenticated/automacoes")({
@@ -61,12 +62,18 @@ function configFields(banners: { value: string; label: string }[]): DialogField[
       key: "ai_enabled",
       label: "Reescrever com IA",
       type: "select",
+      defaultValue: "yes",
       options: [
         { value: "yes", label: "Sim (Groq)" },
         { value: "no", label: "Não" },
       ],
     },
-    { key: "ai_instruction", label: "Instrução de estilo (IA)", type: "textarea" },
+    {
+      key: "ai_instruction",
+      label: "Instrução de estilo (IA)",
+      type: "textarea",
+      defaultValue: AI_DEFAULT_INSTRUCTION,
+    },
     {
       key: "include_banner",
       label: "Anexar banner + imagem",

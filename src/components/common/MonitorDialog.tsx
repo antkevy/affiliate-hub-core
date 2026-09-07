@@ -1,14 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import {
-  Bot,
-  Inbox,
-  Landmark,
-  Megaphone,
-  Image,
-  SlidersHorizontal,
-  Tag,
-  Users,
-} from "lucide-react";
+import { Bot, Inbox, Landmark, Megaphone, SlidersHorizontal, Tag, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -33,7 +25,12 @@ import {
 } from "@/components/ui/select";
 import { MultiSelect } from "@/components/common/MultiSelect";
 import { toUserMessage } from "@/services/base";
-import { initialForm, type MonitorFormValues } from "@/lib/monitor-config";
+import {
+  AI_DEFAULT_INSTRUCTION,
+  AI_INSTRUCTION_PRESETS,
+  initialForm,
+  type MonitorFormValues,
+} from "@/lib/monitor-config";
 import {
   SOURCE_TYPES,
   type Banner,
@@ -121,6 +118,16 @@ export function MonitorDialog({
 
   const marketplaceOptions = marketplaces.map((item) => ({ value: item.id, label: item.name }));
 
+  const activePreset =
+    AI_INSTRUCTION_PRESETS.find((preset) => preset.instruction === form.ai_instruction)?.id ??
+    "custom";
+
+  function applyPreset(presetId: string) {
+    if (presetId === "custom") return;
+    const preset = AI_INSTRUCTION_PRESETS.find((item) => item.id === presetId);
+    if (preset) setForm((current) => ({ ...current, ai_instruction: preset.instruction }));
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
@@ -130,259 +137,330 @@ export function MonitorDialog({
           {description ? <DialogDescription>{description}</DialogDescription> : null}
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Section
-            icon={Tag}
-            title="Identificação"
-            hint="Um nome para reconhecer este monitor à primeira vista."
-          >
-            <div className="space-y-1.5">
-              <Label htmlFor="monitor-name">Nome</Label>
-              <Input
-                id="monitor-name"
-                required
-                placeholder="Ofertas diárias do Telegram"
-                value={form.name}
-                onChange={(event) => setForm((form) => ({ ...form, name: event.target.value }))}
-              />
-            </div>
-          </Section>
+          <Tabs defaultValue="geral">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="geral">Geral</TabsTrigger>
+              <TabsTrigger value="ia">IA</TabsTrigger>
+            </TabsList>
 
-          <Section
-            icon={Users}
-            title="Fontes assistidas"
-            hint="Grupos e canais de Telegram, WhatsApp ou feeds que este monitor vai acompanhar."
-          >
-            <div className="space-y-1.5">
-              <Label htmlFor="monitor-sources">Grupos e canais</Label>
-              <MultiSelect
-                id="monitor-sources"
-                options={sourceOptions}
-                value={form.source_ids}
-                onChange={(source_ids) => setForm((form) => ({ ...form, source_ids }))}
-                placeholder="Selecione os grupos e canais"
-                searchPlaceholder="Buscar por nome, tipo ou identificador"
-                emptyText="Nenhum grupo ou canal encontrado."
-              />
-              {sources.length === 0 ? (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Inbox className="size-3.5 shrink-0" />
-                  Nenhuma fonte cadastrada. Crie uma em <strong>Fontes</strong> primeiro.
-                </p>
-              ) : null}
-            </div>
-          </Section>
+            <TabsContent value="geral" className="mt-3 space-y-5">
+              <Section
+                icon={Tag}
+                title="Identificação"
+                hint="Um nome para reconhecer este monitor à primeira vista."
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor="monitor-name">Nome</Label>
+                  <Input
+                    id="monitor-name"
+                    required
+                    placeholder="Ofertas diárias do Telegram"
+                    value={form.name}
+                    onChange={(event) => setForm((form) => ({ ...form, name: event.target.value }))}
+                  />
+                </div>
+              </Section>
 
-          <Section
-            icon={Landmark}
-            title="Marketplaces"
-            hint="De quais marketplaces as ofertas podem ser capturadas. Deixe vazio para aceitar todos."
-          >
-            <div className="space-y-1.5">
-              <Label htmlFor="monitor-marketplaces">Plataformas permitidas</Label>
-              <MultiSelect
-                id="monitor-marketplaces"
-                options={marketplaceOptions}
-                value={form.marketplace_ids}
-                onChange={(marketplace_ids) => setForm((form) => ({ ...form, marketplace_ids }))}
-                placeholder="Todos os marketplaces"
-                searchPlaceholder="Buscar marketplace"
-                emptyText="Nenhum marketplace encontrado."
-              />
-            </div>
-          </Section>
+              <Section
+                icon={Users}
+                title="Fontes assistidas"
+                hint="Grupos e canais de Telegram, WhatsApp ou feeds que este monitor vai acompanhar."
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor="monitor-sources">Grupos e canais</Label>
+                  <MultiSelect
+                    id="monitor-sources"
+                    options={sourceOptions}
+                    value={form.source_ids}
+                    onChange={(source_ids) => setForm((form) => ({ ...form, source_ids }))}
+                    placeholder="Selecione os grupos e canais"
+                    searchPlaceholder="Buscar por nome, tipo ou identificador"
+                    emptyText="Nenhum grupo ou canal encontrado."
+                  />
+                  {sources.length === 0 ? (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Inbox className="size-3.5 shrink-0" />
+                      Nenhuma fonte cadastrada. Crie uma em <strong>Fontes</strong> primeiro.
+                    </p>
+                  ) : null}
+                </div>
+              </Section>
 
-          <Section
-            icon={SlidersHorizontal}
-            title="Filtros de oferta"
-            hint="Critérios para decidir se uma oferta será aproveitada."
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="monitor-discount">Desconto mínimo (%)</Label>
-                <Input
-                  id="monitor-discount"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={1}
-                  placeholder="Ex.: 30"
-                  value={form.min_discount ?? ""}
-                  onChange={(event) =>
-                    setForm((form) => ({
-                      ...form,
-                      min_discount: parseNumber(event.target.value),
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="monitor-price">Preço máximo (R$)</Label>
-                <Input
-                  id="monitor-price"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  placeholder="Ex.: 149,90"
-                  value={form.max_price ?? ""}
-                  onChange={(event) =>
-                    setForm((form) => ({ ...form, max_price: parseNumber(event.target.value) }))
-                  }
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="monitor-keywords">Palavras-chave</Label>
-              <Input
-                id="monitor-keywords"
-                placeholder="fone, bluetooth, 50% off (separadas por vírgula)"
-                value={form.keywords}
-                onChange={(event) => setForm((form) => ({ ...form, keywords: event.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="monitor-blocked">Palavras a excluir</Label>
-              <Input
-                id="monitor-blocked"
-                placeholder="usado, recondicionado, genérico, importado"
-                value={form.blocked_keywords}
-                onChange={(event) =>
-                  setForm((form) => ({ ...form, blocked_keywords: event.target.value }))
-                }
-              />
-            </div>
-          </Section>
+              <Section
+                icon={Landmark}
+                title="Marketplaces"
+                hint="De quais marketplaces as ofertas podem ser capturadas. Deixe vazio para aceitar todos."
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor="monitor-marketplaces">Plataformas permitidas</Label>
+                  <MultiSelect
+                    id="monitor-marketplaces"
+                    options={marketplaceOptions}
+                    value={form.marketplace_ids}
+                    onChange={(marketplace_ids) =>
+                      setForm((form) => ({ ...form, marketplace_ids }))
+                    }
+                    placeholder="Todos os marketplaces"
+                    searchPlaceholder="Buscar marketplace"
+                    emptyText="Nenhum marketplace encontrado."
+                  />
+                </div>
+              </Section>
 
-          <Section
-            icon={Megaphone}
-            title="Publicação"
-            hint="Onde a oferta será publicada e qual modelo de mensagem será usado."
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="monitor-destination">Destino</Label>
-                <FieldSelect
-                  id="monitor-destination"
-                  value={form.destination_id ?? "none"}
-                  onValueChange={(value) =>
-                    setForm((form) => ({ ...form, destination_id: value === "none" ? null : value }))
-                  }
-                  options={[
-                    { value: "none", label: "Sem destino vinculado" },
-                    ...destinations.map((item) => ({ value: item.id, label: item.name })),
-                  ]}
-                  placeholder="Sem destino vinculado"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="monitor-template">Template</Label>
-                <FieldSelect
-                  id="monitor-template"
-                  value={form.template_id ?? "none"}
-                  onValueChange={(value) =>
-                    setForm((form) => ({ ...form, template_id: value === "none" ? null : value }))
-                  }
-                  options={[
-                    { value: "none", label: "Sem template (Padrão do sistema)" },
-                    ...templates.map((item) => ({ value: item.id, label: item.name })),
-                  ]}
-                  placeholder="Sem template vinculado"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="monitor-spacing">Intervalo entre posts (min)</Label>
-              <Input
-                id="monitor-spacing"
-                type="number"
-                min={1}
-                step={1}
-                placeholder="Ex.: 30 — em branco publica todas"
-                value={form.spacing_minutes ?? ""}
-                onChange={(event) =>
-                  setForm((form) => ({ ...form, spacing_minutes: parseNumber(event.target.value) }))
-                }
-              />
-            </div>
-          </Section>
+              <Section
+                icon={SlidersHorizontal}
+                title="Filtros de oferta"
+                hint="Critérios para decidir se uma oferta será aproveitada."
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monitor-discount">Desconto mínimo (%)</Label>
+                    <Input
+                      id="monitor-discount"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      placeholder="Ex.: 30"
+                      value={form.min_discount ?? ""}
+                      onChange={(event) =>
+                        setForm((form) => ({
+                          ...form,
+                          min_discount: parseNumber(event.target.value),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monitor-price">Preço máximo (R$)</Label>
+                    <Input
+                      id="monitor-price"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="Ex.: 149,90"
+                      value={form.max_price ?? ""}
+                      onChange={(event) =>
+                        setForm((form) => ({ ...form, max_price: parseNumber(event.target.value) }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="monitor-keywords">Palavras-chave</Label>
+                  <Input
+                    id="monitor-keywords"
+                    placeholder="fone, bluetooth, 50% off (separadas por vírgula)"
+                    value={form.keywords}
+                    onChange={(event) =>
+                      setForm((form) => ({ ...form, keywords: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="monitor-blocked">Palavras a excluir</Label>
+                  <Input
+                    id="monitor-blocked"
+                    placeholder="usado, recondicionado, genérico, importado"
+                    value={form.blocked_keywords}
+                    onChange={(event) =>
+                      setForm((form) => ({ ...form, blocked_keywords: event.target.value }))
+                    }
+                  />
+                </div>
+              </Section>
 
-          <Section
-            icon={Bot}
-            title="Inteligência e mídia"
-            hint="Reescreva a mensagem com IA e anexe um banner com a imagem do produto no Telegram."
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <Label htmlFor="monitor-ai">Reescrever mensagem com IA</Label>
-                <p className="text-xs text-muted-foreground">
-                  Usa Groq; sem chave configurada cai no template.
-                </p>
-              </div>
-              <Switch
-                id="monitor-ai"
-                checked={form.ai_enabled}
-                onCheckedChange={(ai_enabled) => setForm((form) => ({ ...form, ai_enabled }))}
-              />
-            </div>
-            {form.ai_enabled ? (
-              <div className="space-y-1.5">
-                <Label htmlFor="monitor-ai-instruction">Instrução de estilo (opcional)</Label>
-                <Textarea
-                  id="monitor-ai-instruction"
-                  rows={2}
-                  placeholder="Ex.: tom divertido, poucos emojis, destaque o prazo da promoção."
-                  value={form.ai_instruction}
-                  onChange={(event) =>
-                    setForm((form) => ({ ...form, ai_instruction: event.target.value }))
-                  }
-                />
-              </div>
-            ) : null}
-            <div className="flex items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <Label htmlFor="monitor-banner">Anexar banner + imagem do produto</Label>
-                <p className="text-xs text-muted-foreground">
-                  Gera o PNG do banner e envia junto com a foto do produto (media group).
-                </p>
-              </div>
-              <Switch
-                id="monitor-banner"
-                checked={form.include_banner}
-                onCheckedChange={(include_banner) =>
-                  setForm((form) => ({ ...form, include_banner }))
-                }
-              />
-            </div>
-            {form.include_banner ? (
-              <div className="space-y-1.5">
-                <Label htmlFor="monitor-banner-base">Banner base</Label>
-                <FieldSelect
-                  id="monitor-banner-base"
-                  value={form.banner_id ?? "none"}
-                  onValueChange={(value) =>
-                    setForm((form) => ({ ...form, banner_id: value === "none" ? null : value }))
-                  }
-                  options={[
-                    { value: "none", label: "Template padrão" },
-                    ...banners.map((item) => ({ value: item.id, label: item.name })),
-                  ]}
-                  placeholder="Template padrão"
-                />
-              </div>
-            ) : null}
-          </Section>
+              <Section
+                icon={Megaphone}
+                title="Publicação"
+                hint="Onde a oferta será publicada, o modelo de mensagem e o banner no Telegram."
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monitor-destination">Destino</Label>
+                    <FieldSelect
+                      id="monitor-destination"
+                      value={form.destination_id ?? "none"}
+                      onValueChange={(value) =>
+                        setForm((form) => ({
+                          ...form,
+                          destination_id: value === "none" ? null : value,
+                        }))
+                      }
+                      options={[
+                        { value: "none", label: "Sem destino vinculado" },
+                        ...destinations.map((item) => ({ value: item.id, label: item.name })),
+                      ]}
+                      placeholder="Sem destino vinculado"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monitor-template">Template</Label>
+                    <FieldSelect
+                      id="monitor-template"
+                      value={form.template_id ?? "none"}
+                      onValueChange={(value) =>
+                        setForm((form) => ({
+                          ...form,
+                          template_id: value === "none" ? null : value,
+                        }))
+                      }
+                      options={[
+                        { value: "none", label: "Sem template (Padrão do sistema)" },
+                        ...templates.map((item) => ({ value: item.id, label: item.name })),
+                      ]}
+                      placeholder="Sem template vinculado"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="monitor-spacing">Intervalo entre posts (min)</Label>
+                  <Input
+                    id="monitor-spacing"
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="Ex.: 30 — em branco publica todas"
+                    value={form.spacing_minutes ?? ""}
+                    onChange={(event) =>
+                      setForm((form) => ({
+                        ...form,
+                        spacing_minutes: parseNumber(event.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="monitor-banner">Anexar banner + imagem do produto</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Gera o PNG do banner e envia junto com a foto do produto (media group).
+                    </p>
+                  </div>
+                  <Switch
+                    id="monitor-banner"
+                    checked={form.include_banner}
+                    onCheckedChange={(include_banner) =>
+                      setForm((form) => ({ ...form, include_banner }))
+                    }
+                  />
+                </div>
+                {form.include_banner ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monitor-banner-base">Banner base</Label>
+                    <FieldSelect
+                      id="monitor-banner-base"
+                      value={form.banner_id ?? "none"}
+                      onValueChange={(value) =>
+                        setForm((form) => ({ ...form, banner_id: value === "none" ? null : value }))
+                      }
+                      options={[
+                        { value: "none", label: "Template padrão" },
+                        ...banners.map((item) => ({ value: item.id, label: item.name })),
+                      ]}
+                      placeholder="Template padrão"
+                    />
+                  </div>
+                ) : null}
+              </Section>
 
-          <Section icon={Tag} title="Configurações" hint="Ajustes adicionais e observações.">
-            <div className="space-y-1.5">
-              <Label htmlFor="monitor-notes">Notas</Label>
-              <Textarea
-                id="monitor-notes"
-                rows={3}
-                placeholder="Observações e ajustes de configuração do monitor."
-                value={form.notes}
-                onChange={(event) => setForm((form) => ({ ...form, notes: event.target.value }))}
-              />
-            </div>
-          </Section>
+              <Section icon={Tag} title="Configurações" hint="Ajustes adicionais e observações.">
+                <div className="space-y-1.5">
+                  <Label htmlFor="monitor-notes">Notas</Label>
+                  <Textarea
+                    id="monitor-notes"
+                    rows={3}
+                    placeholder="Observações e ajustes de configuração do monitor."
+                    value={form.notes}
+                    onChange={(event) =>
+                      setForm((form) => ({ ...form, notes: event.target.value }))
+                    }
+                  />
+                </div>
+              </Section>
+            </TabsContent>
+
+            <TabsContent value="ia" className="mt-3 space-y-5">
+              <Section
+                icon={Bot}
+                title="Reescrita com IA"
+                hint="A IA reformata e aprimora a mensagem publicada. Ativada por padrão; sem a chave Groq configurada, a publicação cai no template/padrão."
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="monitor-ai">Reescrever mensagem com IA</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Recomendado manter ativado para formatar cupom, moedas e desconto.
+                    </p>
+                  </div>
+                  <Switch
+                    id="monitor-ai"
+                    checked={form.ai_enabled}
+                    onCheckedChange={(ai_enabled) => setForm((form) => ({ ...form, ai_enabled }))}
+                  />
+                </div>
+
+                {form.ai_enabled ? (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="monitor-ai-preset">Modelo de estilo</Label>
+                      <FieldSelect
+                        id="monitor-ai-preset"
+                        value={activePreset}
+                        onValueChange={applyPreset}
+                        options={[
+                          { value: "custom", label: "Personalizada (edite abaixo)" },
+                          ...AI_INSTRUCTION_PRESETS.map((preset) => ({
+                            value: preset.id,
+                            label: preset.label,
+                          })),
+                        ]}
+                      />
+                      {(() => {
+                        const preset = AI_INSTRUCTION_PRESETS.find(
+                          (item) => item.id === activePreset,
+                        );
+                        return preset ? (
+                          <p className="text-xs text-muted-foreground">{preset.hint}</p>
+                        ) : null;
+                      })()}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="monitor-ai-instruction">Instrução de estilo</Label>
+                      <Textarea
+                        id="monitor-ai-instruction"
+                        rows={6}
+                        className="font-mono text-xs"
+                        placeholder="Cole ou edite a instrução que a IA deve seguir ao escrever a mensagem."
+                        value={form.ai_instruction}
+                        onChange={(event) =>
+                          setForm((form) => ({ ...form, ai_instruction: event.target.value }))
+                        }
+                      />
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          Inclui cupom, moedas do AliExpress e desconto automaticamente.
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setForm((form) => ({
+                              ...form,
+                              ai_instruction: AI_DEFAULT_INSTRUCTION,
+                            }))
+                          }
+                        >
+                          Restaurar padrão
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+              </Section>
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter className="sm:justify-end">
             <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>

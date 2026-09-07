@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/templates")({
 
 const DEFAULT_CONTENT = `➡️ {titulo}
 
-🔥 {preco}
+✅ {preco}
 ⚡ {desconto} OFF
 🏷️ Cupom: {cupom}
 
