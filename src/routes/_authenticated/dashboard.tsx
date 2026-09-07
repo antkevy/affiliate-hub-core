@@ -3,9 +3,14 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
+  ArrowRight,
+  Bot,
   HeartPulse,
+  Link2,
   Megaphone,
+  Plus,
   RefreshCw,
+  Send,
   ShoppingBag,
   Tags,
   Workflow,
@@ -122,6 +127,13 @@ function DashboardPage() {
     (marketplaces.data ?? []).map((marketplace) => [marketplace.id, marketplace.name]),
   );
 
+  const quickActions = [
+    { label: "Nova oferta", icon: Plus, to: "/ofertas" },
+    { label: "Criar automação", icon: Bot, to: "/automacoes" },
+    { label: "Gerar link", icon: Link2, to: "/links" },
+    { label: "Ver publicações", icon: Send, to: "/publicacoes" },
+  ] as const;
+
   return (
     <>
       <PageHeader
@@ -193,6 +205,30 @@ function DashboardPage() {
               accent="text-warning bg-warning/10 border-warning/20"
               delay={120}
             />
+          </div>
+
+          <div className="animate-rise" style={{ animationDelay: "130ms" }}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-eyebrow">Ações rápidas</p>
+              <p className="text-xs text-subtle-foreground">Atalhos para as rotinas mais comuns</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {quickActions.map((action) => (
+                <Link
+                  key={action.label}
+                  to={action.to}
+                  className="group flex min-h-16 items-center justify-between gap-3 rounded-xl border border-border bg-secondary/50 p-3 transition-colors hover:border-primary/25 hover:bg-secondary"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-background text-muted-foreground">
+                      <action.icon className="size-4" />
+                    </span>
+                    <span className="text-[13px] font-medium">{action.label}</span>
+                  </span>
+                  <ArrowRight className="size-4 shrink-0 text-subtle-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                </Link>
+              ))}
+            </div>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
