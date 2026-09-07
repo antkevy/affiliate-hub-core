@@ -51,6 +51,7 @@ export function buildOfferBannerConfig(
       : (saved?.tagline ?? fallback.tagline ?? ""),
     showSticker: discount ? true : (saved?.showSticker ?? fallback.showSticker ?? false),
     stickerText: discount || (saved?.stickerText ?? ""),
+    showButton: saved?.showButton ?? fallback.showButton ?? true,
     buttonText: saved?.buttonText ?? "GARANTIR OFERTA",
     aspectRatio: saved?.aspectRatio ?? "1:1",
     subtitle: saved?.subtitle ?? "Aproveite enquanto dura · Oferta verificada",

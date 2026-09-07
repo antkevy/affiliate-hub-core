@@ -20,6 +20,7 @@ export const EMPTY_BANNER_CONFIG: BannerConfig = {
   tagline: "",
   showSticker: false,
   stickerText: "",
+  showButton: true,
   style: {
     backgroundGradient: "from-slate-950 via-zinc-900 to-black",
     textColor: "text-white",
@@ -45,6 +46,7 @@ export function bannerConfigOf(banner: Banner): BannerConfig {
     templateId: stored.templateId ?? EMPTY_BANNER_CONFIG.templateId,
     aspectRatio: stored.aspectRatio ?? EMPTY_BANNER_CONFIG.aspectRatio,
     marketplace: stored.marketplace ?? EMPTY_BANNER_CONFIG.marketplace,
+    showButton: stored.showButton ?? true,
     style,
   };
 }

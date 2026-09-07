@@ -63,6 +63,11 @@ export function SavedBannersGrid({ banners, onSelectEdit, onDelete }: SavedBanne
                 <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
                   {config.aspectRatio}
                 </Badge>
+                {config.showButton === false && (
+                  <Badge variant="secondary" className="shrink-0 text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                    Post de Grupo
+                  </Badge>
+                )}
               </div>
               <span className="shrink-0 text-xs text-muted-foreground">
                 {new Date(banner.created_at).toLocaleDateString("pt-BR")}

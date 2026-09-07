@@ -247,15 +247,38 @@ export function BannerEditor({ config, onChange, onReset }: BannerEditorProps) {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="banner-button-text" className="text-xs font-semibold">
-                  Texto do Botão (CTA)
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="banner-button-text" className="text-xs font-semibold">
+                    Texto do Botão (CTA)
+                  </Label>
+                  {config.showButton === false && (
+                    <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                      Oculto (Post de Grupo)
+                    </span>
+                  )}
+                </div>
                 <Input
                   id="banner-button-text"
                   value={config.buttonText}
                   onChange={(event) => handleInputChange("buttonText", event.target.value)}
                   placeholder="PEGAR OFERTA"
+                  disabled={config.showButton === false}
                   className="text-sm uppercase font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-3 border-t border-border/50">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Modo Post de Grupo (Sem Botão)</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Oculta o botão CTA inferior para gerar imagens focadas em anúncios de grupos
+                  </p>
+                </div>
+                <Switch
+                  checked={config.showButton === false}
+                  onCheckedChange={(isGroupPost) => handleInputChange("showButton", !isGroupPost)}
                 />
               </div>
             </div>
@@ -416,6 +439,21 @@ export function BannerEditor({ config, onChange, onReset }: BannerEditorProps) {
                 placeholder="Ex: ⚡ OFERTA RELÂMPAGO"
                 className="text-sm uppercase"
               />
+            </div>
+
+            <div className="space-y-3 pt-3 border-t border-border/50">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Ocultar Botão Inferior (Post de Grupo)</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Mantém apenas imagem do produto, background e preços no banner
+                  </p>
+                </div>
+                <Switch
+                  checked={config.showButton === false}
+                  onCheckedChange={(isGroupPost) => handleInputChange("showButton", !isGroupPost)}
+                />
+              </div>
             </div>
           </TabsContent>
 

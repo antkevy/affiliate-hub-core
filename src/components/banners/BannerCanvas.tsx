@@ -20,6 +20,7 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
       installmentText,
       couponCode,
       buttonText,
+      showButton = true,
       imageUrl,
       imageScale = 1,
       imagePositionX = 0,
@@ -246,17 +247,19 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
           </div>
         )}
 
-        <div className="relative z-10 pt-2">
-          <button
-            type="button"
-            className={`w-full rounded-xl py-3 px-4 text-center font-black tracking-wider shadow-2xl transition-all duration-200 flex items-center justify-center gap-2 uppercase text-sm ${style.buttonBg} ${
-              isPreview ? "cursor-default" : "hover:scale-[1.02] active:scale-[0.98]"
-            }`}
-          >
-            <span>{buttonText || "GARANTIR OFERTA"}</span>
-            <CheckCircle2 className="h-4 w-4" />
-          </button>
-        </div>
+        {showButton && (
+          <div className="relative z-10 pt-2">
+            <button
+              type="button"
+              className={`w-full rounded-xl py-3 px-4 text-center font-black tracking-wider shadow-2xl transition-all duration-200 flex items-center justify-center gap-2 uppercase text-sm ${style.buttonBg} ${
+                isPreview ? "cursor-default" : "hover:scale-[1.02] active:scale-[0.98]"
+              }`}
+            >
+              <span>{buttonText || "GARANTIR OFERTA"}</span>
+              <CheckCircle2 className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     );
   },
