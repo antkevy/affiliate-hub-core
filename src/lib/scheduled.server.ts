@@ -336,12 +336,35 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
       report.errors.push(`Automação "${automation.name}": fonte pausada ou ausente.`);
       continue;
     }
+
+    // Sem interval_minutes configurado, a automação roda apenas manualmente
+    // (botão Executar / agendador do navegador), igual à aba Automações.
+    if (config.interval_minutes === null || config.interval_minutes <= 0) continue;
+    if (
+      automation.last_run_at &&
+      Date.now() - new Date(automation.last_run_at).getTime() < config.interval_minutes * 60_000
+    ) {
+      continue;
+    }
+
+    const originalConfiguration = (automation.configuration ?? {}) as Record<string, unknown>;
+    const marketplaceIds = Array.isArray(originalConfiguration["marketplace_ids"])
+      ? originalConfiguration["marketplace_ids"].filter(
+          (id): id is string => typeof id === "string",
+        )
+      : [];
     const template = automation.template_id ? templatesById.get(automation.template_id) : null;
 
     let published = 0;
     let failed = 0;
     for (const offer of offersBySource.get(automation.source_id) ?? []) {
       if (!PROCESSABLE_OFFER_STATUS.includes(offer.status)) continue;
+      if (
+        marketplaceIds.length > 0 &&
+        (!offer.marketplace_id || !marketplaceIds.includes(offer.marketplace_id))
+      ) {
+        continue;
+      }
       if (publishedKeys.has(`${offer.id}::${destination.id}`)) continue;
 
       const content = resolveContent(offer, template?.content, marketplaceName);
@@ -360,12 +383,10 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
       if (attempt.ok) published++;
       else failed++;
     }
-    if (published + failed > 0) {
-      await db
-        .from("automations")
-        .update({ last_activity_at: new Date().toISOString() })
-        .eq("id", automation.id);
-    }
+    await db
+      .from("automations")
+      .update({ last_run_at: new Date().toISOString() })
+      .eq("id", automation.id);
   }
 
   return report;
@@ -955,6 +976,19 @@ export async function publishOfferForSource(
     }
 
     const config = automationConfigOf(automation);
+    const originalConfiguration = (automation.configuration ?? {}) as Record<string, unknown>;
+    const marketplaceIds = Array.isArray(originalConfiguration["marketplace_ids"])
+      ? originalConfiguration["marketplace_ids"].filter(
+          (id): id is string => typeof id === "string",
+        )
+      : [];
+    if (
+      marketplaceIds.length > 0 &&
+      (!offer.marketplace_id || !marketplaceIds.includes(offer.marketplace_id))
+    ) {
+      result.skipped++;
+      continue;
+    }
     const template = automation.template_id ? templatesById.get(automation.template_id) : null;
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
@@ -987,7 +1021,7 @@ export async function publishOfferForSource(
   if (touchedAutomationIds.size > 0) {
     await db
       .from("automations")
-      .update({ last_activity_at: now })
+      .update({ last_run_at: now })
       .in("id", [...touchedAutomationIds]);
   }
 
