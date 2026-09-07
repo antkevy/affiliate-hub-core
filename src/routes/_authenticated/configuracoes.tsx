@@ -46,7 +46,7 @@ function SettingsPage() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Sistema"
         title="Configurações"
@@ -80,6 +80,6 @@ function SettingsPage() {
           {saving ? "Salvando..." : "Salvar alterações"}
         </Button>
       </div>
-    </>
+    </div>
   );
 }

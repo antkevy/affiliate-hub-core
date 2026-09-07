@@ -114,7 +114,7 @@ function MonitoringPage() {
   const { running, run } = useCapture();
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Principal"
         title="Monitoramento"
@@ -403,11 +403,11 @@ function MonitoringPage() {
         </div>
       </DataState>
 
-      <p className="mt-4 flex items-center gap-1.5 text-xs text-subtle-foreground">
+      <p className="flex items-center gap-1.5 text-xs text-subtle-foreground">
         <ClipboardList className="size-3.5" />
         Ofertas contadas por fonte vinculada; compartilhe “Processar agora” para um novo ciclo.
       </p>
-    </>
+    </div>
   );
 }
 

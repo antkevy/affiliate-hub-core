@@ -119,7 +119,7 @@ function SourcesPage() {
   const activeCount = (query.data ?? []).filter((source) => source.status === "active").length;
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Canais"
         title="Fontes"
@@ -194,7 +194,18 @@ function SourcesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          icon={Inbox}
+          label="Fontes ativas"
+          value={activeCount}
+          hint={`${(query.data ?? []).length} no total`}
+          accent="text-chart-2 bg-chart-2/10 border-chart-2/20"
+          delay={0}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -220,17 +231,6 @@ function SourcesPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={Inbox}
-          label="Fontes ativas"
-          value={activeCount}
-          hint={`${(query.data ?? []).length} no total`}
-          accent="text-chart-2 bg-chart-2/10 border-chart-2/20"
-          delay={0}
-        />
       </div>
 
       <DataState
@@ -395,6 +395,6 @@ function SourcesPage() {
           })}
         </div>
       </DataState>
-    </>
+    </div>
   );
 }

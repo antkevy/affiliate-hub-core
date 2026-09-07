@@ -132,7 +132,7 @@ function AutomationsPage() {
   const automationConfig = current ? automationConfigOf(current) : null;
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Principal"
         title="Automações"
@@ -404,14 +404,18 @@ function AutomationsPage() {
                 </div>
               ) : null}
 
-              <div className="flex flex-wrap items-stretch gap-2">
-                {BLOCKS.map((block, index) => (
-                  <div key={block.title} className="flex items-center gap-2">
-                    <div className="min-w-36 rounded-lg border border-border bg-secondary/50 px-3 py-2">
-                      <div className="flex items-center gap-1.5">
+              <div>
+                <p className="text-eyebrow mb-2">Etapas do pipeline</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+                  {BLOCKS.map((block, index) => (
+                    <div
+                      key={block.title}
+                      className="flex flex-col justify-between rounded-lg border border-border bg-secondary/50 p-2.5 transition-colors hover:border-primary/20"
+                    >
+                      <div className="flex items-center justify-between gap-1">
                         <span
                           className={cn(
-                            "grid size-4 shrink-0 place-items-center rounded-full border font-mono text-[9px] leading-none",
+                            "grid size-4 shrink-0 place-items-center rounded-full border font-mono text-[9px] font-bold leading-none",
                             index === 0
                               ? "border-success/30 bg-success/10 text-success"
                               : "border-border bg-secondary/60 text-muted-foreground",
@@ -419,15 +423,17 @@ function AutomationsPage() {
                         >
                           {index + 1}
                         </span>
-                        <p className="text-xs font-medium">{block.title}</p>
+                        {index < BLOCKS.length - 1 ? (
+                          <span className="text-[10px] text-muted-foreground/40 font-mono">→</span>
+                        ) : null}
                       </div>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{block.detail}</p>
+                      <div className="mt-2">
+                        <p className="truncate text-xs font-medium text-foreground">{block.title}</p>
+                        <p className="truncate text-[10px] text-muted-foreground">{block.detail}</p>
+                      </div>
                     </div>
-                    {index < BLOCKS.length - 1 ? (
-                      <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
-                    ) : null}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
               <p className="text-xs text-muted-foreground">
@@ -446,6 +452,6 @@ function AutomationsPage() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -77,7 +77,7 @@ function TemplatesPage() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Conteúdo"
         title="Templates"
@@ -99,80 +99,92 @@ function TemplatesPage() {
               <p className="text-eyebrow">Editor</p>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="template-name">Nome</Label>
+              <Label htmlFor="template-name">Nome do template</Label>
               <Input
                 id="template-name"
                 value={name}
-                placeholder="Template padrão"
                 onChange={(event) => setName(event.target.value)}
+                placeholder="Ex.: Padrão Telegram"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="template-content">Conteúdo</Label>
+              <Label htmlFor="template-content">Conteúdo com variáveis</Label>
               <Textarea
                 id="template-content"
-                rows={10}
-                className="font-mono text-xs"
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
+                rows={6}
+                className="font-mono text-xs"
               />
+              <p className="text-xs text-muted-foreground">
+                Clique nas variáveis abaixo para inserir no modelo.
+              </p>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {TEMPLATE_VARIABLES.map((variable) => (
+              {TEMPLATE_VARIABLES.map((v) => (
                 <button
-                  key={variable.token}
+                  key={v.token}
                   type="button"
-                  title={variable.label}
-                  onClick={() => setContent((prev) => `${prev}${variable.token}`)}
-                  className="rounded-md border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => setContent((prev) => `${prev} ${v.token}`)}
+                  className="rounded-md border border-border bg-secondary/50 px-2 py-1 font-mono text-[11px] font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary"
+                  title={v.label}
                 >
-                  {variable.token}
+                  {v.token}
                 </button>
               ))}
             </div>
-            <Button onClick={save} disabled={saving || !name}>
-              {saving ? "Salvando..." : selected ? "Atualizar template" : "Criar template"}
-            </Button>
+            <div className="flex justify-end gap-2 pt-2">
+              {selected ? (
+                <Button variant="ghost" size="sm" onClick={reset}>
+                  Cancelar
+                </Button>
+              ) : null}
+              <Button size="sm" onClick={save} disabled={saving || !name.trim()}>
+                {saving ? "Salvando..." : selected ? "Salvar alterações" : "Criar template"}
+              </Button>
+            </div>
           </div>
 
-          <div className="panel p-5 animate-rise" style={{ animationDelay: "60ms" }}>
-            <p className="text-eyebrow mb-3">Pré-visualização</p>
-            <pre className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs">
-              {renderTemplate(content)}
-            </pre>
+          <div className="panel space-y-3 p-5 animate-rise" style={{ animationDelay: "40ms" }}>
+            <p className="text-eyebrow">Pré-visualização</p>
+            <div className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-4 font-mono text-xs leading-relaxed text-foreground">
+              {renderTemplate(content, {
+                title: "Smartphone Galaxy S24 Ultra 512GB",
+                sale_price: 5999,
+                original_price: 6999,
+                discount_percentage: 14,
+                coupon: "DESCONTO10",
+                affiliate_url: "https://hub.app/link/xyz",
+              })}
+            </div>
           </div>
         </div>
 
-        <div>
-          <p className="text-eyebrow mb-2">Seus templates</p>
+        <div className="xl:col-span-1">
           <DataState
             isLoading={query.isLoading}
             error={query.error}
             isEmpty={(query.data ?? []).length === 0}
-            rows={3}
             empty={
               <EmptyState
                 icon={FileText}
                 title="Nenhum template"
-                description="Crie o primeiro modelo de mensagem."
+                description="Crie seu primeiro modelo de mensagem."
               />
             }
           >
-            <ul
-              className="panel divide-y divide-border animate-rise"
-              style={{ animationDelay: "80ms" }}
-            >
+            <ul className="panel divide-y divide-border animate-rise">
               {(query.data ?? []).map((template) => (
                 <li
                   key={template.id}
-                  className="group flex items-center justify-between gap-2 px-4 py-3 transition-colors hover:bg-secondary/40"
+                  className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-secondary/40"
                 >
-                  <button className="min-w-0 text-left" onClick={() => edit(template)}>
-                    <p className="truncate text-sm">{template.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {template.content.slice(0, 40)}…
+                  <div className="min-w-0 flex-1 cursor-pointer" onClick={() => edit(template)}>
+                    <p className="truncate text-sm font-medium">{template.name}</p>
+                    <p className="truncate font-mono text-xs text-muted-foreground">
+                      {template.content.slice(0, 40)}...
                     </p>
-                  </button>
+                  </div>
                   <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -199,6 +211,6 @@ function TemplatesPage() {
           </DataState>
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createServerFn } from "@tanstack/react-start";
 import type { Database } from "@/integrations/supabase/types";
-import { sha256 } from "./engine/hash";
+import { sha256 } from "./hash";
 import {
   detectMarketplace,
   extractCouponWithBonus,
@@ -20,7 +20,7 @@ import {
   type TelegramOfferCandidate,
 } from "./telegram";
 
-const MAX_CAPTURES_PER_SOURCE = 20;
+const MAX_CAPTURES_PER_SOURCE = 10;
 
 interface TelegramCaptureResult {
   sourcesChecked: number;

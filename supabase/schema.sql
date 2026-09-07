@@ -440,3 +440,21 @@ WITH CHECK (bucket_id IN ('avatars','offer-media','banners','logos') AND (storag
 
 CREATE POLICY "storage_own_folder_delete" ON storage.objects FOR DELETE TO authenticated
 USING (bucket_id IN ('avatars','offer-media','banners','logos') AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Platform Sessions for headless browser session & cookie management
+CREATE TABLE IF NOT EXISTS public.platform_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  platform TEXT UNIQUE NOT NULL,
+  cookies TEXT NOT NULL,
+  user_agent TEXT NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.platform_sessions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow service_role full access to platform_sessions"
+  ON public.platform_sessions
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);

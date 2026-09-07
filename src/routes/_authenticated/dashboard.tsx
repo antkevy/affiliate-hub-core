@@ -135,7 +135,7 @@ function DashboardPage() {
   ] as const;
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Principal"
         title="Dashboard"
@@ -553,7 +553,7 @@ function DashboardPage() {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
 

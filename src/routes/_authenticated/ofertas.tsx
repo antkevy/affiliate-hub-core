@@ -89,7 +89,7 @@ function OffersPage() {
   ).length;
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Principal"
         title="Ofertas"
@@ -153,7 +153,7 @@ function OffersPage() {
         />
       </div>
 
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Input
           placeholder="Buscar por título"
           value={search}
@@ -374,7 +374,7 @@ function OffersPage() {
           </DialogContent>
         )}
       </Dialog>
-    </>
+    </div>
   );
 }
 

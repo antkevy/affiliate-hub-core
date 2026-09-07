@@ -14,8 +14,35 @@ export const affiliateLinksService = {
   ...createCrud("affiliate_links"),
 
   /**
-   * Converte a URL original em link de afiliado no navegador,
-   * usando o ID/tag cadastrado na conta afiliada do marketplace.
+   * Invoca a Supabase Edge Function 'generate-affiliate-link' para gerar
+   * o link de afiliado do Mercado Livre com sessão/cookies persistidos.
+   */
+  async generateMercadoLivreLink(url: string): Promise<string> {
+    const { data, error } = await supabase.functions.invoke("generate-affiliate-link", {
+      body: { url, platform: "mercadolivre" },
+    });
+
+    if (error) {
+      throw new Error(error.message || "Erro ao invocar a função de geração de link de afiliado.");
+    }
+
+    if (data?.error) {
+      const err = new Error(data.error);
+      if (data.code === "SESSION_EXPIRED") {
+        (err as Error & { code?: string }).code = "SESSION_EXPIRED";
+      }
+      throw err;
+    }
+
+    if (!data?.affiliate_url) {
+      throw new Error("A função não retornou a URL de afiliado.");
+    }
+
+    return data.affiliate_url;
+  },
+
+  /**
+   * Converte a URL original em link de afiliado no navegador ou via Edge Function.
    */
   async generate(id: string): Promise<AffiliateLink> {
     const link = await linksRepo.getById(id);
@@ -31,6 +58,22 @@ export const affiliateLinksService = {
     }
 
     const slug = marketplace?.slug?.toLowerCase() ?? detectedSlug;
+
+    // Se for Mercado Livre, tenta gerar via Edge Function com suporte a sessão/cookies
+    if (slug === "mercadolivre" || slug === "mercado-livre") {
+      try {
+        const affiliateUrl = await this.generateMercadoLivreLink(link.original_url);
+        await linksRepo.update(id, {
+          affiliate_url: affiliateUrl,
+          marketplace_id: marketplace?.id ?? link.marketplace_id ?? null,
+          status: "generated",
+        });
+        return (await linksRepo.getById(id)) ?? link;
+      } catch (mlError) {
+        console.warn("Edge function Mercado Livre falhou, tentando conversão local:", mlError);
+      }
+    }
+
     const accounts = await accountsRepo.list();
     const account: AffiliateAccount | undefined = accounts.find(
       (item) => item.marketplace_id === marketplace?.id && item.status === "connected",

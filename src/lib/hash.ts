@@ -1,5 +1,5 @@
 // ============================================================
-// Offer Engine - Deterministic hashing & fingerprint helpers
+// Deterministic hashing & fingerprint helpers (shared)
 // ============================================================
 
 /**
@@ -37,32 +37,4 @@ export function fnv1a64(input: string): string {
     h1 ^= (h1 >>> 24) ^ (h2 >>> 13);
   }
   return (h2 >>> 0).toString(16).padStart(8, "0") + (h1 >>> 0).toString(16).padStart(8, "0");
-}
-
-/**
- * Canonicalize a value for fingerprinting (trim, lower, collapse whitespace).
- */
-export function canonicalString(value: string | null | undefined): string {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-}
-
-/**
- * Build a deterministic fingerprint from offer signals.
- * Missing/empty signals are omitted so the fingerprint stays stable.
- */
-export function buildFingerprint(signals: Record<string, unknown>): Promise<string> {
-  const parts: string[] = [];
-  for (const [key, value] of Object.entries(signals)) {
-    const v = value;
-    if (v == null) continue;
-    const str = Array.isArray(v) ? JSON.stringify(v) : String(v);
-    const c = canonicalString(str);
-    if (!c) continue;
-    parts.push(`${key}:${c}`);
-  }
-  parts.sort();
-  return sha256(parts.join("|"));
 }

@@ -53,13 +53,14 @@ async function telegramFetch(token: string, url: string, init: RequestInit): Pro
       }
       return response;
     });
-  sendSlots.set(
-    token,
-    slot.then(
-      () => undefined,
-      () => undefined,
-    ),
+  const tail = slot.then(
+    () => undefined,
+    () => undefined,
   );
+  sendSlots.set(token, tail);
+  tail.then(() => {
+    if (sendSlots.get(token) === tail) sendSlots.delete(token);
+  });
   return slot;
 }
 

@@ -66,7 +66,7 @@ function StatsPage() {
   ).length;
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Relatórios"
         title="Estatísticas"
@@ -179,6 +179,6 @@ function StatsPage() {
           </div>
         </div>
       </DataState>
-    </>
+    </div>
   );
 }

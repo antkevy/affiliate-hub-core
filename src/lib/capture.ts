@@ -16,6 +16,11 @@ import { bannerConfigOf } from "@/lib/banner-config";
 import { supabase } from "@/integrations/supabase/client";
 import type { BannerConfig } from "@/types/banner";
 import {
+  cleanProductUrl,
+  isPublicationDuplicate,
+  normalizeProductTitle,
+} from "@/lib/duplicate-prevention";
+import {
   type Destination,
   type Monitor,
   type MonitorConfiguration,
@@ -85,8 +90,10 @@ export async function runCapture(): Promise<CaptureReport> {
   const existingOffers = await offersRepo.list();
   const knownKeys = new Set<string>();
   for (const offer of existingOffers) {
-    if (offer.original_url) knownKeys.add(`${offer.source_id ?? ""}::${offer.original_url}`);
-    knownKeys.add(`${offer.source_id ?? ""}::${offer.title.toLowerCase()}`);
+    const cleaned = cleanProductUrl(offer.original_url);
+    const normTitle = normalizeProductTitle(offer.title);
+    if (cleaned) knownKeys.add(`${offer.source_id ?? ""}::${cleaned}`);
+    if (normTitle) knownKeys.add(`${offer.source_id ?? ""}::${normTitle}`);
   }
 
   const activeSources = await sourcesRepo.list({ filters: { status: "active" } });
@@ -120,14 +127,17 @@ export async function runCapture(): Promise<CaptureReport> {
     }
     const found = await captureFromSource(source);
     for (const candidate of found) {
-      const key = candidate.original_url
-        ? `${candidate.source_id ?? ""}::${candidate.original_url}`
-        : `${candidate.source_id ?? ""}::${candidate.title.toLowerCase()}`;
-      if (knownKeys.has(key)) {
+      const cleaned = cleanProductUrl(candidate.original_url);
+      const normTitle = normalizeProductTitle(candidate.title);
+      const urlKey = cleaned ? `${candidate.source_id ?? ""}::${cleaned}` : null;
+      const titleKey = normTitle ? `${candidate.source_id ?? ""}::${normTitle}` : null;
+
+      if ((urlKey && knownKeys.has(urlKey)) || (titleKey && knownKeys.has(titleKey))) {
         report.offersIgnored++;
         continue;
       }
-      knownKeys.add(key);
+      if (urlKey) knownKeys.add(urlKey);
+      if (titleKey) knownKeys.add(titleKey);
       candidates.push(candidate);
     }
   }
@@ -396,13 +406,23 @@ async function processMonitor(
     ) {
       continue;
     }
-    if (
-      publications.some(
-        (item) => item.offer_id === offer.id && item.destination_id === destination.id,
-      )
-    ) {
+
+    // Checagem de duplicidade por URL canônica, ID de produto (ASIN/MLB) ou título
+    const isDup = await isPublicationDuplicate(
+      supabase,
+      monitor.user_id,
+      destination.id,
+      offer,
+      24,
+    );
+    if (isDup) {
+      await offersRepo.update(offer.id, {
+        status: "processed",
+        processed_at: new Date().toISOString(),
+      });
       continue;
     }
+
     const content = template
       ? renderTemplate(template.content, {
           ...offer,
@@ -424,6 +444,7 @@ async function processMonitor(
     const attempt = await publishToDestination(destination, offer, finalContent, media);
     const now = new Date().toISOString();
     await publicationsRepo.create({
+      user_id: monitor.user_id,
       offer_id: offer.id,
       destination_id: destination.id,
       content: finalContent,
@@ -625,6 +646,18 @@ export async function runAutomation(automation: {
       ) {
         continue;
       }
+
+      // Checagem de duplicidade por URL canônica, ID de produto (ASIN/MLB) ou título
+      const isDup = await isPublicationDuplicate(supabase, userId, destination.id, offer, 24);
+      if (isDup) {
+        await offersRepo.update(offer.id, {
+          status: "processed",
+          processed_at: new Date().toISOString(),
+        });
+        report.offersIgnored++;
+        continue;
+      }
+
       const content = template
         ? renderTemplate(template.content, {
             ...offer,
@@ -647,6 +680,7 @@ export async function runAutomation(automation: {
       const attempt = await publishToDestination(destination, offer, finalContent, media);
       const now = new Date().toISOString();
       await publicationsRepo.create({
+        user_id: userId,
         offer_id: offer.id,
         destination_id: destination.id,
         content: finalContent,

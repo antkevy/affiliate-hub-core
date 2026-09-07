@@ -78,7 +78,7 @@ function IntegrationsPage() {
   );
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Sistema"
         title="Integrações"
@@ -95,7 +95,7 @@ function IntegrationsPage() {
           onDisconnect={handleDisconnect}
         />
       </div>
-    </>
+    </div>
   );
 }
 

@@ -89,54 +89,65 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
     return new Response("bad request", { status: 400 });
   }
 
-  const update = await request.json().catch(() => null);
-  const post = update ? buildTelegramPost(update) : null;
-  if (!post) return new Response("ok", { status: 200 });
+  try {
+    const update = await request.json().catch(() => null);
+    const post = update ? buildTelegramPost(update) : null;
+    if (!post) return new Response("ok", { status: 200 });
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const db: Db = supabaseAdmin;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db: Db = supabaseAdmin;
 
-  const { data: source } = await db.from("sources").select("*").eq("id", sourceId).maybeSingle();
-  if (!source || source.type !== "telegram") {
-    return new Response("ok", { status: 200 });
+    const { data: source } = await db.from("sources").select("*").eq("id", sourceId).maybeSingle();
+    if (!source || source.type !== "telegram") {
+      return new Response("ok", { status: 200 });
+    }
+
+    const configuration = source.configuration ?? {};
+    const expected = configuration.webhook_secret ?? configuration.bot_token;
+    const provided = request.headers.get("x-telegram-bot-api-secret-token");
+    if (!expected || !provided || !(await secretsEqual(provided, expected))) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    const username = extractTelegramUsername(source.identifier);
+    const image = await resolvePhotoUrl(configuration.bot_token, post.photoFileId);
+
+    const marketplaceIdBySlug = await loadMarketplaceIds(db);
+    const result = await captureTelegramPost(
+      db,
+      { identifier: source.identifier, sourceId, userId: source.user_id },
+      username,
+      { id: post.externalId, textHtml: post.text, time: post.time, image },
+      marketplaceIdBySlug,
+    );
+
+    const published =
+      result.outcome === "captured" && result.offer
+        ? await publishOfferForSource(db, sourceId, result.offer as unknown as Offer)
+        : { published: 0, failed: 0, skipped: 0, errors: [] as string[] };
+
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        outcome: result.outcome,
+        offerId: result.offer?.["id"] ?? null,
+        published: published.published,
+        failed: published.failed,
+        skipped: published.skipped,
+        errors: published.errors,
+      }),
+      { status: 200, headers: { "content-type": "application/json; charset=utf-8" } },
+    );
+  } catch (error) {
+    console.error("[telegram-webhook] falha ao processar update:", error);
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: error instanceof Error ? error.message : "Erro interno ao processar o update.",
+      }),
+      { status: 500, headers: { "content-type": "application/json; charset=utf-8" } },
+    );
   }
-
-  const configuration = source.configuration ?? {};
-  const expected = configuration.webhook_secret ?? configuration.bot_token;
-  const provided = request.headers.get("x-telegram-bot-api-secret-token");
-  if (!expected || !provided || !(await secretsEqual(provided, expected))) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
-  const username = extractTelegramUsername(source.identifier);
-  const image = await resolvePhotoUrl(configuration.bot_token, post.photoFileId);
-
-  const marketplaceIdBySlug = await loadMarketplaceIds(db);
-  const result = await captureTelegramPost(
-    db,
-    { identifier: source.identifier, sourceId, userId: source.user_id },
-    username,
-    { id: post.externalId, textHtml: post.text, time: post.time, image },
-    marketplaceIdBySlug,
-  );
-
-  const published =
-    result.outcome === "captured" && result.offer
-      ? await publishOfferForSource(db, sourceId, result.offer as unknown as Offer)
-      : { published: 0, failed: 0, skipped: 0, errors: [] as string[] };
-
-  return new Response(
-    JSON.stringify({
-      ok: true,
-      outcome: result.outcome,
-      offerId: result.offer?.["id"] ?? null,
-      published: published.published,
-      failed: published.failed,
-      skipped: published.skipped,
-      errors: published.errors,
-    }),
-    { status: 200, headers: { "content-type": "application/json; charset=utf-8" } },
-  );
 }
 
 export interface TelegramWebhookSetupResult {

@@ -228,6 +228,8 @@ async function ensureAliExpressAffiliateUrl(
  *   / oferta), respeitando o dono dos registros.
  */
 export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
+  const startTime = Date.now();
+  const MAX_EXECUTION_MS = 18000; // 18s deadline for 30s cron HTTP timeout limit
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db: Db = supabaseAdmin;
   const report: ScheduledRunReport = {
@@ -319,6 +321,10 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   }
 
   for (const sourceId of sourceIdsToCapture) {
+    if (Date.now() - startTime > MAX_EXECUTION_MS) {
+      report.errors.push("Tempo limite de execução atingido durante captura. Finalizando ciclo rápido.");
+      break;
+    }
     const source = activeSourcesById.get(sourceId);
     if (!source) {
       report.errors.push("Uma fonte vinculada está pausada ou foi removida.");
@@ -421,6 +427,10 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   }
 
   for (const monitor of monitorList) {
+    if (Date.now() - startTime > MAX_EXECUTION_MS) {
+      report.errors.push("Tempo limite de 18s atingido antes dos monitores. Finalizando ciclo rápido.");
+      break;
+    }
     const config = configurationOf(monitor);
     const touched = await publishForMonitor(
       db,
@@ -432,6 +442,8 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
       marketplaceName,
       publishedKeys,
       report,
+      startTime,
+      MAX_EXECUTION_MS,
     );
     if (touched) {
       await db
@@ -442,6 +454,10 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   }
 
   for (const automation of automationList) {
+    if (Date.now() - startTime > MAX_EXECUTION_MS) {
+      report.errors.push("Tempo limite de 18s atingido nas automações. Finalizando ciclo rápido.");
+      break;
+    }
     const config = automationConfigOf(automation);
     const destination = automation.destination_id
       ? destinationsById.get(automation.destination_id)
@@ -519,6 +535,8 @@ async function publishForMonitor(
   marketplaceName: Map<string, string>,
   publishedKeys: Set<string>,
   report: ScheduledRunReport,
+  startTime?: number,
+  maxMs?: number,
 ): Promise<boolean> {
   const sourceIds = config.source_ids ?? [];
   if (sourceIds.length === 0) {
@@ -546,6 +564,10 @@ async function publishForMonitor(
   let published = 0;
   let failed = 0;
   for (const offer of candidates) {
+    if (startTime && maxMs && Date.now() - startTime > maxMs) {
+      report.errors.push(`Tempo limite de 18s atingido no monitor "${monitor.name}".`);
+      break;
+    }
     if (publishedKeys.has(`${offer.id}::${destination.id}`)) continue;
 
     // Validação reforçada de duplicidade por URL canônica, produto ou título

@@ -47,7 +47,7 @@ function PublicationsPage() {
   });
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Relatórios"
         title="Publicações"
@@ -108,6 +108,6 @@ function PublicationsPage() {
           ))}
         </ul>
       </DataState>
-    </>
+    </div>
   );
 }

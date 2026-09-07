@@ -131,7 +131,7 @@ function DestinationsPage() {
   ).length;
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Canais"
         title="Destinos"
@@ -206,7 +206,18 @@ function DestinationsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          icon={Send}
+          label="Destinos ativos"
+          value={activeCount}
+          hint={`${(query.data ?? []).length} no total`}
+          accent="text-chart-1 bg-chart-1/10 border-chart-1/20"
+          delay={0}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -232,17 +243,6 @@ function DestinationsPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={Send}
-          label="Destinos ativos"
-          value={activeCount}
-          hint={`${(query.data ?? []).length} no total`}
-          accent="text-chart-1 bg-chart-1/10 border-chart-1/20"
-          delay={0}
-        />
       </div>
 
       <DataState
@@ -423,7 +423,7 @@ function DestinationsPage() {
           })}
         </div>
       </DataState>
-    </>
+    </div>
   );
 }
 

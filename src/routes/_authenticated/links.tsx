@@ -58,7 +58,7 @@ function LinksPage() {
   const linkList = links.data ?? [];
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Afiliados"
         title="Links de Afiliado"
@@ -220,6 +220,6 @@ function LinksPage() {
           </table>
         </div>
       </DataState>
-    </>
+    </div>
   );
 }
