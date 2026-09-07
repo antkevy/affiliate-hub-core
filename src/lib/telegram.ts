@@ -255,6 +255,25 @@ export function extractCoupon(text: string): string | null {
   return match ? match[1]!.toUpperCase() : null;
 }
 
+/**
+ * Bônus de moedas do AliExpress junto ao cupom. Ex.: "+ 581 moedas no APP".
+ * Retorna o trecho "581 moedas no APP" (ou "581 moedas"), sem o sinal de soma.
+ */
+export function extractCouponBonus(text: string): string | null {
+  const match = text.match(/(?:\+\s*)?(\d[\d.,]*\s+moedas(?:\s+no\s+app)?)/i);
+  if (!match) return null;
+  const value = match[1];
+  return value ? value.replace(/\s+/g, " ").trim() : null;
+}
+
+/** Cupom completo: código + bônus de moedas (ex.: "BRFS8 + 581 moedas no APP"). */
+export function extractCouponWithBonus(text: string): string | null {
+  const code = extractCoupon(text);
+  const bonus = extractCouponBonus(text);
+  if (bonus) return code ? `${code} + ${bonus}` : bonus;
+  return code;
+}
+
 export function extractDiscount(text: string): number | null {
   const match = text.match(/(\d{1,3})\s*%\s*OFF/i);
   if (match) {

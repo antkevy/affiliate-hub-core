@@ -1,6 +1,6 @@
 import { createCrud } from "./base";
 import type { Offer } from "@/types";
-import { removeOptionalLines } from "@/lib/template-lines";
+import { couponBonus, removeOptionalLines } from "@/lib/template-lines";
 
 export const templatesService = createCrud("templates");
 
@@ -24,6 +24,8 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
       ? `${offer.discount_percentage}%`
       : "—";
 
+  const couponFormatted = formatCouponCode(offer?.coupon);
+
   const values: Record<string, string> = offer
     ? {
         titulo: offer.title ?? SAMPLE.titulo,
@@ -36,8 +38,9 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
         desconto: discountFormatted,
         discount: discountFormatted,
         discount_percentage: discountFormatted,
-        cupom: offer.coupon ?? "—",
-        coupon: offer.coupon ?? "—",
+        cupom: couponFormatted,
+        coupon: couponFormatted,
+        moedas: couponBonus(offer.coupon) || "—",
         link: offer.affiliate_url ?? offer.original_url ?? "—",
         url: offer.affiliate_url ?? offer.original_url ?? "—",
         marketplace: offer.marketplace ?? "—",
@@ -50,14 +53,27 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
         sale_price: SAMPLE.preco,
         original_price: SAMPLE.preco_antigo,
         discount: SAMPLE.desconto,
-        coupon: SAMPLE.cupom,
+        coupon: formatCouponCode(SAMPLE.cupom),
+        moedas: "—",
         url: SAMPLE.link,
       };
 
-  return removeOptionalLines(content, offer ?? {}).replace(
-    /\{(\w+)\}/g,
-    (match, key: string) => values[key] ?? match,
-  );
+  const rendered = (
+    offer
+      ? removeOptionalLines(content, {
+          coupon: offer.coupon,
+          discount_percentage: offer.discount_percentage,
+          coins: couponBonus(offer.coupon),
+        })
+      : content
+  ).replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match);
+  return rendered.replace(/`+([^`\n]+)`+/g, "`$1`");
+}
+
+function formatCouponCode(coupon: string | null | undefined): string {
+  if (!coupon || !coupon.trim() || coupon === "—") return "—";
+  const clean = coupon.replace(/[`]/g, "").trim();
+  return clean ? `\`${clean}\`` : "—";
 }
 
 function formatMoney(value: number | null | undefined) {

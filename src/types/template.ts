@@ -27,6 +27,7 @@ export const TEMPLATE_VARIABLES = [
   { token: "{preco_antigo}", label: "Preço antigo" },
   { token: "{desconto}", label: "Desconto" },
   { token: "{cupom}", label: "Cupom" },
+  { token: "{moedas}", label: 'Moedas AliExpress (ex.: "581 moedas no APP")' },
   { token: "{link}", label: "Link de afiliado" },
   { token: "{marketplace}", label: "Marketplace" },
   { token: "{categoria}", label: "Categoria" },

@@ -59,9 +59,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
   ].filter((line): line is string => Boolean(line));
 
   const hasCustomTemplate = Boolean(data.hasCustomTemplate);
-  const isCoupon =
-    Boolean(offer.coupon?.trim()) ||
-    /cupom|cupons|voucher/i.test(offer.title ?? "");
+  const isCoupon = Boolean(offer.coupon?.trim()) || /cupom|cupons|voucher/i.test(offer.title ?? "");
 
   const couponDefaultInstruction =
     "Esta captura é sobre um CUPOM DE DESCONTO. Pegue o texto original/título e reescreva-o " +
@@ -69,9 +67,10 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "➡️ 🔥 [Título ou chamada sobre o cupom reescrita com palavras diferentes]\n\n" +
     "🔥 [Preço ou Valor do cupom: ex: R$ 60,00]\n" +
     "⚡ [Desconto] OFF\n" +
-    "🏷️ Cupom: [Código do cupom, se houver]\n\n" +
+    "🏷️ Cupom: `[Código do cupom, se houver]`\n\n" +
     "🛒 [Link]\n" +
-    "Reescreva com palavras diferentes. Use emojis com moderação (sem exagerar). Omita a linha de cupom apenas se não houver código.";
+    "O código do cupom deve ficar entre crases para ser copiável com 1 toque no Telegram. Reescreva com palavras diferentes. Use emojis com moderação (sem exagerar). Omita a linha de cupom apenas se não houver código. " +
+    'Se o cupom incluir moedas do AliExpress (ex.: "BRFS8 + 581 moedas no APP"), mantenha a informação de moedas completa na mesma linha de cupom.';
 
   const defaultInstruction =
     "Escreva em português do Brasil, tom persuasivo para canal de ofertas. " +
@@ -83,14 +82,16 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "🛒 {link}\n" +
     "Use emojis com moderação (sem exagerar). Omita a linha de desconto se não houver " +
     "desconto e a linha de cupom se não houver cupom; se não houver nem cupom nem desconto, " +
-    "deixe apenas título, preço e link.";
+    "deixe apenas título, preço e link. Se o cupom incluir moedas do AliExpress (ex.: " +
+    '"BRFS8 + 581 moedas no APP"), mantenha o trecho de moedas completo na linha de cupom.';
 
   const templateInstruction =
-    "Reescreva a mensagem SEGUINDO EXATAMENTE o template abaixo (\"Mensagem original do template do usuário\"), " +
+    'Reescreva a mensagem SEGUINDO EXATAMENTE o template abaixo ("Mensagem original do template do usuário"), ' +
     "mantendo as mesmas linhas, emojis, formatação e ordem. Não invente linhas nem altere a " +
-    "estrutura; apenas corrija as inconsistências com os dados reais da oferta. Valores \"—\" " +
+    'estrutura; apenas corrija as inconsistências com os dados reais da oferta. Valores "—" ' +
     "significam dado ausente: remova a linha inteira. Se não houver nem cupom nem desconto, " +
-    "mantenha apenas o restante.";
+    "mantenha apenas o restante. Mantenha a informação de moedas/bônus do AliExpress " +
+    '(ex.: "581 moedas no APP") quando presente no cupom.';
 
   const userInstruction = data.instruction?.trim();
   const instruction = hasCustomTemplate
@@ -106,8 +107,8 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
   const templateSystemPrompt =
     "Você é um copywriter de ofertas afiliadas. O usuário configurou um TEMPLATE PERSONALIZADO " +
     "para suas publicações. Sua ÚNICA tarefa é reproduzir a mensagem final copiando EXATAMENTE a estrutura, " +
-    "emojis, linhas e ordem do template do usuário fornecido em \"Mensagem original do template do usuário\", " +
-    "preenchendo os dados reais da oferta e removendo apenas linhas cujo valor está ausente (\"—\"). " +
+    'emojis, linhas e ordem do template do usuário fornecido em "Mensagem original do template do usuário", ' +
+    'preenchendo os dados reais da oferta e removendo apenas linhas cujo valor está ausente ("—"). ' +
     "NÃO altere nem desobedeça a estrutura do template criado pelo usuário. Responda apenas com a mensagem final pronta para publicação, sem comentários.";
 
   const couponSystemPrompt =
@@ -117,9 +118,10 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "➡️ 🔥 [Título ou chamada reescrita com palavras diferentes]\n\n" +
     "🔥 [Preço ou Valor do cupom]\n" +
     "⚡ [Desconto] OFF\n" +
-    "🏷️ Cupom: [Código do cupom (se houver)]\n\n" +
+    "🏷️ Cupom: `[Código do cupom (se houver)]`\n\n" +
     "🛒 [Link]\n" +
-    "Utilize emojis moderados (sem exageros). Responda apenas com a mensagem final pronta para publicação no Telegram/WhatsApp, sem comentários.";
+    "Coloque o código do cupom entre crases. Utilize emojis moderados (sem exageros). Responda apenas com a mensagem final pronta para publicação no Telegram/WhatsApp, sem comentários. " +
+    'Se o cupom tiver moedas do AliExpress (ex.: "BRFS8 + 581 moedas no APP"), mantenha a informação de moedas na linha de cupom.';
 
   const generalSystemPrompt =
     "Você é um copywriter de ofertas afiliadas. Recebe apenas os dados de uma oferta e deve " +
@@ -131,7 +133,9 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "🏷️ Cupom: [Cupom]\n\n" +
     "🛒 [Link]\n" +
     "Omita a linha de desconto se não houver desconto e a linha de cupom se não houver " +
-    "cupom; se não houver nem cupom nem desconto, deixe apenas título, preço e link. Sem " +
+    "cupom; se não houver nem cupom nem desconto, deixe apenas título, preço e link. Se o " +
+    'cupom tiver moedas do AliExpress (ex.: "BRFS8 + 581 moedas no APP"), mantenha a ' +
+    "informação de moedas na linha de cupom. Sem " +
     "comentários adicionais, usando emojis moderados e sem exagero.";
 
   const systemPrompt = hasCustomTemplate

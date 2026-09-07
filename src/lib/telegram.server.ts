@@ -4,7 +4,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { sha256 } from "./engine/hash";
 import {
   detectMarketplace,
-  extractCoupon,
+  extractCouponWithBonus,
   extractDiscount,
   extractOriginalPrice,
   extractPrice,
@@ -185,7 +185,7 @@ export async function captureTelegramPost(
   }
 
   const discount = extractDiscount(text);
-  const coupon = extractCoupon(text);
+  const coupon = extractCouponWithBonus(text);
   const originalPrice = discount ? extractOriginalPrice(text, salePrice) : null;
   const image = post.image ?? (await fetchProductImage(originalUrl));
   const marketplaceSlug = detectMarketplace(originalUrl, text);

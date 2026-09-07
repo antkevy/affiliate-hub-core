@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { removeOptionalLines } from "@/lib/template-lines";
+import { couponBonus, removeOptionalLines } from "@/lib/template-lines";
 
 const TEMPLATE = [
   "➡️ 🔥 {titulo}",
@@ -73,5 +73,19 @@ describe("removeOptionalLines", () => {
       discount_percentage: null,
     });
     expect(out2).toBe("");
+  });
+
+  it("remove linha de moedas quando não há moedas e mantém com moedas", () => {
+    const tpl = "🎟 Moedas: {moedas}";
+    expect(removeOptionalLines(tpl, { coupon: "BRFS8", coins: "" })).toBe("");
+    expect(removeOptionalLines(tpl, { coupon: "BRFS8", coins: "581 moedas no APP" })).toContain(
+      "{moedas}",
+    );
+  });
+
+  it("couponBonus extrai moedas do cupom", () => {
+    expect(couponBonus("BRFS8 + 581 moedas no APP")).toBe("581 moedas no APP");
+    expect(couponBonus("HUB40")).toBe("");
+    expect(couponBonus(null)).toBe("");
   });
 });

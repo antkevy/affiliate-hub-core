@@ -10,7 +10,7 @@ import {
   type TelegramProxyPayload,
 } from "@/lib/telegram-proxy.server";
 import { rewriteOfferWithAI } from "@/lib/ai.server";
-import { removeOptionalLines } from "@/lib/template-lines";
+import { couponBonus, removeOptionalLines } from "@/lib/template-lines";
 import {
   ALIEXPRESS_DEFAULT_TRACKING_ID,
   generateAliExpressAffiliateLink,
@@ -716,6 +716,8 @@ function renderTemplateServer(
       ? `${offer.discount_percentage}%`
       : "—";
 
+  const couponFormatted = formatCouponCodeServer(offer.coupon);
+
   const values: Record<string, string> = {
     titulo: offer.title,
     title: offer.title,
@@ -727,17 +729,26 @@ function renderTemplateServer(
     desconto: discountFormatted,
     discount: discountFormatted,
     discount_percentage: discountFormatted,
-    cupom: offer.coupon ?? "—",
-    coupon: offer.coupon ?? "—",
+    cupom: couponFormatted,
+    coupon: couponFormatted,
+    moedas: couponBonus(offer.coupon) || "—",
     link: offer.affiliate_url ?? offer.original_url ?? "—",
     url: offer.affiliate_url ?? offer.original_url ?? "—",
     marketplace: offer.marketplace_id ? (marketplaceName.get(offer.marketplace_id) ?? "—") : "—",
     categoria: "—",
   };
-  return removeOptionalLines(content, offer).replace(
-    /\{(\w+)\}/g,
-    (match, key: string) => values[key] ?? match,
-  );
+  const rendered = removeOptionalLines(content, {
+    coupon: offer.coupon,
+    discount_percentage: offer.discount_percentage,
+    coins: couponBonus(offer.coupon),
+  }).replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match);
+  return rendered.replace(/`+([^`\n]+)`+/g, "`$1`");
+}
+
+function formatCouponCodeServer(coupon: string | null | undefined): string {
+  if (!coupon || !coupon.trim() || coupon === "—") return "—";
+  const clean = coupon.replace(/[`]/g, "").trim();
+  return clean ? `\`${clean}\`` : "—";
 }
 
 function defaultContentServer(offer: Offer, marketplaceName: Map<string, string>): string {

@@ -74,18 +74,66 @@ function apiError(json: Record<string, unknown>): Error | null {
   return null;
 }
 
+/**
+ * Resolve encurtadores (a.aliexpress.com, s.click.aliexpress.com) e limpa parâmetros
+ * de rastreio para extrair a URL canônica do produto AliExpress (com item ID).
+ * O gateway do AliExpress exige a URL limpa do item (/item/100500xxxx.html) no
+ * parâmetro source_values para gerar um link de afiliado que redirecione direto ao produto.
+ */
+export async function resolveAliExpressProductUrl(rawUrl: string): Promise<string> {
+  let current = rawUrl.trim();
+  if (!current) return rawUrl;
+
+  if (/a\.aliexpress\.com|s\.click\.aliexpress\.com|star\.aliexpress\.com/i.test(current)) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(current, {
+        method: "GET",
+        redirect: "follow",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (response.url && response.url !== current) {
+        current = response.url;
+      }
+    } catch {
+      // Ignora falhas temporárias de rede e prossegue
+    }
+  }
+
+  const itemMatch = current.match(/\/item\/(\d+)(?:\.html)?/i);
+  if (itemMatch?.[1]) {
+    return `https://www.aliexpress.com/item/${itemMatch[1]}.html`;
+  }
+
+  try {
+    const urlObj = new URL(current.startsWith("http") ? current : `https://${current}`);
+    urlObj.search = "";
+    urlObj.hash = "";
+    return urlObj.toString();
+  } catch {
+    return current;
+  }
+}
+
 /** Converte uma URL de produto AliExpress em link promocional de afiliado. */
 export async function generateAliExpressAffiliateLink(
   originalUrl: string,
   credentials: AliExpressCredentials,
 ): Promise<string> {
   const trackingId = credentials.tracking_id?.trim() || ALIEXPRESS_DEFAULT_TRACKING_ID;
+  const cleanUrl = await resolveAliExpressProductUrl(originalUrl);
 
   const json = (await topCall(
     "aliexpress.affiliate.link.generate",
     {
       promotion_link_type: 0,
-      source_values: originalUrl,
+      source_values: cleanUrl,
       tracking_id: trackingId,
     },
     credentials,
