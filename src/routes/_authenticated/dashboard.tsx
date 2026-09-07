@@ -4,9 +4,14 @@ import { useEffect, useState, useId } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
+  ArrowRight,
+  Bot,
   HeartPulse,
+  Link2,
   Megaphone,
+  Plus,
   RefreshCw,
+  Send,
   ShoppingBag,
   Tags,
   TrendingDown,
@@ -24,7 +29,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
 import { Button } from "@/components/ui/button";
@@ -125,34 +129,50 @@ function DashboardPage() {
     (marketplaces.data ?? []).map((marketplace) => [marketplace.id, marketplace.name]),
   );
 
+  const firstName = "Afiliado";
+  const today = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+
+  const quickActions = [
+    { label: "Nova oferta", icon: Plus, to: "/ofertas" as const },
+    { label: "Criar automação", icon: Bot, to: "/automacoes" as const },
+    { label: "Gerar link", icon: Link2, to: "/links" as const },
+    { label: "Ver publicações", icon: Send, to: "/publicacoes" as const },
+  ];
+
   return (
-    <>
-      <PageHeader
-        eyebrow="Principal"
-        title="Dashboard"
-        description="Panorama das capturas, automações e publicações da sua operação."
-        actions={
-          <>
-            <LiveBadge active={activeAutomations} />
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refetching}>
-              <RefreshCw className={cn("size-4", refetching && "animate-spin")} />
-              {refetching ? "Atualizando..." : "Atualizar"}
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/estatisticas">Ver estatísticas</Link>
-            </Button>
-          </>
-        }
-      />
+    <div className="mx-auto max-w-[1480px]">
+      <header className="mb-9 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-eyebrow mb-2">Visão geral</p>
+          <h1 className="font-display text-2xl font-medium leading-tight">Bom dia, {firstName}</h1>
+          <p className="mt-2 text-sm text-muted-foreground first-letter:uppercase">
+            {today} · Acompanhe sua operação em tempo real
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <LiveBadge active={activeAutomations} />
+          <Button variant="secondary" size="sm" onClick={handleRefresh} disabled={refetching}>
+            <RefreshCw className={cn("size-4", refetching && "animate-spin")} />
+            {refetching ? "Atualizando..." : "Atualizar"}
+          </Button>
+        </div>
+      </header>
 
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[0, 1, 2, 3].map((item) => (
-            <div key={item} className="panel h-[132px] animate-pulse p-4" />
+            <div key={item} className="h-[150px] animate-pulse rounded-lg bg-secondary p-4" />
           ))}
         </div>
       ) : (
-        <>
+        <div className="space-y-10">
+          <section>
+            <SectionTitle>Principais métricas</SectionTitle>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi
               icon={ShoppingBag}
@@ -193,17 +213,36 @@ function DashboardPage() {
               delay={120}
             />
           </div>
+          </section>
 
-          <div className="grid gap-4 xl:grid-cols-3">
+          <section>
+            <SectionTitle>Ações rápidas</SectionTitle>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {quickActions.map((action) => (
+                <Link
+                  key={action.label}
+                  to={action.to}
+                  className="group flex min-h-16 items-center justify-between rounded-lg bg-secondary p-3 text-secondary-foreground transition-colors hover:bg-accent"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="grid size-11 place-items-center rounded-lg bg-background">
+                      <action.icon className="size-5" />
+                    </span>
+                    <span className="text-sm font-medium">{action.label}</span>
+                  </span>
+                  <ArrowRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="grid items-stretch gap-8 xl:grid-cols-3">
             <section
-              className="panel p-5 animate-rise xl:col-span-2"
+              className="xl:col-span-2"
               style={{ animationDelay: "140ms" }}
             >
-              <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-eyebrow">Fluxo de envio</p>
-                  <h2 className="mt-0.5 text-sm font-semibold">Publicações</h2>
-                </div>
+              <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <SectionTitle className="mb-0">Desempenho das publicações</SectionTitle>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="size-2 rounded-full bg-chart-1" /> Publicadas
@@ -215,8 +254,9 @@ function DashboardPage() {
                 </div>
               </header>
 
-              {chartData.every((point) => point.published === 0 && point.failed === 0) ? (
-                <div className="grid h-56 place-items-center">
+              <div className="panel p-5">
+                {chartData.every((point) => point.published === 0 && point.failed === 0) ? (
+                <div className="grid h-64 place-items-center">
                   <EmptyState
                     icon={Megaphone}
                     title="Sem publicações ainda"
@@ -224,7 +264,7 @@ function DashboardPage() {
                   />
                 </div>
               ) : (
-                <div className="h-56">
+                <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
                       <defs>
@@ -298,17 +338,18 @@ function DashboardPage() {
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-              )}
+                )}
+              </div>
             </section>
 
-            <section className="panel p-5 animate-rise" style={{ animationDelay: "180ms" }}>
-              <header className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Saúde da operação</h2>
+            <section className="flex flex-col" style={{ animationDelay: "180ms" }}>
+              <header className="mb-5 flex items-center justify-between">
+                <SectionTitle className="mb-0">Saúde da operação</SectionTitle>
                 <HeartPulse className="size-4 text-success" />
               </header>
-
+              <div className="panel flex flex-1 flex-col p-5">
               {successRate === null ? (
-                <div className="grid h-56 place-items-center">
+                <div className="grid min-h-64 flex-1 place-items-center">
                   <EmptyState
                     icon={Activity}
                     title="Aguardando dados"
@@ -380,16 +421,17 @@ function DashboardPage() {
                   )}
                 </>
               )}
+              </div>
             </section>
-          </div>
+          </section>
 
-          <div className="grid gap-4 xl:grid-cols-3">
+          <section className="grid gap-8 xl:grid-cols-3">
             <section
-              className="panel p-5 animate-rise xl:col-span-2"
+              className="xl:col-span-2"
               style={{ animationDelay: "220ms" }}
             >
-              <header className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Últimas ofertas</h2>
+              <header className="mb-5 flex items-center justify-between">
+                <SectionTitle className="mb-0">Últimas ofertas</SectionTitle>
                 <Link
                   to="/ofertas"
                   className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
@@ -405,7 +447,7 @@ function DashboardPage() {
                   description="Assim que as capturas começarem, encontram espaço aqui."
                 />
               ) : (
-                <ul className="divide-y divide-border">
+                <ul className="divide-y divide-border rounded-lg border border-border px-4">
                   {(offers.data ?? []).slice(0, 6).map((offer) => (
                     <li
                       key={offer.id}
@@ -466,9 +508,9 @@ function DashboardPage() {
               )}
             </section>
 
-            <section className="panel p-5 animate-rise" style={{ animationDelay: "260ms" }}>
-              <header className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Últimas publicações</h2>
+            <section style={{ animationDelay: "260ms" }}>
+              <header className="mb-5 flex items-center justify-between">
+                <SectionTitle className="mb-0">Últimas publicações</SectionTitle>
                 <Link
                   to="/publicacoes"
                   className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
@@ -484,7 +526,7 @@ function DashboardPage() {
                   description="Os despachos realizados para os seus destinos aparecem aqui."
                 />
               ) : (
-                <ul className="divide-y divide-border">
+                <ul className="divide-y divide-border rounded-lg border border-border px-4">
                   {loadedPublications.slice(0, 5).map((publication) => (
                     <li
                       key={publication.id}
@@ -513,11 +555,15 @@ function DashboardPage() {
                 </ul>
               )}
             </section>
-          </div>
-        </>
+          </section>
+        </div>
       )}
-    </>
+    </div>
   );
+}
+
+function SectionTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <h2 className={cn("mb-3 text-base font-medium", className)}>{children}</h2>;
 }
 
 function Kpi({
@@ -545,12 +591,12 @@ function Kpi({
 
   return (
     <div
-      className="panel relative overflow-hidden p-4 animate-rise transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:scale-[0.99]"
+      className="relative overflow-hidden rounded-lg bg-secondary p-4 animate-rise transition-colors duration-200 hover:bg-accent"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg border", accent)}>
+          <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg border bg-background", accent)}>
             <Icon className="size-4" />
           </span>
           <p className="truncate text-[13px] font-medium text-muted-foreground">{label}</p>
