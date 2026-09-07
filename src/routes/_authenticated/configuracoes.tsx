@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { User } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,13 @@ function SettingsPage() {
         description="Gerencie os dados da sua conta."
       />
 
-      <div className="panel max-w-xl space-y-4 p-5">
+      <div className="panel max-w-xl space-y-4 p-5 animate-rise">
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+            <User className="size-4" />
+          </span>
+          <p className="text-eyebrow">Perfil</p>
+        </div>
         <div className="space-y-1.5">
           <Label htmlFor="profile-name">Nome</Label>
           <Input
@@ -64,7 +71,7 @@ function SettingsPage() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="profile-email">E-mail</Label>
-          <Input id="profile-email" value={user?.email ?? ""} disabled />
+          <Input id="profile-email" value={user?.email ?? ""} disabled className="font-mono" />
           <p className="text-xs text-muted-foreground">
             A alteração de e-mail será configurada posteriormente.
           </p>

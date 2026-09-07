@@ -190,7 +190,7 @@ function BannersPage() {
   }
 
   return (
-    <>
+    <div className="space-y-8">
       <PageHeader
         eyebrow="Conteúdo"
         title="Banners"
@@ -245,12 +245,14 @@ function BannersPage() {
             />
           }
         >
-          <SavedBannersGrid
-            banners={query.data ?? []}
-            onSelectEdit={edit}
-            onDelete={setDeleting}
-            onSetDefault={handleSetDefault}
-          />
+          <div className="animate-rise" style={{ animationDelay: "60ms" }}>
+            <SavedBannersGrid
+              banners={query.data ?? []}
+              onSelectEdit={edit}
+              onDelete={setDeleting}
+              onSetDefault={handleSetDefault}
+            />
+          </div>
         </DataState>
       )}
 
@@ -273,7 +275,7 @@ function BannersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }
 
@@ -330,7 +332,7 @@ function BannerStudio({
   }, [draft]);
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 animate-rise" style={{ animationDelay: "60ms" }}>
       <div className="panel p-5">
         <div className="mb-4 flex flex-col gap-4 border-b border-border pb-4 lg:flex-row lg:items-end lg:justify-between">
           <div>

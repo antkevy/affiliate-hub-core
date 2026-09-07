@@ -1,5 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Globe,
+  MessageCircle,
+  MessageSquare,
+  Package,
+  ShoppingBag,
+  Tag,
+  Unplug,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
@@ -21,6 +31,15 @@ export const Route = createFileRoute("/_authenticated/integracoes")({
   }),
   component: IntegrationsPage,
 });
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  telegram: MessageSquare,
+  whatsapp: MessageCircle,
+  "mercado-livre": ShoppingBag,
+  shopee: Tag,
+  amazon: Package,
+  aliexpress: Globe,
+};
 
 function IntegrationsPage() {
   const queryClient = useQueryClient();
@@ -88,33 +107,47 @@ function ChannelSection({
   onConfigure: () => void;
 }) {
   return (
-    <section>
+    <section className="animate-rise">
       <p className="text-eyebrow mb-3">Canais</p>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {channels.map((integration) => (
-          <div key={integration.slug} className="panel space-y-3 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">{integration.name}</p>
-                <p className="text-xs text-muted-foreground">{integration.description}</p>
-              </div>
-              <StatusPill tone="neutral">Via Destinos</StatusPill>
-            </div>
-            <ul className="space-y-1">
-              {integration.fields.map((field) => (
-                <li key={field.key} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{field.label}</span>
-                  <span className="font-mono text-muted-foreground">
-                    {field.secret ? "••••••" : "—"}
+        {channels.map((integration) => {
+          const Icon = ICON_MAP[integration.slug] ?? Unplug;
+          return (
+            <div
+              key={integration.slug}
+              className="group panel space-y-3 p-4 transition-colors hover:border-primary/20"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-secondary/60 text-muted-foreground">
+                    <Icon className="size-4" />
                   </span>
-                </li>
-              ))}
-            </ul>
-            <Button size="sm" variant="outline" onClick={onConfigure}>
-              Configurar publicação
-            </Button>
-          </div>
-        ))}
+                  <div>
+                    <p className="text-sm font-medium">{integration.name}</p>
+                    <p className="text-xs text-muted-foreground">{integration.description}</p>
+                  </div>
+                </div>
+                <StatusPill tone="neutral">
+                  <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
+                  Via Destinos
+                </StatusPill>
+              </div>
+              <ul className="space-y-1">
+                {integration.fields.map((field) => (
+                  <li key={field.key} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{field.label}</span>
+                    <span className="font-mono text-muted-foreground">
+                      {field.secret ? "••••••" : "—"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Button size="sm" variant="outline" onClick={onConfigure}>
+                Configurar publicação
+              </Button>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -134,18 +167,33 @@ function MarketplaceSection({
   onDisconnect: (slug: string) => void;
 }) {
   return (
-    <section>
+    <section className="animate-rise" style={{ animationDelay: "80ms" }}>
       <p className="text-eyebrow mb-3">Marketplaces</p>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {definitions.map((integration) => {
           const account = accounts.get(integration.slug);
           const connected = account?.status === "connected";
+          const Icon = ICON_MAP[integration.slug] ?? Unplug;
           return (
-            <div key={integration.slug} className="panel space-y-3 p-4">
+            <div
+              key={integration.slug}
+              className="group panel space-y-3 p-4 transition-colors hover:border-primary/20"
+            >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium">{integration.name}</p>
-                  <p className="text-xs text-muted-foreground">{integration.description}</p>
+                <div className="flex items-start gap-2.5">
+                  <span
+                    className={`grid size-8 shrink-0 place-items-center rounded-lg border ${
+                      connected
+                        ? "border-success/20 bg-success/10 text-success"
+                        : "border-border bg-secondary/60 text-muted-foreground"
+                    }`}
+                  >
+                    <Icon className="size-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">{integration.name}</p>
+                    <p className="text-xs text-muted-foreground">{integration.description}</p>
+                  </div>
                 </div>
                 <MarketplacePill account={account} loading={loading} />
               </div>
@@ -162,7 +210,13 @@ function MarketplaceSection({
               <div className="flex gap-2">
                 <ConnectDialog integration={integration} account={account} onSaved={onSaved} />
                 {connected ? (
-                  <Button size="sm" variant="ghost" onClick={() => onDisconnect(integration.slug)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => onDisconnect(integration.slug)}
+                  >
+                    <Unplug className="mr-1 size-3.5" />
                     Desconectar
                   </Button>
                 ) : null}
@@ -191,6 +245,7 @@ function MarketplacePill({
   };
   return (
     <StatusPill tone={entityTone(account.status)}>
+      <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
       {label[account.status] ?? account.status}
     </StatusPill>
   );

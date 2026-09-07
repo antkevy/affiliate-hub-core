@@ -9,6 +9,7 @@ import {
   Play,
   Plus,
   Search,
+  Send,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
@@ -17,8 +18,10 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
+import { StatCard } from "@/components/common/stat-card";
 import { DestinationDialog } from "@/components/common/DestinationDialog";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -122,6 +125,10 @@ function DestinationsPage() {
         (monitor) => configurationOf(monitor).destination_id === deleting.id,
       )
     : [];
+
+  const activeCount = (query.data ?? []).filter(
+    (destination) => destination.status === "active",
+  ).length;
 
   return (
     <>
@@ -227,6 +234,17 @@ function DestinationsPage() {
         </Select>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          icon={Send}
+          label="Destinos ativos"
+          value={activeCount}
+          hint={`${(query.data ?? []).length} no total`}
+          accent="text-chart-1 bg-chart-1/10 border-chart-1/20"
+          delay={0}
+        />
+      </div>
+
       <DataState
         isLoading={query.isLoading}
         error={query.error}
@@ -247,93 +265,158 @@ function DestinationsPage() {
           />
         }
       >
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {destinations.map((destination) => {
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 animate-rise">
+          {destinations.map((destination, index) => {
             const config = destinationConfiguration(destination);
             return (
-              <div key={destination.id} className="panel flex flex-col gap-3 p-4">
+              <div
+                key={destination.id}
+                className="panel flex flex-col gap-3 p-4 transition-colors hover:border-primary/25 animate-rise"
+                style={{ animationDelay: `${Math.min(index, 5) * 40}ms` }}
+              >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{destination.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {DESTINATION_TYPES.find((item) => item.value === destination.type)?.label ??
-                        destination.type}
-                      {(
-                        destination.type === "other"
-                          ? config.url
-                          : (config.chat_id ?? destination.identifier)
-                      )
-                        ? ` · ${
-                            destination.type === "other"
-                              ? (config.url ?? destination.identifier)
-                              : (config.chat_id ?? destination.identifier)
-                          }`
-                        : ""}
-                    </p>
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <span
+                      className={cn(
+                        "grid size-8 shrink-0 place-items-center rounded-lg border",
+                        destination.status === "active"
+                          ? "border-success/20 bg-success/10 text-success"
+                          : "border-border bg-secondary/60 text-muted-foreground",
+                      )}
+                    >
+                      <Send className="size-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{destination.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {DESTINATION_TYPES.find((item) => item.value === destination.type)?.label ??
+                          destination.type}
+                        {(
+                          destination.type === "other"
+                            ? config.url
+                            : (config.chat_id ?? destination.identifier)
+                        )
+                          ? ` · ${
+                              destination.type === "other"
+                                ? (config.url ?? destination.identifier)
+                                : (config.chat_id ?? destination.identifier)
+                            }`
+                          : ""}
+                      </p>
+                    </div>
                   </div>
                   <StatusPill tone={entityTone(destination.status)}>
+                    <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
                     {ENTITY_STATUS_LABEL[destination.status]}
                   </StatusPill>
                 </div>
                 <CredentialsLine destination={destination} config={config} />
-                <div className="flex flex-wrap items-center gap-2">
-                  {destination.status === "active" ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          await destinationsService.pause(destination.id);
-                          invalidate();
-                        } catch (error) {
-                          toast.error(toUserMessage(error));
-                        }
-                      }}
-                    >
-                      <Pause className="mr-1 size-3.5" /> Pausar
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          await destinationsService.activate(destination.id);
-                          invalidate();
-                        } catch (error) {
-                          toast.error(toUserMessage(error));
-                        }
-                      }}
-                    >
-                      <Play className="mr-1 size-3.5" /> Ativar
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => edit(destination)}>
-                    <Pencil className="mr-1 size-3.5" /> Editar
-                  </Button>
-                  <div className="ml-auto flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title="Enviar teste"
-                      onClick={async () => {
-                        try {
-                          const test = await destinationsService.sendTestMessage(destination.id);
-                          if (test.ok) {
-                            toast.success(`Teste enviado para ${destination.name}.`);
-                          } else {
-                            toast.error("Não foi possível enviar", { description: test.error });
-                          }
-                        } catch (error) {
-                          toast.error(toUserMessage(error));
-                        }
-                      }}
-                    >
-                      <FlaskConical className="size-3.5" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDeleting(destination)}>
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <TooltipProvider delayDuration={100}>
+                    {destination.status === "active" ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="size-8 px-0"
+                            aria-label="Pausar destino"
+                            onClick={async () => {
+                              try {
+                                await destinationsService.pause(destination.id);
+                                invalidate();
+                              } catch (error) {
+                                toast.error(toUserMessage(error));
+                              }
+                            }}
+                          >
+                            <Pause className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Pausar</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            className="size-8 px-0"
+                            aria-label="Ativar destino"
+                            onClick={async () => {
+                              try {
+                                await destinationsService.activate(destination.id);
+                                invalidate();
+                              } catch (error) {
+                                toast.error(toUserMessage(error));
+                              }
+                            }}
+                          >
+                            <Play className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Ativar</TooltipContent>
+                      </Tooltip>
+                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="size-8 px-0"
+                          aria-label="Editar destino"
+                          onClick={() => edit(destination)}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Editar</TooltipContent>
+                    </Tooltip>
+                    <div className="ml-auto flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="size-8 px-0"
+                            aria-label="Enviar teste"
+                            onClick={async () => {
+                              try {
+                                const test = await destinationsService.sendTestMessage(
+                                  destination.id,
+                                );
+                                if (test.ok) {
+                                  toast.success(`Teste enviado para ${destination.name}.`);
+                                } else {
+                                  toast.error("Não foi possível enviar", {
+                                    description: test.error,
+                                  });
+                                }
+                              } catch (error) {
+                                toast.error(toUserMessage(error));
+                              }
+                            }}
+                          >
+                            <FlaskConical className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Enviar teste</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="size-8 px-0 text-muted-foreground hover:text-destructive"
+                            aria-label="Excluir destino"
+                            onClick={() => setDeleting(destination)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Excluir</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
                 </div>
               </div>
             );

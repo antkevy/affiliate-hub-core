@@ -17,8 +17,10 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
+import { StatCard } from "@/components/common/stat-card";
 import { SourceDialog } from "@/components/common/SourceDialog";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +48,7 @@ import { configurationOf } from "@/lib/monitor-config";
 import { monitorsService } from "@/services/monitors";
 import { sourcesService } from "@/services/sources";
 import { toUserMessage } from "@/services/base";
+import { cn } from "@/lib/utils";
 import { ENTITY_STATUS_LABEL, SOURCE_TYPES, type Source, type SourceType } from "@/types";
 
 export const Route = createFileRoute("/_authenticated/fontes")({
@@ -112,6 +115,8 @@ function SourcesPage() {
         (configurationOf(monitor).source_ids ?? []).includes(deleting.id),
       )
     : [];
+
+  const activeCount = (query.data ?? []).filter((source) => source.status === "active").length;
 
   return (
     <>
@@ -217,6 +222,17 @@ function SourcesPage() {
         </Select>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          icon={Inbox}
+          label="Fontes ativas"
+          value={activeCount}
+          hint={`${(query.data ?? []).length} no total`}
+          accent="text-chart-2 bg-chart-2/10 border-chart-2/20"
+          delay={0}
+        />
+      </div>
+
       <DataState
         isLoading={query.isLoading}
         error={query.error}
@@ -237,81 +253,142 @@ function SourcesPage() {
           />
         }
       >
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {sources.map((source) => {
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 animate-rise">
+          {sources.map((source, index) => {
             const notes = sourceConfiguration(source).notes;
             return (
-              <div key={source.id} className="panel flex flex-col gap-3 p-4">
+              <div
+                key={source.id}
+                className="panel flex flex-col gap-3 p-4 transition-colors hover:border-primary/25 animate-rise"
+                style={{ animationDelay: `${Math.min(index, 5) * 40}ms` }}
+              >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{source.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {SOURCE_TYPES.find((item) => item.value === source.type)?.label ??
-                        source.type}
-                      {source.identifier ? ` · ${source.identifier}` : ""}
-                    </p>
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <span
+                      className={cn(
+                        "grid size-8 shrink-0 place-items-center rounded-lg border",
+                        source.status === "active"
+                          ? "border-success/20 bg-success/10 text-success"
+                          : "border-border bg-secondary/60 text-muted-foreground",
+                      )}
+                    >
+                      <Inbox className="size-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{source.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {SOURCE_TYPES.find((item) => item.value === source.type)?.label ??
+                          source.type}
+                        {source.identifier ? ` · ${source.identifier}` : ""}
+                      </p>
+                    </div>
                   </div>
                   <StatusPill tone={entityTone(source.status)}>
+                    <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
                     {ENTITY_STATUS_LABEL[source.status]}
                   </StatusPill>
                 </div>
                 {notes ? (
                   <p className="line-clamp-2 text-xs text-muted-foreground">{notes}</p>
                 ) : null}
-                <div className="flex flex-wrap items-center gap-2">
-                  {source.status === "active" ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          await sourcesService.pause(source.id);
-                          invalidate();
-                        } catch (error) {
-                          toast.error(toUserMessage(error));
-                        }
-                      }}
-                    >
-                      <Pause className="mr-1 size-3.5" /> Pausar
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          await sourcesService.activate(source.id);
-                          invalidate();
-                        } catch (error) {
-                          toast.error(toUserMessage(error));
-                        }
-                      }}
-                    >
-                      <Play className="mr-1 size-3.5" /> Ativar
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => edit(source)}>
-                    <Pencil className="mr-1 size-3.5" /> Editar
-                  </Button>
-                  <div className="ml-auto flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title="Testar conexão"
-                      onClick={async () => {
-                        try {
-                          const message = await sourcesService.testConnection(source.id);
-                          toast.success(`Conexão verificada`, { description: message });
-                        } catch (error) {
-                          toast.error(toUserMessage(error));
-                        }
-                      }}
-                    >
-                      <FlaskConical className="size-3.5" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDeleting(source)}>
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <TooltipProvider delayDuration={100}>
+                    {source.status === "active" ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="size-8 px-0"
+                            aria-label="Pausar fonte"
+                            onClick={async () => {
+                              try {
+                                await sourcesService.pause(source.id);
+                                invalidate();
+                              } catch (error) {
+                                toast.error(toUserMessage(error));
+                              }
+                            }}
+                          >
+                            <Pause className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Pausar</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            className="size-8 px-0"
+                            aria-label="Ativar fonte"
+                            onClick={async () => {
+                              try {
+                                await sourcesService.activate(source.id);
+                                invalidate();
+                              } catch (error) {
+                                toast.error(toUserMessage(error));
+                              }
+                            }}
+                          >
+                            <Play className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Ativar</TooltipContent>
+                      </Tooltip>
+                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="size-8 px-0"
+                          aria-label="Editar fonte"
+                          onClick={() => edit(source)}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Editar</TooltipContent>
+                    </Tooltip>
+                    <div className="ml-auto flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="size-8 px-0"
+                            aria-label="Testar conexão"
+                            onClick={async () => {
+                              try {
+                                const message = await sourcesService.testConnection(source.id);
+                                toast.success(`Conexão verificada`, { description: message });
+                              } catch (error) {
+                                toast.error(toUserMessage(error));
+                              }
+                            }}
+                          >
+                            <FlaskConical className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Testar conexão</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="size-8 px-0 text-muted-foreground hover:text-destructive"
+                            aria-label="Excluir fonte"
+                            onClick={() => setDeleting(source)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Excluir</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
                 </div>
               </div>
             );

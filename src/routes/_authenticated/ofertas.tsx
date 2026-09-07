@@ -1,21 +1,27 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, ExternalLink, ImageIcon, Loader2, ShoppingBag, Tags, UploadCloud } from "lucide-react";
+import {
+  Copy,
+  ExternalLink,
+  ImageIcon,
+  Loader2,
+  Percent,
+  ShoppingBag,
+  Tags,
+  Ticket,
+  UploadCloud,
+} from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
+import { StatCard, timeAgo } from "@/components/common/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -26,6 +32,7 @@ import {
 import { useCapture } from "@/hooks/useCapture";
 import { offersService } from "@/services/offers";
 import { OFFER_STATUSES, OFFER_STATUS_LABEL, type Offer } from "@/types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/ofertas")({
   head: () => ({
@@ -68,6 +75,19 @@ function OffersPage() {
       }),
   });
 
+  const offers = query.data ?? [];
+  const withCoupon = offers.filter((offer) => offer.coupon).length;
+  const discounts = offers
+    .map((offer) => offer.discount_percentage)
+    .filter((value): value is number => typeof value === "number");
+  const avgDiscount =
+    discounts.length > 0
+      ? Math.round(discounts.reduce((sum, value) => sum + value, 0) / discounts.length)
+      : 0;
+  const pending = offers.filter((offer) =>
+    ["captured", "processing", "processed", "approved"].includes(offer.status),
+  ).length;
+
   return (
     <>
       <PageHeader
@@ -98,6 +118,41 @@ function OffersPage() {
         }
       />
 
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          icon={ShoppingBag}
+          label="Ofertas totais"
+          value={offers.length}
+          hint="Na lista atual"
+          accent="text-chart-1 bg-chart-1/10 border-chart-1/20"
+          delay={0}
+        />
+        <StatCard
+          icon={Ticket}
+          label="Com cupom"
+          value={withCoupon}
+          hint="Possuem cupom aplicável"
+          accent="text-chart-3 bg-chart-3/10 border-chart-3/20"
+          delay={40}
+        />
+        <StatCard
+          icon={Percent}
+          label="Desconto médio"
+          value={avgDiscount}
+          hint="Percentual na lista"
+          accent="text-chart-4 bg-chart-4/10 border-chart-4/20"
+          delay={80}
+        />
+        <StatCard
+          icon={Tags}
+          label="Pendentes"
+          value={pending}
+          hint="Capturadas em processamento"
+          accent="text-warning bg-warning/10 border-warning/20"
+          delay={120}
+        />
+      </div>
+
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">
         <Input
           placeholder="Buscar por título"
@@ -123,7 +178,7 @@ function OffersPage() {
       <DataState
         isLoading={query.isLoading}
         error={query.error}
-        isEmpty={(query.data ?? []).length === 0}
+        isEmpty={offers.length === 0}
         empty={
           <EmptyState
             icon={Tags}
@@ -132,47 +187,59 @@ function OffersPage() {
           />
         }
       >
-        <div className="panel overflow-x-auto">
+        <div className="panel overflow-x-auto animate-rise" style={{ animationDelay: "160ms" }}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-4 py-2 font-medium">Imagem & Oferta</th>
-                <th className="px-4 py-2 font-medium">Preço</th>
-                <th className="px-4 py-2 font-medium">Desconto</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Capturada</th>
+              <tr className="border-b border-border bg-secondary/40 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <th className="px-4 py-2.5">Imagem & Oferta</th>
+                <th className="px-4 py-2.5">Preço</th>
+                <th className="px-4 py-2.5">Desconto</th>
+                <th className="px-4 py-2.5">Status</th>
+                <th className="px-4 py-2.5">Capturada</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {(query.data ?? []).map((offer) => (
+              {offers.map((offer) => (
                 <tr
                   key={offer.id}
                   onClick={() => setSelectedOffer(offer)}
-                  className="cursor-pointer transition-colors hover:bg-muted/50"
+                  className="group cursor-pointer transition-colors hover:bg-secondary/40"
                 >
-                  <td className="max-w-md px-4 py-2.5">
+                  <td className="max-w-md px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                      <div
+                        className={cn(
+                          "relative size-12 shrink-0 overflow-hidden rounded-lg border",
+                          offer.status === "error"
+                            ? "border-destructive/30"
+                            : offer.status === "published" || offer.status === "approved"
+                              ? "border-success/30"
+                              : "border-border",
+                          "bg-muted/40",
+                        )}
+                      >
                         {offer.image_url ? (
                           <img
                             src={offer.image_url}
                             alt={offer.title}
-                            className="size-full object-cover transition-transform duration-200 hover:scale-105"
+                            className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
                           />
                         ) : (
-                          <ShoppingBag className="size-5 text-muted-foreground/60" />
+                          <div className="flex size-full items-center justify-center">
+                            <ShoppingBag className="size-5 text-muted-foreground/60" />
+                          </div>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-foreground hover:text-primary">
+                        <p className="truncate font-medium text-foreground group-hover:text-primary">
                           {offer.title}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="mt-0.5 flex items-center gap-2">
                           {offer.coupon ? (
                             <button
                               type="button"
                               onClick={(e) => copyCoupon(offer.coupon, e)}
-                              className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30 transition-colors"
+                              className="inline-flex items-center gap-1 rounded border border-chart-3/30 bg-chart-3/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-chart-3 transition-colors hover:bg-chart-3/20"
                               title="Clique para copiar o cupom"
                             >
                               <span>Cupom: {offer.coupon}</span>
@@ -183,30 +250,37 @@ function OffersPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-2.5 tabular-nums font-semibold">
+                  <td className="px-4 py-3 font-mono font-semibold tabular-nums">
                     {money(offer.sale_price)}
                     {offer.original_price && offer.original_price > (offer.sale_price ?? 0) ? (
-                      <span className="block text-[11px] text-muted-foreground line-through font-normal">
+                      <span className="block text-[11px] font-normal text-muted-foreground line-through">
                         {money(offer.original_price)}
                       </span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-2.5 tabular-nums">
+                  <td className="px-4 py-3 font-mono tabular-nums">
                     {offer.discount_percentage ? (
-                      <Badge variant="secondary" className="font-bold text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      <Badge
+                        variant="secondary"
+                        className="border border-chart-3/30 bg-chart-3/10 text-xs font-bold text-chart-3"
+                      >
                         {offer.discount_percentage}% OFF
                       </Badge>
                     ) : (
-                      "—"
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-3">
                     <StatusPill tone={entityTone(offer.status)}>
+                      <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
                       {OFFER_STATUS_LABEL[offer.status]}
                     </StatusPill>
                   </td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                    {new Date(offer.captured_at).toLocaleString("pt-BR")}
+                  <td
+                    className="px-4 py-3 text-xs text-muted-foreground"
+                    title={new Date(offer.captured_at).toLocaleString("pt-BR")}
+                  >
+                    {timeAgo(offer.captured_at)}
                   </td>
                 </tr>
               ))}
@@ -216,7 +290,10 @@ function OffersPage() {
       </DataState>
 
       {/* Modal de Detalhes e Pré-visualização da Oferta com Imagem Ampliada */}
-      <Dialog open={selectedOffer !== null} onOpenChange={(open) => !open && setSelectedOffer(null)}>
+      <Dialog
+        open={selectedOffer !== null}
+        onOpenChange={(open) => !open && setSelectedOffer(null)}
+      >
         {selectedOffer && (
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
@@ -281,12 +358,7 @@ function OffersPage() {
 
               <div className="flex flex-wrap gap-2 pt-2">
                 {(selectedOffer.affiliate_url || selectedOffer.original_url) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 gap-1.5"
-                    asChild
-                  >
+                  <Button size="sm" variant="outline" className="flex-1 gap-1.5" asChild>
                     <a
                       href={selectedOffer.affiliate_url || selectedOffer.original_url || "#"}
                       target="_blank"

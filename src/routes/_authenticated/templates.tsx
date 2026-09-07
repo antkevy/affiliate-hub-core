@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { templatesService, renderTemplate } from "@/services/templates";
 import { toUserMessage } from "@/services/base";
 import { TEMPLATE_VARIABLES, type Template } from "@/types";
@@ -90,7 +91,13 @@ function TemplatesPage() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
-          <div className="panel space-y-4 p-5">
+          <div className="panel space-y-4 p-5 animate-rise">
+            <div className="flex items-center gap-2.5">
+              <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+                <FileText className="size-4" />
+              </span>
+              <p className="text-eyebrow">Editor</p>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="template-name">Nome</Label>
               <Input
@@ -117,7 +124,7 @@ function TemplatesPage() {
                   type="button"
                   title={variable.label}
                   onClick={() => setContent((prev) => `${prev}${variable.token}`)}
-                  className="rounded-md border border-border bg-secondary px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                  className="rounded-md border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {variable.token}
                 </button>
@@ -128,9 +135,9 @@ function TemplatesPage() {
             </Button>
           </div>
 
-          <div className="panel p-5">
+          <div className="panel p-5 animate-rise" style={{ animationDelay: "60ms" }}>
             <p className="text-eyebrow mb-3">Pré-visualização</p>
-            <pre className="whitespace-pre-wrap rounded-md bg-secondary p-4 text-sm">
+            <pre className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs">
               {renderTemplate(content)}
             </pre>
           </div>
@@ -151,26 +158,41 @@ function TemplatesPage() {
               />
             }
           >
-            <ul className="panel divide-y divide-border">
+            <ul
+              className="panel divide-y divide-border animate-rise"
+              style={{ animationDelay: "80ms" }}
+            >
               {(query.data ?? []).map((template) => (
-                <li key={template.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                <li
+                  key={template.id}
+                  className="group flex items-center justify-between gap-2 px-4 py-3 transition-colors hover:bg-secondary/40"
+                >
                   <button className="min-w-0 text-left" onClick={() => edit(template)}>
                     <p className="truncate text-sm">{template.name}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {template.content.slice(0, 40)}…
                     </p>
                   </button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={async () => {
-                      await templatesService.remove(template.id);
-                      queryClient.invalidateQueries({ queryKey: ["templates"] });
-                      if (selected?.id === template.id) reset();
-                    }}
-                  >
-                    Excluir
-                  </Button>
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="size-8 px-0 text-muted-foreground hover:text-destructive"
+                          aria-label="Excluir template"
+                          onClick={async () => {
+                            await templatesService.remove(template.id);
+                            queryClient.invalidateQueries({ queryKey: ["templates"] });
+                            if (selected?.id === template.id) reset();
+                          }}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Excluir</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </li>
               ))}
             </ul>

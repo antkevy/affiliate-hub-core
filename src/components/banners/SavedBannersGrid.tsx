@@ -75,15 +75,18 @@ export function SavedBannersGrid({
   onSetDefault,
 }: SavedBannersGridProps) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {banners.map((banner) => {
         const config = bannerConfigOf(banner);
         const isDefault = config.isDefault === true;
         return (
-          <div key={banner.id} className="panel flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+          <div
+            key={banner.id}
+            className="panel flex flex-col overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3.5">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                <p className="truncate text-sm font-medium">{banner.name}</p>
+                <p className="truncate text-sm font-semibold">{banner.name}</p>
                 {isDefault && (
                   <Badge className="shrink-0 gap-1 bg-amber-500 text-slate-950 font-bold text-[10px]">
                     <Star className="size-3 fill-slate-950 text-slate-950" />
@@ -111,12 +114,12 @@ export function SavedBannersGrid({
               type="button"
               onClick={() => onSelectEdit(banner)}
               aria-label={`Editar ${banner.name}`}
-              className="group relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden bg-secondary"
+              className="group relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden bg-slate-950/20 transition-colors hover:bg-slate-950/30"
             >
               <BannerPreview banner={banner} />
             </button>
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-border p-3">
+            <div className="flex flex-wrap items-center gap-2 border-t border-border/60 p-3.5">
               <Button
                 size="sm"
                 variant="outline"

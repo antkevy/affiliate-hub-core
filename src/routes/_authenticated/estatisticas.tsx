@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { BarChart3, Send, Tags } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -14,6 +15,7 @@ import {
 } from "recharts";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
+import { StatCard } from "@/components/common/stat-card";
 import { offersService } from "@/services/offers";
 import { publicationsService } from "@/services/publications";
 import { OFFER_STATUSES, OFFER_STATUS_LABEL, PUBLICATION_STATUS_LABEL } from "@/types";
@@ -57,6 +59,12 @@ function StatsPage() {
     }))
     .filter((item) => item.total > 0);
 
+  const totalOffers = (offers.data ?? []).length;
+  const totalPublications = (publications.data ?? []).length;
+  const publishedCount = (publications.data ?? []).filter(
+    (item) => item.status === "published",
+  ).length;
+
   return (
     <>
       <PageHeader
@@ -65,9 +73,44 @@ function StatsPage() {
         description="Visão consolidada das ofertas capturadas e publicações realizadas."
       />
 
-      <DataState isLoading={offers.isLoading || publications.isLoading} error={offers.error}>
+      {offers.isLoading || publications.isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="panel h-[116px] animate-pulse p-4" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <StatCard
+            icon={Tags}
+            label="Total de ofertas"
+            value={totalOffers}
+            hint="Ofertas capturadas"
+            accent="text-chart-3 bg-chart-3/10 border-chart-3/20"
+            delay={0}
+          />
+          <StatCard
+            icon={Send}
+            label="Total de publicações"
+            value={totalPublications}
+            hint="Enviadas e na fila"
+            accent="text-chart-1 bg-chart-1/10 border-chart-1/20"
+            delay={40}
+          />
+          <StatCard
+            icon={BarChart3}
+            label="Publicações publicadas"
+            value={publishedCount}
+            hint="Enviadas com sucesso"
+            accent="text-success bg-success/10 border-success/20"
+            delay={80}
+          />
+        </div>
+      )}
+
+      <DataState isLoading={false} error={offers.error}>
         <div className="grid gap-4 xl:grid-cols-2">
-          <div className="panel p-5">
+          <div className="panel p-5 animate-rise" style={{ animationDelay: "120ms" }}>
             <p className="text-eyebrow mb-4">Ofertas por status</p>
             {offersByStatus.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem dados suficientes.</p>
@@ -76,8 +119,16 @@ function StatsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={offersByStatus}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11 }}
+                      stroke="var(--color-muted-foreground)"
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                      stroke="var(--color-muted-foreground)"
+                    />
                     <Tooltip
                       contentStyle={{
                         background: "var(--color-card)",
@@ -93,7 +144,7 @@ function StatsPage() {
             )}
           </div>
 
-          <div className="panel p-5">
+          <div className="panel p-5 animate-rise" style={{ animationDelay: "180ms" }}>
             <p className="text-eyebrow mb-4">Publicações por status</p>
             {publicationsByStatus.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem dados suficientes.</p>

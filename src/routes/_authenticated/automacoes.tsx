@@ -21,6 +21,7 @@ import { useAutomationScheduler } from "@/hooks/useAutomationScheduler";
 import { automationConfigOf, automationConfigValues } from "@/lib/automation-config";
 import { AI_DEFAULT_INSTRUCTION } from "@/lib/monitor-config";
 import { ENTITY_STATUS_LABEL, type Automation } from "@/types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/automacoes")({
   head: () => ({
@@ -210,22 +211,37 @@ function AutomationsPage() {
               />
             }
           >
-            <ul className="panel divide-y divide-border">
+            <ul className="panel divide-y divide-border animate-rise">
               {(automations.data ?? []).map((automation) => (
                 <li key={automation.id}>
                   <button
                     onClick={() => setSelected(automation)}
-                    className={`flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-secondary ${
+                    className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary ${
                       current?.id === automation.id ? "bg-secondary" : ""
                     }`}
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm">{automation.name}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {automation.description ?? "Sem descrição"}
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span
+                        className={cn(
+                          "grid size-8 shrink-0 place-items-center rounded-lg border",
+                          automation.status === "active"
+                            ? "border-success/20 bg-success/10 text-success"
+                            : automation.status === "error"
+                              ? "border-destructive/20 bg-destructive/10 text-destructive"
+                              : "border-border bg-secondary/60 text-muted-foreground",
+                        )}
+                      >
+                        <Workflow className="size-3.5" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm">{automation.name}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {automation.description ?? "Sem descrição"}
+                        </span>
                       </span>
                     </span>
                     <StatusPill tone={entityTone(automation.status)}>
+                      <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
                       {ENTITY_STATUS_LABEL[automation.status]}
                     </StatusPill>
                   </button>
@@ -237,7 +253,7 @@ function AutomationsPage() {
 
         <div className="xl:col-span-2">
           {current ? (
-            <div className="panel space-y-5 p-5">
+            <div className="panel space-y-5 p-5 animate-rise" style={{ animationDelay: "40ms" }}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-eyebrow">Fluxo</p>
@@ -357,18 +373,32 @@ function AutomationsPage() {
 
               {automationConfig ? (
                 <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
-                    <Clock className="size-3.5" />
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/40 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                    <Clock className="size-3" />
                     {automationConfig.interval_minutes
                       ? `A cada ${automationConfig.interval_minutes} min`
                       : "Sem agendamento"}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
-                    <Bot className="size-3.5" />
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-[11px]",
+                      automationConfig.ai_enabled
+                        ? "border-chart-4/20 bg-chart-4/10 text-chart-4"
+                        : "border-border bg-secondary/40 text-muted-foreground",
+                    )}
+                  >
+                    <Bot className="size-3" />
                     {automationConfig.ai_enabled ? "IA ativa" : "Sem IA"}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
-                    <Image className="size-3.5" />
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-[11px]",
+                      automationConfig.include_banner
+                        ? "border-chart-1/20 bg-chart-1/10 text-chart-1"
+                        : "border-border bg-secondary/40 text-muted-foreground",
+                    )}
+                  >
+                    <Image className="size-3" />
                     {automationConfig.include_banner ? "Banner ativo" : "Texto simples"}
                   </span>
                 </div>
@@ -377,9 +407,21 @@ function AutomationsPage() {
               <div className="flex flex-wrap items-stretch gap-2">
                 {BLOCKS.map((block, index) => (
                   <div key={block.title} className="flex items-center gap-2">
-                    <div className="min-w-36 rounded-lg border border-border bg-secondary px-3 py-2">
-                      <p className="text-xs font-medium">{block.title}</p>
-                      <p className="text-[11px] text-muted-foreground">{block.detail}</p>
+                    <div className="min-w-36 rounded-lg border border-border bg-secondary/50 px-3 py-2">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={cn(
+                            "grid size-4 shrink-0 place-items-center rounded-full border font-mono text-[9px] leading-none",
+                            index === 0
+                              ? "border-success/30 bg-success/10 text-success"
+                              : "border-border bg-secondary/60 text-muted-foreground",
+                          )}
+                        >
+                          {index + 1}
+                        </span>
+                        <p className="text-xs font-medium">{block.title}</p>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{block.detail}</p>
                     </div>
                     {index < BLOCKS.length - 1 ? (
                       <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
