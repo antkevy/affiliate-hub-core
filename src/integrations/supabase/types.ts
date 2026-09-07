@@ -883,7 +883,7 @@ export type Database = {
         | "published"
         | "failed"
         | "cancelled"
-      source_type: "telegram" | "whatsapp" | "api" | "feed" | "manual"
+      source_type: "telegram" | "whatsapp" | "api" | "feed" | "manual" | "amazon"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1033,7 +1033,7 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
-      source_type: ["telegram", "whatsapp", "api", "feed", "manual"],
+      source_type: ["telegram", "whatsapp", "api", "feed", "manual", "amazon"],
     },
   },
 } as const

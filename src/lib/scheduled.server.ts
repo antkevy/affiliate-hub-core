@@ -4,6 +4,7 @@ import { destinationConfiguration } from "@/lib/destination-config";
 import { convertMercadoLivre, normalizeText } from "@/lib/affiliate-converter";
 import { generateMercadoLivreAffiliateUrl } from "@/lib/mercado-livre-affiliate.server";
 import { captureTelegramChannel } from "@/lib/telegram.server";
+import { captureAmazonOffers } from "@/lib/amazon-creators.server";
 import {
   downloadImageBase64,
   postTelegram,
@@ -133,12 +134,11 @@ async function ensureMercadoLivreAffiliateUrl(
         cookie: credentials.cookie,
       });
     } catch {
-      link = tagOnlyMercadoLivreLink(offer.original_url, credentials.tag);
+      // Se a geração meli.la falhar por cookie expirado, não publica link não comissionado
+      link = null;
     }
-  } else {
-    link = tagOnlyMercadoLivreLink(offer.original_url, credentials.tag);
   }
-  if (!link) return;
+  if (!link || !link.includes("meli.la")) return;
   offer.affiliate_url = link;
   await db.from("offers").update({ affiliate_url: link }).eq("id", offer.id);
 }
@@ -322,7 +322,9 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
 
   for (const sourceId of sourceIdsToCapture) {
     if (Date.now() - startTime > MAX_EXECUTION_MS) {
-      report.errors.push("Tempo limite de execução atingido durante captura. Finalizando ciclo rápido.");
+      report.errors.push(
+        "Tempo limite de execução atingido durante captura. Finalizando ciclo rápido.",
+      );
       break;
     }
     const source = activeSourcesById.get(sourceId);
@@ -341,6 +343,19 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
 
     if (source.type === "telegram") {
       const captured = await captureTelegramChannel(db, {
+        identifier: source.identifier,
+        sourceId: source.id,
+        userId: source.user_id,
+      });
+      report.offersCaptured += captured.offersCaptured;
+      report.offersIgnored += captured.offersIgnored;
+      report.offersFailed += captured.offersFailed;
+      report.errors.push(...captured.errors);
+      continue;
+    }
+
+    if (source.type === "amazon") {
+      const captured = await captureAmazonOffers(db, {
         identifier: source.identifier,
         sourceId: source.id,
         userId: source.user_id,
@@ -428,7 +443,9 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
 
   for (const monitor of monitorList) {
     if (Date.now() - startTime > MAX_EXECUTION_MS) {
-      report.errors.push("Tempo limite de 18s atingido antes dos monitores. Finalizando ciclo rápido.");
+      report.errors.push(
+        "Tempo limite de 18s atingido antes dos monitores. Finalizando ciclo rápido.",
+      );
       break;
     }
     const config = configurationOf(monitor);
@@ -869,7 +886,7 @@ function passesFilters(offer: Offer, config: ReturnType<typeof configurationOf>)
 }
 
 function isScrapable(type: string): boolean {
-  return type === "feed" || type === "api" || type === "telegram";
+  return type === "feed" || type === "api" || type === "telegram" || type === "amazon";
 }
 
 interface ServerCandidate {

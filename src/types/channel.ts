@@ -13,6 +13,7 @@ export type DestinationType = Database["public"]["Enums"]["destination_type"];
 export const SOURCE_TYPES: { value: SourceType; label: string }[] = [
   { value: "telegram", label: "Telegram" },
   { value: "whatsapp", label: "WhatsApp" },
+  { value: "amazon", label: "Amazon" },
   { value: "api", label: "API" },
   { value: "feed", label: "Feed" },
   { value: "manual", label: "Manual" },

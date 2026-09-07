@@ -5,6 +5,7 @@ import { configurationOf } from "@/lib/monitor-config";
 import { destinationConfiguration } from "@/lib/destination-config";
 import { normalizeText } from "@/lib/affiliate-converter";
 import { captureTelegramSource } from "@/lib/telegram.server";
+import { captureAmazonSourceRpc } from "@/lib/amazon-creators.server";
 import { formatOfferWithAI } from "@/lib/ai.server";
 import {
   buildOfferBannerConfig,
@@ -125,6 +126,20 @@ export async function runCapture(): Promise<CaptureReport> {
       report.errors.push(...result.errors);
       continue;
     }
+    if (source.type === "amazon") {
+      const result = await captureAmazonSourceRpc({
+        data: {
+          identifier: source.identifier,
+          sourceId: source.id,
+          userId,
+        },
+      });
+      report.offersCaptured += result.offersCaptured;
+      report.offersIgnored += result.offersIgnored;
+      report.offersFailed += result.offersFailed;
+      report.errors.push(...result.errors);
+      continue;
+    }
     const found = await captureFromSource(source);
     for (const candidate of found) {
       const cleaned = cleanProductUrl(candidate.original_url);
@@ -187,7 +202,12 @@ export async function runCapture(): Promise<CaptureReport> {
 }
 
 function isScrapable(source: Source): boolean {
-  return source.type === "feed" || source.type === "api" || source.type === "telegram";
+  return (
+    source.type === "feed" ||
+    source.type === "api" ||
+    source.type === "telegram" ||
+    source.type === "amazon"
+  );
 }
 
 async function captureFromSource(source: Source): Promise<Candidate[]> {
@@ -591,6 +611,18 @@ export async function runAutomation(automation: {
     const result = await captureTelegramSource({
       data: {
         token: await accessToken(),
+        identifier: source.identifier,
+        sourceId: source.id,
+        userId,
+      },
+    });
+    report.offersCaptured += result.offersCaptured;
+    report.offersIgnored += result.offersIgnored;
+    report.offersFailed += result.offersFailed;
+    report.errors.push(...result.errors);
+  } else if (source.type === "amazon") {
+    const result = await captureAmazonSourceRpc({
+      data: {
         identifier: source.identifier,
         sourceId: source.id,
         userId,

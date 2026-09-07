@@ -51,11 +51,16 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     slug: "amazon",
     name: "Amazon",
     kind: "marketplace",
-    description: "Associados Amazon: tag e API de produtos.",
+    description: "Associados Amazon: Creators API para títulos, preços e links.",
     fields: [
       { key: "partner_tag", label: "Tag de associado" },
-      { key: "access_key", label: "Access Key", secret: true },
-      { key: "secret_key", label: "Secret Key", secret: true },
+      { key: "client_id", label: "Client ID (LwA)" },
+      { key: "client_secret", label: "Client Secret (LwA)", secret: true },
+      {
+        key: "marketplace",
+        label: "Marketplace (domínio)",
+        placeholder: "www.amazon.com.br",
+      },
     ],
   },
   {

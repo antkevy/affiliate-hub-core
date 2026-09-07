@@ -1,5 +1,13 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ClipboardList, MessageCircle, Rss, Send, Webhook, type LucideIcon } from "lucide-react";
+import {
+  ClipboardList,
+  MessageCircle,
+  Package,
+  Rss,
+  Send,
+  Webhook,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +35,7 @@ import { SOURCE_TYPES, type Source, type SourceType } from "@/types";
 const TYPE_ICONS: Record<SourceType, LucideIcon> = {
   telegram: Send,
   whatsapp: MessageCircle,
+  amazon: Package,
   feed: Rss,
   api: Webhook,
   manual: ClipboardList,

@@ -10,6 +10,7 @@ export interface SourceFormValues {
 export const SOURCE_IDENTIFIER_HINTS: Record<SourceType, string> = {
   telegram: "@canal ou link de convite",
   whatsapp: "Link do grupo ou número",
+  amazon: "ASINs ou links de produto (um por linha)",
   api: "URL base da API",
   feed: "https://exemplo.com/feed.xml",
   manual: "Referência de identificação",
