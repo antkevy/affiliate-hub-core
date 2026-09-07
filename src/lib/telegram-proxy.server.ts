@@ -147,17 +147,34 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
     const { token, method, chat_id, text } = data;
     const url = `https://api.telegram.org/bot${token}/${method}`;
 
+    const hasMarkdown = Boolean(text && text.includes("`"));
+
     if (method === "sendMessage") {
-      const response = await telegramFetch(token, url, {
+      const payload: Record<string, unknown> = { chat_id, text };
+      if (hasMarkdown) payload["parse_mode"] = "Markdown";
+
+      let response = await telegramFetch(token, url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id, text }),
+        body: JSON.stringify(payload),
       });
-      return await parseResult(response);
+      let result = await parseResult(response);
+      if (!result.ok && payload["parse_mode"]) {
+        delete payload["parse_mode"];
+        response = await telegramFetch(token, url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        result = await parseResult(response);
+      }
+      return result;
     }
 
     const form = new FormData();
     form.append("chat_id", chat_id);
+    if (hasMarkdown) form.append("parse_mode", "Markdown");
+
     const uploaded: { name: string; blob: Blob }[] = [];
     for (const file of data.files ?? []) {
       const blob = await readFile(file);
@@ -177,14 +194,39 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
       const photos = uploaded.map((item, index) => ({
         type: "photo" as const,
         media: `attach://${item.name}`,
-        ...(index === 0 && shortCaption ? { caption: shortCaption } : {}),
+        ...(index === 0 && shortCaption
+          ? { caption: shortCaption, ...(hasMarkdown ? { parse_mode: "Markdown" } : {}) }
+          : {}),
       }));
       form.append("media", JSON.stringify(photos));
       for (const item of uploaded) form.append(item.name, item.blob, item.name);
     }
 
-    const response = await telegramFetch(token, url, { method: "POST", body: form });
-    return await parseResult(response);
+    let response = await telegramFetch(token, url, { method: "POST", body: form });
+    let result = await parseResult(response);
+    if (!result.ok && hasMarkdown) {
+      // Retenta sem parse_mode se houver erro de parsing
+      const fallbackForm = new FormData();
+      fallbackForm.append("chat_id", chat_id);
+      if (method === "sendPhoto") {
+        const first = uploaded[0];
+        if (first) {
+          fallbackForm.append("photo", first.blob, first.name);
+          if (shortCaption) fallbackForm.append("caption", shortCaption);
+        }
+      } else {
+        const photos = uploaded.map((item, index) => ({
+          type: "photo" as const,
+          media: `attach://${item.name}`,
+          ...(index === 0 && shortCaption ? { caption: shortCaption } : {}),
+        }));
+        fallbackForm.append("media", JSON.stringify(photos));
+        for (const item of uploaded) fallbackForm.append(item.name, item.blob, item.name);
+      }
+      response = await telegramFetch(token, url, { method: "POST", body: fallbackForm });
+      result = await parseResult(response);
+    }
+    return result;
   } catch (error) {
     return {
       ok: false,

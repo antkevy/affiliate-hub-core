@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, ImageIcon, Loader2, ShoppingBag, Tags, UploadCloud } from "lucide-react";
+import { Copy, ExternalLink, ImageIcon, Loader2, ShoppingBag, Tags, UploadCloud } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -50,6 +51,13 @@ function OffersPage() {
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const queryClient = useQueryClient();
   const { running, run } = useCapture();
+
+  function copyCoupon(code: string | null | undefined, event?: React.MouseEvent) {
+    if (event) event.stopPropagation();
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    toast.success(`Cupom "${code}" copiado para a área de transferência!`);
+  }
 
   const query = useQuery({
     queryKey: ["offers", search, status],
@@ -161,9 +169,15 @@ function OffersPage() {
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {offer.coupon ? (
-                            <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0">
-                              Cupom: {offer.coupon}
-                            </Badge>
+                            <button
+                              type="button"
+                              onClick={(e) => copyCoupon(offer.coupon, e)}
+                              className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30 transition-colors"
+                              title="Clique para copiar o cupom"
+                            >
+                              <span>Cupom: {offer.coupon}</span>
+                              <Copy className="size-2.5" />
+                            </button>
                           ) : null}
                         </div>
                       </div>
@@ -252,9 +266,15 @@ function OffersPage() {
                 {selectedOffer.coupon ? (
                   <div className="flex items-center justify-between pt-1 border-t border-border/50">
                     <span className="text-muted-foreground font-semibold">Cupom de Desconto:</span>
-                    <Badge variant="outline" className="font-mono text-xs uppercase font-bold text-amber-500">
-                      {selectedOffer.coupon}
-                    </Badge>
+                    <button
+                      type="button"
+                      onClick={() => copyCoupon(selectedOffer.coupon)}
+                      className="inline-flex items-center gap-1.5 font-mono text-xs uppercase font-bold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded border border-amber-500/30 transition-colors"
+                      title="Clique para copiar o cupom"
+                    >
+                      <span>{selectedOffer.coupon}</span>
+                      <Copy className="size-3" />
+                    </button>
                   </div>
                 ) : null}
               </div>

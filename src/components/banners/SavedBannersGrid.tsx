@@ -1,42 +1,12 @@
-import { useEffect, useState } from "react";
-import { Edit3, ImageIcon, Star, Trash2 } from "lucide-react";
+import { Edit3, Star, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { bannerConfigOf } from "@/lib/banner-config";
-import { bannersService } from "@/services/banners";
 import type { Banner } from "@/types";
 import { BannerCanvas } from "./BannerCanvas";
 
 function BannerPreview({ banner }: { banner: Banner }) {
-  const [url, setUrl] = useState<string | null>(null);
   const config = bannerConfigOf(banner);
-
-  useEffect(() => {
-    let active = true;
-    setUrl(null);
-    if (!banner.preview_url) return;
-    bannersService
-      .signedPreviewUrl(banner.preview_url)
-      .then((value) => {
-        if (active) setUrl(value);
-      })
-      .catch(() => {
-        if (active) setUrl(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [banner.preview_url]);
-
-  if (url) {
-    return (
-      <img
-        src={url}
-        alt={banner.name}
-        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-      />
-    );
-  }
 
   return (
     <div className="h-full w-full overflow-hidden flex items-center justify-center p-2 bg-slate-950/20">
@@ -122,12 +92,14 @@ export function SavedBannersGrid({
                       : "text-muted-foreground hover:text-foreground"
                   }
                   onClick={() => onSetDefault(banner)}
-                  title={isDefault ? "Este banner é o padrão atual" : "Definir este banner como padrão nas automações"}
+                  title={
+                    isDefault
+                      ? "Este banner é o padrão atual"
+                      : "Definir este banner como padrão nas automações"
+                  }
                 >
                   <Star
-                    className={`mr-1 size-3.5 ${
-                      isDefault ? "fill-amber-500 text-amber-500" : ""
-                    }`}
+                    className={`mr-1 size-3.5 ${isDefault ? "fill-amber-500 text-amber-500" : ""}`}
                   />
                   {isDefault ? "Padrão" : "Tornar Padrão"}
                 </Button>

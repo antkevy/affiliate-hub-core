@@ -850,7 +850,8 @@ function defaultContent(offer: Offer, marketplaceName: Map<string, string>): str
     priceLines.push(`⚡ ${offer.discount_percentage}% OFF`);
   }
   if (offer.coupon) {
-    priceLines.push(`🏷️ Cupom: ${offer.coupon}`);
+    const code = offer.coupon.replace(/[`]/g, "").trim();
+    priceLines.push(`🏷️ Cupom: \`${code}\``);
   }
 
   if (priceLines.length > 0) {

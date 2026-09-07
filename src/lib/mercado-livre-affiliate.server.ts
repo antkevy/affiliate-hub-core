@@ -47,6 +47,28 @@ function cookieValue(cookie: string, name: string): string | null {
   return match?.[1] ?? null;
 }
 
+/**
+ * Normaliza o cookie de sessão em uma string "nome=valor; nome2=valor2".
+ * Aceita tanto o cabeçalho `Cookie` cru do DevTools quanto o JSON exportado
+ * por extensões de navegador (`[{ "name", "value" }]`).
+ */
+export function cookiesToHeader(raw: string): string {
+  const value = raw.trim();
+  if (!value) return "";
+  if (value.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(value) as Array<{ name?: string; value?: string }>;
+      const pairs = parsed
+        .filter((c) => c && typeof c.name === "string" && typeof c.value === "string")
+        .map((c) => `${c.name}=${c.value}`);
+      if (pairs.length) return pairs.join("; ");
+    } catch {
+      // não é JSON válido — trata como string de cookies
+    }
+  }
+  return value;
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`Timeout após ${ms}ms`)), ms);
@@ -155,7 +177,7 @@ export async function generateMercadoLivreAffiliateUrl(
   credentials: MercadoLivreCredentials,
 ): Promise<string> {
   const tag = credentials.tag?.trim();
-  const cookie = credentials.cookie?.trim();
+  const cookie = cookiesToHeader(credentials.cookie ?? "");
   if (!tag || !cookie) {
     throw new MercadoLivreError("Credenciais do Mercado Livre incompletas.", "no_credentials");
   }
