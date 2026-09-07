@@ -2,7 +2,7 @@ import type { Banner, Json } from "@/types";
 import type { BannerConfig, BannerStyle } from "@/types/banner";
 
 export const EMPTY_BANNER_CONFIG: BannerConfig = {
-  templateId: "clean-nordic-white",
+  templateId: "black-gold-default",
   title: "",
   subtitle: "",
   originalPrice: "",
@@ -32,10 +32,10 @@ export const EMPTY_BANNER_CONFIG: BannerConfig = {
     backgroundGradient: "from-slate-950 via-zinc-900 to-black",
     textColor: "text-white",
     accentColor: "text-amber-400",
-    badgeBg: "bg-yellow-400",
-    badgeText: "text-red-950 font-extrabold",
-    buttonBg: "bg-yellow-400 hover:bg-yellow-300 text-red-950 font-black",
-    buttonText: "COMPRAR COM DESCONTO",
+    badgeBg: "bg-amber-400",
+    badgeText: "text-slate-950 font-black",
+    buttonBg: "bg-amber-400 hover:bg-amber-300 text-slate-950 font-black",
+    buttonText: "VER OFERTA",
     patternOverlay: "dots",
     glassmorphism: true,
   },

@@ -2,7 +2,9 @@ import type { Database } from "@/integrations/supabase/types";
 
 type T = Database["public"]["Tables"];
 
-export type Offer = T["offers"]["Row"];
+export type Offer = T["offers"]["Row"] & {
+  image_url?: string | null;
+};
 export type OfferInsert = T["offers"]["Insert"];
 export type OfferUpdate = T["offers"]["Update"];
 export type OfferStatus = Database["public"]["Enums"]["offer_status"];

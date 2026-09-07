@@ -29,13 +29,13 @@ export const Route = createFileRoute("/_authenticated/templates")({
   component: TemplatesPage,
 });
 
-const DEFAULT_CONTENT = `🔥 {titulo}
+const DEFAULT_CONTENT = `➡️ {titulo}
 
-De {preco_antigo} por {preco} ({desconto} OFF)
-Cupom: {cupom}
+🔥 {preco}
+⚡ {desconto} OFF
+🏷️ Cupom: {cupom}
 
-{link}
-{marketplace} · {categoria}`;
+🛒 {link}`;
 
 function TemplatesPage() {
   const queryClient = useQueryClient();

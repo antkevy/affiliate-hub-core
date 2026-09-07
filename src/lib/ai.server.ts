@@ -58,8 +58,14 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
 
   const instruction =
     data.instruction?.trim() ||
-    "Escreva em português do Brasil, tom persuasivo para canal de ofertas, " +
-      "use emojis com moderação e destaque o desconto e o preço.";
+    "Escreva em português do Brasil, tom persuasivo para canal de ofertas. " +
+      "Siga estritamente o formato de publicação padrão:\n" +
+      "➡️ {titulo}\n\n" +
+      "🔥 {preco}\n" +
+      "⚡ {desconto} OFF\n" +
+      "🏷️ Cupom: {cupom}\n\n" +
+      "🛒 {link}\n" +
+      "Use emojis com moderação (sem exagerar). Omita o cupom se não houver cupom.";
   if (data.content) parts.push(`\nMensagem original:\n${data.content}`);
 
   try {
@@ -74,7 +80,13 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
           content:
             "Você é um copywriter de ofertas afiliadas. Recebe os dados de uma oferta e " +
             "deve produzir apenas a mensagem final pronta para publicação em um canal do " +
-            "Telegram, sem comentários adicionais.",
+            "Telegram/WhatsApp, seguindo a estrutura:\n" +
+            "➡️ [Título]\n\n" +
+            "🔥 [Preço]\n" +
+            "⚡ [Desconto] OFF\n" +
+            "🏷️ Cupom: [Cupom]\n\n" +
+            "🛒 [Link]\n" +
+            "Sem comentários adicionais, usando emojis moderados e sem exagero.",
         },
         {
           role: "user",

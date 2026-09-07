@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Megaphone, Tags, Workflow } from "lucide-react";
+import { Activity, Megaphone, ShoppingBag, Tags, Workflow } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function DashboardPage() {
   const offers = useQuery({
     queryKey: ["offers", "recent"],
-    queryFn: () => offersService.list({ limit: 8 }),
+    queryFn: () => offersService.listWithRelations({}),
   });
   const automations = useQuery({
     queryKey: ["automations"],
@@ -149,12 +149,25 @@ function DashboardPage() {
           ) : (
             <ul className="space-y-3">
               {(offers.data ?? []).slice(0, 6).map((offer) => (
-                <li key={offer.id} className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm">{offer.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(offer.created_at).toLocaleString("pt-BR")}
-                    </p>
+                <li key={offer.id} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="relative size-10 shrink-0 overflow-hidden rounded-lg border border-border bg-muted/30 flex items-center justify-center">
+                      {offer.image_url ? (
+                        <img
+                          src={offer.image_url}
+                          alt={offer.title}
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <ShoppingBag className="size-4 text-muted-foreground/60" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{offer.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(offer.created_at).toLocaleString("pt-BR")}
+                      </p>
+                    </div>
                   </div>
                   <StatusPill tone={entityTone(offer.status)}>
                     {OFFER_STATUS_LABEL[offer.status]}

@@ -819,20 +819,33 @@ async function sendWebhook(url: string, offer: Offer): Promise<{ ok: boolean; er
 }
 
 function defaultContent(offer: Offer, marketplaceName: Map<string, string>): string {
-  const lines = [
-    offer.title,
-    offer.sale_price !== null ? `Preço: ${money(offer.sale_price)}` : null,
-    offer.original_price !== null ? `Preço original: ${money(offer.original_price)}` : null,
-    offer.discount_percentage !== null ? `Desconto: ${offer.discount_percentage}%` : null,
-    offer.coupon ? `Cupom: ${offer.coupon}` : null,
-    offer.marketplace_id
-      ? `Marketplace: ${marketplaceName.get(offer.marketplace_id) ?? "—"}`
-      : null,
-    (offer.affiliate_url ?? offer.original_url)
-      ? `🔗 ${offer.affiliate_url ?? offer.original_url}`
-      : null,
-  ];
-  return lines.filter((line): line is string => Boolean(line)).join("\n");
+  const parts: string[] = [];
+
+  if (offer.title) {
+    parts.push(`➡️ ${offer.title}`);
+  }
+
+  const priceLines: string[] = [];
+  if (offer.sale_price !== null) {
+    priceLines.push(`🔥 ${money(offer.sale_price)}`);
+  }
+  if (offer.discount_percentage !== null && offer.discount_percentage !== undefined) {
+    priceLines.push(`⚡ ${offer.discount_percentage}% OFF`);
+  }
+  if (offer.coupon) {
+    priceLines.push(`🏷️ Cupom: ${offer.coupon}`);
+  }
+
+  if (priceLines.length > 0) {
+    parts.push(priceLines.join("\n"));
+  }
+
+  const url = offer.affiliate_url ?? offer.original_url;
+  if (url) {
+    parts.push(`🛒 ${url}`);
+  }
+
+  return parts.join("\n\n");
 }
 
 export function money(value: number): string {

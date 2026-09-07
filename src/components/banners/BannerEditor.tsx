@@ -36,16 +36,16 @@ interface BannerEditorProps {
 
 const GRADIENT_PRESETS = [
   {
+    name: "Black & Gold (Padrão)",
+    value: "from-slate-950 via-zinc-900 to-black",
+    text: "text-white",
+    accent: "text-amber-400",
+  },
+  {
     name: "Fogo Relâmpago",
     value: "from-red-600 via-rose-600 to-orange-500",
     text: "text-white",
     accent: "text-yellow-300",
-  },
-  {
-    name: "Black Deluxe",
-    value: "from-slate-950 via-zinc-900 to-black",
-    text: "text-white",
-    accent: "text-amber-400",
   },
   {
     name: "Esmeralda Cashback",

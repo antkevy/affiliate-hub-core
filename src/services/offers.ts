@@ -12,10 +12,10 @@ export const offersService = {
     marketplaceId?: string;
     orderBy?: string;
     ascending?: boolean;
-  }): Promise<Offer[]> {
+  }): Promise<(Offer & { image_url?: string | null })[]> {
     let query = supabase
       .from("offers")
-      .select("*")
+      .select("*, products (image_url)")
       .order(filters.orderBy ?? "created_at", { ascending: filters.ascending ?? false });
 
     if (filters.status) query = query.eq("status", filters.status as Offer["status"]);
@@ -24,7 +24,10 @@ export const offersService = {
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return (data ?? []).map((row: Record<string, any>) => ({
+      ...row,
+      image_url: (row["products"] as { image_url?: string | null } | null)?.image_url ?? (row["image_url"] as string | null) ?? null,
+    })) as Offer[];
   },
 
   async media(offerId: string): Promise<OfferMedia[]> {
