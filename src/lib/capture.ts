@@ -411,7 +411,7 @@ async function processMonitor(
       : defaultContent(offer, marketplaceName);
 
     const finalContent = config.ai_enabled
-      ? await applyAI(offer, content, config.ai_instruction)
+      ? await applyAI(offer, content, config.ai_instruction, Boolean(template))
       : content;
     const media =
       destination.type === "telegram" && config.include_banner
@@ -632,7 +632,7 @@ export async function runAutomation(automation: {
           })
         : defaultContent(offer, marketplaceName);
       const finalContent = automation.configuration?.ai_enabled
-        ? await applyAI(offer, content, automation.configuration.ai_instruction)
+        ? await applyAI(offer, content, automation.configuration.ai_instruction, Boolean(template))
         : content;
       const media =
         destination.type === "telegram" && automation.configuration?.include_banner
@@ -719,6 +719,7 @@ async function applyAI(
   offer: Offer,
   content: string,
   instruction?: string | null,
+  hasCustomTemplate = false,
 ): Promise<string> {
   try {
     const result = await formatOfferWithAI({
@@ -732,6 +733,7 @@ async function applyAI(
           url: offer.affiliate_url ?? offer.original_url,
         },
         content,
+        hasCustomTemplate,
         instruction: instruction ?? null,
       },
     });

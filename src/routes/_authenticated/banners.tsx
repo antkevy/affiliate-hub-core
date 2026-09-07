@@ -1,4 +1,4 @@
-import { useRef, useState, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, ImagePlus, Image as ImageIcon, Loader2, Star, X } from "lucide-react";
@@ -313,6 +313,22 @@ function BannerStudio({
   onDownload,
   onClose,
 }: BannerStudioProps) {
+  const previewBoxRef = useRef<HTMLDivElement>(null);
+  const previewScalerRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const box = previewBoxRef.current;
+    const node = previewScalerRef.current;
+    if (!box || !node) return;
+    const width = node.offsetWidth;
+    const height = node.offsetHeight;
+    const boxWidth = box.clientWidth - 32;
+    const boxHeight = box.clientHeight - 32;
+    if (!width || !height || !boxWidth || !boxHeight) return;
+    setPreviewScale(Math.min(1, boxWidth / width, boxHeight / height));
+  }, [draft]);
+
   return (
     <section className="space-y-4">
       <div className="panel p-5">
@@ -329,12 +345,15 @@ function BannerStudio({
               <Switch
                 id="default-banner-toggle"
                 checked={draft.isDefault === true}
-                onCheckedChange={(checked) =>
-                  onConfigChange({ ...draft, isDefault: checked })
-                }
+                onCheckedChange={(checked) => onConfigChange({ ...draft, isDefault: checked })}
               />
-              <Label htmlFor="default-banner-toggle" className="cursor-pointer text-xs font-medium flex items-center gap-1">
-                <Star className={`size-3.5 ${draft.isDefault ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+              <Label
+                htmlFor="default-banner-toggle"
+                className="cursor-pointer text-xs font-medium flex items-center gap-1"
+              >
+                <Star
+                  className={`size-3.5 ${draft.isDefault ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`}
+                />
                 Banner Padrão
               </Label>
             </div>
@@ -399,8 +418,15 @@ function BannerStudio({
                   ))}
                 </div>
               </div>
-              <div className="flex min-h-[420px] items-center justify-center overflow-hidden rounded-md">
-                <div className="w-full max-w-md">
+              <div
+                ref={previewBoxRef}
+                className="flex h-[480px] items-center justify-center overflow-hidden rounded-md bg-background"
+              >
+                <div
+                  ref={previewScalerRef}
+                  className="shrink-0 w-full max-w-md origin-center transition-transform"
+                  style={{ transform: previewScale ? `scale(${previewScale})` : undefined }}
+                >
                   <BannerCanvas ref={canvasRef} config={draft} />
                 </div>
               </div>

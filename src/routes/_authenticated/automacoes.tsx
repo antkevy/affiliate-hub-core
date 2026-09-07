@@ -157,10 +157,13 @@ function AutomationsPage() {
                 key: "template_id",
                 label: "Template",
                 type: "select",
-                options: (templates.data ?? []).map((item) => ({
-                  value: item.id,
-                  label: item.name,
-                })),
+                options: [
+                  { value: "", label: "Sem template (Padrão do sistema)" },
+                  ...(templates.data ?? []).map((item) => ({
+                    value: item.id,
+                    label: item.name,
+                  })),
+                ],
               },
               ...configFields(bannerOptions),
             ]}

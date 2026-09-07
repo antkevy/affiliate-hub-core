@@ -15,7 +15,7 @@ export const offersService = {
   }): Promise<(Offer & { image_url?: string | null })[]> {
     let query = supabase
       .from("offers")
-      .select("*, products (image_url)")
+      .select("*, products (image_url), offer_media (url, position)")
       .order(filters.orderBy ?? "created_at", { ascending: filters.ascending ?? false });
 
     if (filters.status) query = query.eq("status", filters.status as Offer["status"]);
@@ -24,10 +24,18 @@ export const offersService = {
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return (data ?? []).map((row: Record<string, any>) => ({
-      ...row,
-      image_url: (row["products"] as { image_url?: string | null } | null)?.image_url ?? (row["image_url"] as string | null) ?? null,
-    })) as Offer[];
+    return (data ?? []).map((row) => {
+      const record = row as unknown as Record<string, unknown>;
+      const { offer_media: media, products, ...offer } = record;
+      return {
+        ...offer,
+        image_url:
+          firstOfferImage(media) ??
+          (products as { image_url?: string | null } | null)?.image_url ??
+          (offer["image_url"] as string | null) ??
+          null,
+      };
+    }) as Offer[];
   },
 
   async media(offerId: string): Promise<OfferMedia[]> {
@@ -48,3 +56,14 @@ export const offersService = {
 
 export const productsService = createCrud("products");
 export const offerMediaService = createCrud("offer_media");
+
+/** Primeira imagem de `offer_media` (ordenada por position) de uma oferta. */
+function firstOfferImage(media: unknown): string | null {
+  if (!Array.isArray(media) || media.length === 0) return null;
+  return (
+    [...(media as Array<{ url?: string | null; position?: number | null }>)]
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .find((item) => typeof item.url === "string" && item.url.trim().length > 0)
+      ?.url?.trim() ?? null
+  );
+}

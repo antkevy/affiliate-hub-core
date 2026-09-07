@@ -465,7 +465,7 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
       const content = resolveContent(offer, template?.content, marketplaceName);
       const finalContent =
         config.ai_enabled && content
-          ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName)
+          ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName, Boolean(template))
           : content;
       const attempt = await publishToDestinationServer(
         db,
@@ -531,7 +531,7 @@ async function publishForMonitor(
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
       config.ai_enabled && content
-        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName)
+        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName, Boolean(template))
         : content;
     const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
     await recordPublication(db, offer, destination, finalContent, attempt, report, publishedKeys);
@@ -671,6 +671,7 @@ async function applyAiOrDefault(
   content: string,
   instruction: string | null | undefined,
   marketplaceName: Map<string, string>,
+  hasCustomTemplate = false,
 ): Promise<string> {
   const aiOffer = {
     title: offer.title,
@@ -684,6 +685,7 @@ async function applyAiOrDefault(
   const result = await rewriteOfferWithAI({
     offer: marketplace ? { ...aiOffer, marketplace } : aiOffer,
     content,
+    hasCustomTemplate,
     instruction: instruction ?? null,
   });
   return result.ok && result.text ? result.text : content;
@@ -1082,7 +1084,7 @@ export async function publishOfferForSource(
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
       config.ai_enabled && content
-        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName)
+        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName, Boolean(template))
         : content;
     const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
     await recordPublication(
@@ -1120,7 +1122,7 @@ export async function publishOfferForSource(
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
       config.ai_enabled && content
-        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName)
+        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName, Boolean(template))
         : content;
     const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
     await recordPublication(

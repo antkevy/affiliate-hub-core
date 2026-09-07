@@ -16,6 +16,8 @@ export interface AIFormatPayload {
   offer: AIOfferInput;
   /** Conteúdo original (template renderizado) para a IA melhorar. */
   content: string;
+  /** Se true, indica que o conteúdo foi gerado por um template customizado do usuário. */
+  hasCustomTemplate?: boolean;
   /** Instrução opcional de estilo/idioma/emoji. */
   instruction?: string | null;
 }
@@ -56,11 +58,10 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     offer.url ? `Link: ${offer.url}` : null,
   ].filter((line): line is string => Boolean(line));
 
-  const hasTemplate = Boolean(data.content?.trim());
+  const hasCustomTemplate = Boolean(data.hasCustomTemplate);
   const isCoupon =
     Boolean(offer.coupon?.trim()) ||
-    /cupom|cupons|voucher/i.test(offer.title ?? "") ||
-    /cupom|cupons|voucher/i.test(data.content ?? "");
+    /cupom|cupons|voucher/i.test(offer.title ?? "");
 
   const couponDefaultInstruction =
     "Esta captura é sobre um CUPOM DE DESCONTO. Pegue o texto original/título e reescreva-o " +
@@ -85,21 +86,27 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "deixe apenas título, preço e link.";
 
   const templateInstruction =
-    "Reescreva a mensagem SEGUINDO EXATAMENTE o template abaixo (\"Mensagem original\"), " +
+    "Reescreva a mensagem SEGUINDO EXATAMENTE o template abaixo (\"Mensagem original do template do usuário\"), " +
     "mantendo as mesmas linhas, emojis, formatação e ordem. Não invente linhas nem altere a " +
     "estrutura; apenas corrija as inconsistências com os dados reais da oferta. Valores \"—\" " +
     "significam dado ausente: remova a linha inteira. Se não houver nem cupom nem desconto, " +
     "mantenha apenas o restante.";
 
-  const instruction =
-    data.instruction?.trim() ||
-    (hasTemplate ? templateInstruction : isCoupon ? couponDefaultInstruction : defaultInstruction);
-  if (data.content) parts.push(`\nMensagem original (template do usuário):\n${data.content}`);
+  const userInstruction = data.instruction?.trim();
+  const instruction = hasCustomTemplate
+    ? userInstruction
+      ? `${templateInstruction}\n\nInstrução adicional de estilo do usuário: ${userInstruction}`
+      : templateInstruction
+    : userInstruction || (isCoupon ? couponDefaultInstruction : defaultInstruction);
+
+  if (hasCustomTemplate && data.content) {
+    parts.push(`\nMensagem original do template do usuário:\n${data.content}`);
+  }
 
   const templateSystemPrompt =
     "Você é um copywriter de ofertas afiliadas. O usuário configurou um TEMPLATE PERSONALIZADO " +
     "para suas publicações. Sua ÚNICA tarefa é reproduzir a mensagem final copiando EXATAMENTE a estrutura, " +
-    "emojis, linhas e ordem do template do usuário fornecido em \"Mensagem original (template do usuário)\", " +
+    "emojis, linhas e ordem do template do usuário fornecido em \"Mensagem original do template do usuário\", " +
     "preenchendo os dados reais da oferta e removendo apenas linhas cujo valor está ausente (\"—\"). " +
     "NÃO altere nem desobedeça a estrutura do template criado pelo usuário. Responda apenas com a mensagem final pronta para publicação, sem comentários.";
 
@@ -127,7 +134,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "cupom; se não houver nem cupom nem desconto, deixe apenas título, preço e link. Sem " +
     "comentários adicionais, usando emojis moderados e sem exagero.";
 
-  const systemPrompt = hasTemplate
+  const systemPrompt = hasCustomTemplate
     ? templateSystemPrompt
     : isCoupon
       ? couponSystemPrompt

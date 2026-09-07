@@ -193,7 +193,11 @@ function MonitoringPage() {
                       {totalOffers(offerCounts.data, config.source_ids ?? [])}
                     </td>
                     <td className="max-w-[16rem] px-4 py-2.5">
-                      <ConfigSummary config={config} marketplaces={marketplaces.data ?? []} />
+                      <ConfigSummary
+                        config={config}
+                        marketplaces={marketplaces.data ?? []}
+                        templates={templates.data ?? []}
+                      />
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
                       {monitor.last_activity_at
@@ -281,9 +285,11 @@ function totalOffers(counts: Record<string, number> | undefined, sourceIds: stri
 function ConfigSummary({
   config,
   marketplaces,
+  templates = [],
 }: {
   config: MonitorConfiguration;
   marketplaces: Marketplace[];
+  templates?: { id: string; name: string }[];
 }) {
   const parts: string[] = [];
 
@@ -296,10 +302,13 @@ function ConfigSummary({
   }
 
   const hasDestination = Boolean(config.destination_id);
-  const hasTemplate = Boolean(config.template_id);
-  if (hasDestination && hasTemplate) parts.push("Destino + Template");
-  else if (hasDestination) parts.push("Destino");
-  else if (hasTemplate) parts.push("Template");
+  const templateName = config.template_id
+    ? templates.find((t) => t.id === config.template_id)?.name
+    : null;
+
+  if (hasDestination) parts.push("Destino");
+  if (templateName) parts.push(`Template: ${templateName}`);
+  else if (config.template_id) parts.push("Template");
 
   if (config.min_discount !== null && config.min_discount !== undefined) {
     parts.push(`Desconto ≥ ${config.min_discount}%`);

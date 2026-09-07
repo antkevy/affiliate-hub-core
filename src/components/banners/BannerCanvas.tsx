@@ -1,7 +1,42 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import type { BannerConfig } from "@/types/banner";
 import { CheckCircle2, ShoppingBag, Sparkles, Tag } from "lucide-react";
 import { MarketplaceLogo, marketplaceLabel } from "@/components/marketplace/MarketplaceLogo";
+
+function ProductPhoto({
+  url,
+  alt,
+  className,
+  style,
+  fallbackClassName,
+}: {
+  url?: string;
+  alt?: string;
+  className?: string;
+  style?: React.CSSProperties;
+  fallbackClassName?: string;
+}) {
+  const [broken, setBroken] = useState(false);
+
+  useEffect(() => {
+    setBroken(false);
+  }, [url]);
+
+  if (!url || broken) {
+    return <ShoppingBag className={fallbackClassName} />;
+  }
+
+  return (
+    <img
+      src={url}
+      alt={alt}
+      draggable={false}
+      onError={() => setBroken(true)}
+      className={className}
+      style={style}
+    />
+  );
+}
 
 interface BannerCanvasProps {
   config: BannerConfig;
@@ -118,7 +153,9 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                     : "bg-white/20 text-white border border-white/20"
                 }`}
               >
-                <Sparkles className={`h-3 w-3 ${isLightTheme ? "text-amber-600" : "text-yellow-300"}`} />
+                <Sparkles
+                  className={`h-3 w-3 ${isLightTheme ? "text-amber-600" : "text-yellow-300"}`}
+                />
                 {tagline}
               </span>
             )}
@@ -141,24 +178,25 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
 
         {isHorizontal ? (
           <div className="relative z-10 grid grid-cols-12 gap-4 items-center my-auto">
-            <div className={`${isCompactText ? "col-span-6" : "col-span-5"} flex justify-center items-center`}>
+            <div
+              className={`${isCompactText ? "col-span-6" : "col-span-5"} flex justify-center items-center`}
+            >
               <div
                 className={`relative ${isCompactText ? "h-52" : "h-44"} w-full rounded-xl ${
-                  isLightTheme ? "bg-black/5 border-black/10 shadow-lg" : "bg-white/10 border-white/20 shadow-xl"
+                  isLightTheme
+                    ? "bg-black/5 border-black/10 shadow-lg"
+                    : "bg-white/10 border-white/20 shadow-xl"
                 } backdrop-blur-md p-2 overflow-hidden flex items-center justify-center`}
               >
-                {imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt={title}
-                    className="max-h-full max-w-full object-contain drop-shadow-2xl transition-transform duration-300"
-                    style={{
-                      transform: `scale(${imageScale}) translate(${imagePositionX}px, ${imagePositionY}px)`,
-                    }}
-                  />
-                ) : (
-                  <ShoppingBag className={`h-16 w-16 ${isLightTheme ? "text-slate-400" : "text-white/40"}`} />
-                )}
+                <ProductPhoto
+                  url={imageUrl}
+                  alt={title}
+                  className="max-h-full max-w-full object-contain drop-shadow-2xl transition-transform duration-300"
+                  style={{
+                    transform: `scale(${imageScale}) translate(${imagePositionX}px, ${imagePositionY}px)`,
+                  }}
+                  fallbackClassName={`h-16 w-16 ${isLightTheme ? "text-slate-400" : "text-white/40"}`}
+                />
                 {showBadge && discountBadge && (
                   <div className="absolute top-2 left-2 rounded-lg bg-red-600 text-white font-extrabold px-2.5 py-1 text-xs shadow-md">
                     {discountBadge}
@@ -176,7 +214,9 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                 </h2>
               )}
               {showSubtitle && subtitle && (
-                <p className={`text-xs line-clamp-1 font-medium ${isLightTheme ? "text-slate-600" : "text-white/80"}`}>
+                <p
+                  className={`text-xs line-clamp-1 font-medium ${isLightTheme ? "text-slate-600" : "text-white/80"}`}
+                >
                   {subtitle}
                 </p>
               )}
@@ -184,7 +224,9 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
               {showPrices && (
                 <div className="pt-1 flex items-baseline gap-2 flex-wrap">
                   {originalPrice && (
-                    <span className={`text-xs line-through font-semibold ${isLightTheme ? "text-slate-500" : "text-white/60"}`}>
+                    <span
+                      className={`text-xs line-through font-semibold ${isLightTheme ? "text-slate-500" : "text-white/60"}`}
+                    >
                       {originalPrice}
                     </span>
                   )}
@@ -192,7 +234,9 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                     {currentPrice || "R$ 0,00"}
                   </span>
                   {installmentText && (
-                    <span className={`text-[11px] font-medium ${isLightTheme ? "text-slate-600" : "text-white/80"}`}>
+                    <span
+                      className={`text-[11px] font-medium ${isLightTheme ? "text-slate-600" : "text-white/80"}`}
+                    >
                       {installmentText}
                     </span>
                   )}
@@ -207,8 +251,15 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                       : "bg-black/30 border-white/40 text-white"
                   }`}
                 >
-                  <Tag className={`h-3 w-3 ${isLightTheme ? "text-amber-600" : "text-yellow-400"}`} />
-                  CUPOM: <span className={isLightTheme ? "text-amber-700 font-extrabold" : "text-yellow-300"}>{couponCode}</span>
+                  <Tag
+                    className={`h-3 w-3 ${isLightTheme ? "text-amber-600" : "text-yellow-400"}`}
+                  />
+                  CUPOM:{" "}
+                  <span
+                    className={isLightTheme ? "text-amber-700 font-extrabold" : "text-yellow-300"}
+                  >
+                    {couponCode}
+                  </span>
                 </div>
               )}
             </div>
@@ -217,34 +268,27 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
           <div className="relative z-10 flex-1 flex flex-col justify-center items-center my-3 text-center space-y-4">
             <div
               className={`relative w-full ${
-                isCompactText
-                  ? isVertical
-                    ? "h-76"
-                    : "h-64"
-                  : isVertical
-                    ? "h-64"
-                    : "h-48"
+                isCompactText ? (isVertical ? "h-76" : "h-64") : isVertical ? "h-64" : "h-48"
               } flex items-center justify-center`}
             >
               <div
                 className={`relative h-full w-full ${
                   isCompactText ? "max-w-[330px]" : "max-w-[280px]"
                 } rounded-2xl ${
-                  isLightTheme ? "bg-black/5 border-black/10 shadow-lg" : "bg-white/10 border-white/20 shadow-2xl"
+                  isLightTheme
+                    ? "bg-black/5 border-black/10 shadow-lg"
+                    : "bg-white/10 border-white/20 shadow-2xl"
                 } backdrop-blur-md p-3 overflow-hidden flex items-center justify-center`}
               >
-                {imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt={title}
-                    className="max-h-full max-w-full object-contain drop-shadow-2xl transition-transform duration-300"
-                    style={{
-                      transform: `scale(${imageScale}) translate(${imagePositionX}px, ${imagePositionY}px)`,
-                    }}
-                  />
-                ) : (
-                  <ShoppingBag className={`h-20 w-20 ${isLightTheme ? "text-slate-400" : "text-white/40"}`} />
-                )}
+                <ProductPhoto
+                  url={imageUrl}
+                  alt={title}
+                  className="max-h-full max-w-full object-contain drop-shadow-2xl transition-transform duration-300"
+                  style={{
+                    transform: `scale(${imageScale}) translate(${imagePositionX}px, ${imagePositionY}px)`,
+                  }}
+                  fallbackClassName={`h-20 w-20 ${isLightTheme ? "text-slate-400" : "text-white/40"}`}
+                />
 
                 {showBadge && discountBadge && (
                   <div
@@ -268,7 +312,9 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                   </h2>
                 )}
                 {showSubtitle && subtitle && (
-                  <p className={`text-xs font-medium line-clamp-2 px-2 ${isLightTheme ? "text-slate-600" : "text-white/80"}`}>
+                  <p
+                    className={`text-xs font-medium line-clamp-2 px-2 ${isLightTheme ? "text-slate-600" : "text-white/80"}`}
+                  >
                     {subtitle}
                   </p>
                 )}
@@ -278,16 +324,22 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
             {showPrices && (
               <div
                 className={`space-y-1 ${
-                  isLightTheme ? "bg-slate-900/10 border-slate-900/15" : "bg-black/20 border-white/15"
+                  isLightTheme
+                    ? "bg-slate-900/10 border-slate-900/15"
+                    : "bg-black/20 border-white/15"
                 } backdrop-blur-md px-5 py-2.5 rounded-xl border inline-block w-full max-w-xs shadow-inner`}
               >
                 <div className="flex items-center justify-center gap-2">
                   {originalPrice && (
-                    <span className={`text-xs line-through font-medium ${isLightTheme ? "text-slate-500" : "text-white/60"}`}>
+                    <span
+                      className={`text-xs line-through font-medium ${isLightTheme ? "text-slate-500" : "text-white/60"}`}
+                    >
                       De: {originalPrice}
                     </span>
                   )}
-                  <span className={`text-xs font-bold ${isLightTheme ? "text-slate-700" : "text-white/80"}`}>
+                  <span
+                    className={`text-xs font-bold ${isLightTheme ? "text-slate-700" : "text-white/80"}`}
+                  >
                     Por apenas:
                   </span>
                 </div>
@@ -297,7 +349,9 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                   {currentPrice || "R$ 0,00"}
                 </div>
                 {installmentText && (
-                  <p className={`text-[11px] font-semibold ${isLightTheme ? "text-slate-700" : "text-white/90"}`}>
+                  <p
+                    className={`text-[11px] font-semibold ${isLightTheme ? "text-slate-700" : "text-white/90"}`}
+                  >
                     {installmentText}
                   </p>
                 )}
@@ -312,11 +366,15 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                     : "bg-white/20 border-white/30 text-white"
                 }`}
               >
-                <Tag className={`h-3.5 w-3.5 ${isLightTheme ? "text-amber-600" : "text-yellow-300"}`} />
+                <Tag
+                  className={`h-3.5 w-3.5 ${isLightTheme ? "text-amber-600" : "text-yellow-300"}`}
+                />
                 CUPOM:{" "}
                 <span
                   className={`underline font-extrabold ${
-                    isLightTheme ? "text-amber-700 decoration-amber-600" : "text-yellow-300 decoration-yellow-400"
+                    isLightTheme
+                      ? "text-amber-700 decoration-amber-600"
+                      : "text-yellow-300 decoration-yellow-400"
                   }`}
                 >
                   {couponCode}

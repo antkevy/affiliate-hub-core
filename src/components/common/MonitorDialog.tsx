@@ -262,9 +262,14 @@ export function MonitorDialog({
                 <Label htmlFor="monitor-destination">Destino</Label>
                 <FieldSelect
                   id="monitor-destination"
-                  value={form.destination_id ?? ""}
-                  onValueChange={(value) => setForm((form) => ({ ...form, destination_id: value }))}
-                  options={destinations.map((item) => ({ value: item.id, label: item.name }))}
+                  value={form.destination_id ?? "none"}
+                  onValueChange={(value) =>
+                    setForm((form) => ({ ...form, destination_id: value === "none" ? null : value }))
+                  }
+                  options={[
+                    { value: "none", label: "Sem destino vinculado" },
+                    ...destinations.map((item) => ({ value: item.id, label: item.name })),
+                  ]}
                   placeholder="Sem destino vinculado"
                 />
               </div>
@@ -272,9 +277,14 @@ export function MonitorDialog({
                 <Label htmlFor="monitor-template">Template</Label>
                 <FieldSelect
                   id="monitor-template"
-                  value={form.template_id ?? ""}
-                  onValueChange={(value) => setForm((form) => ({ ...form, template_id: value }))}
-                  options={templates.map((item) => ({ value: item.id, label: item.name }))}
+                  value={form.template_id ?? "none"}
+                  onValueChange={(value) =>
+                    setForm((form) => ({ ...form, template_id: value === "none" ? null : value }))
+                  }
+                  options={[
+                    { value: "none", label: "Sem template (Padrão do sistema)" },
+                    ...templates.map((item) => ({ value: item.id, label: item.name })),
+                  ]}
                   placeholder="Sem template vinculado"
                 />
               </div>
@@ -347,12 +357,12 @@ export function MonitorDialog({
                 <Label htmlFor="monitor-banner-base">Banner base</Label>
                 <FieldSelect
                   id="monitor-banner-base"
-                  value={form.banner_id ?? ""}
+                  value={form.banner_id ?? "none"}
                   onValueChange={(value) =>
-                    setForm((form) => ({ ...form, banner_id: value || null }))
+                    setForm((form) => ({ ...form, banner_id: value === "none" ? null : value }))
                   }
                   options={[
-                    { value: "", label: "Template padrão" },
+                    { value: "none", label: "Template padrão" },
                     ...banners.map((item) => ({ value: item.id, label: item.name })),
                   ]}
                   placeholder="Template padrão"

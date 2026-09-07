@@ -23,11 +23,12 @@ export function configurationOf(monitor: Monitor): MonitorConfiguration {
 }
 
 export function buildConfiguration(values: MonitorFormValues): Json {
+  const sanitizeId = (id: string | null) => (id && id !== "none" ? id : null);
   return {
     source_ids: values.source_ids,
     marketplace_ids: values.marketplace_ids,
-    destination_id: values.destination_id || null,
-    template_id: values.template_id || null,
+    destination_id: sanitizeId(values.destination_id),
+    template_id: sanitizeId(values.template_id),
     min_discount: values.min_discount,
     max_price: values.max_price,
     keywords: parseKeywords(values.keywords),
@@ -36,7 +37,7 @@ export function buildConfiguration(values: MonitorFormValues): Json {
     ai_enabled: values.ai_enabled,
     ai_instruction: values.ai_instruction.trim() || null,
     include_banner: values.include_banner,
-    banner_id: values.banner_id || null,
+    banner_id: sanitizeId(values.banner_id),
     notes: values.notes || null,
   };
 }

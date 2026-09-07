@@ -1,6 +1,5 @@
 import type { Banner, Json } from "@/types";
 import type { BannerConfig, BannerStyle } from "@/types/banner";
-import { BANNER_TEMPLATES } from "@/components/banners/bannerTemplatesData";
 
 export const EMPTY_BANNER_CONFIG: BannerConfig = {
   templateId: "black-gold-default",
@@ -44,11 +43,9 @@ export const EMPTY_BANNER_CONFIG: BannerConfig = {
 
 export function bannerConfigOf(banner: Banner): BannerConfig {
   const stored = (banner.configuration ?? {}) as BannerConfig;
-  const template = BANNER_TEMPLATES.find((item) => item.id === stored.templateId);
-  const templateStyle = template?.defaultConfig.style;
   const style: BannerStyle = {
     ...EMPTY_BANNER_CONFIG.style,
-    ...(templateStyle ?? stored.style ?? {}),
+    ...(stored.style ?? {}),
   };
   return {
     ...EMPTY_BANNER_CONFIG,
