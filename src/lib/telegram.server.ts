@@ -152,6 +152,8 @@ export async function loadMarketplaceIds(client: Db): Promise<Map<string, string
   return map;
 }
 
+import { isOfferDuplicateCaptured } from "./duplicate-prevention";
+
 /**
  * Processa UM post (da prévia t.me ou de update de webhook) gerando oferta no
  * banco com dedup por post/hash. Reutilizado pela varredura agendada e pelo
@@ -180,7 +182,15 @@ export async function captureTelegramPost(
     return { outcome: "ignored", offer: null };
   }
 
+  const title = extractTitle(text);
+
+  // Checagem 1: Mensagem idêntica já processada no Telegram
   if (await isAlreadyProcessed(client, payload, username, post.id, originalUrl, text)) {
+    return { outcome: "ignored", offer: null };
+  }
+
+  // Checagem 2: Oferta duplicada por URL canônica, produto ou título nas últimas 24h
+  if (await isOfferDuplicateCaptured(client, payload.userId, originalUrl, title, 24)) {
     return { outcome: "ignored", offer: null };
   }
 
@@ -193,7 +203,7 @@ export async function captureTelegramPost(
   const capturedAt = post.time ? new Date(post.time).toISOString() : new Date().toISOString();
 
   const candidate: TelegramOfferCandidate = {
-    title: extractTitle(text),
+    title,
     original_url: originalUrl,
     sale_price: salePrice,
     original_price: originalPrice ?? salePrice,
@@ -259,7 +269,6 @@ async function isAlreadyProcessed(
     .from("processed_messages")
     .select("id")
     .eq("user_id", payload.userId)
-    .eq("source_id", payload.sourceId)
     .eq("content_hash", hash)
     .maybeSingle();
   return Boolean(data);
@@ -272,6 +281,6 @@ function contentHash(
   url: string,
   text: string,
 ): Promise<string> {
-  const canonical = `${username}::${postId}::${url}::${text.trim().toLowerCase().replace(/\s+/g, " ")}`;
+  const canonical = `${payload.userId}::${url.trim().toLowerCase()}::${text.trim().toLowerCase().replace(/\s+/g, " ")}`;
   return sha256(canonical);
 }

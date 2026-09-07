@@ -15,6 +15,7 @@ import {
   ALIEXPRESS_DEFAULT_TRACKING_ID,
   generateAliExpressAffiliateLink,
 } from "@/lib/aliexpress-affiliate.server";
+import { isPublicationDuplicate } from "@/lib/duplicate-prevention";
 import type { Destination, Monitor, Offer, Source } from "@/types";
 
 // Cliente Supabase sem tipagem estática — mesmas colunas validadas no schema
@@ -463,6 +464,18 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
       if (!PROCESSABLE_OFFER_STATUS.includes(offer.status)) continue;
       if (publishedKeys.has(`${offer.id}::${destination.id}`)) continue;
 
+      // Validação reforçada de duplicidade por URL canônica, produto ou título
+      const isDup = await isPublicationDuplicate(db, offer.user_id, destination.id, offer, 24);
+      if (isDup) {
+        publishedKeys.add(`${offer.id}::${destination.id}`);
+        await db
+          .from("offers")
+          .update({ status: "processed", processed_at: new Date().toISOString() })
+          .eq("id", offer.id);
+        report.offersIgnored++;
+        continue;
+      }
+
       const content = resolveContent(offer, template?.content, marketplaceName);
       const finalContent =
         config.ai_enabled && content
@@ -534,6 +547,18 @@ async function publishForMonitor(
   let failed = 0;
   for (const offer of candidates) {
     if (publishedKeys.has(`${offer.id}::${destination.id}`)) continue;
+
+    // Validação reforçada de duplicidade por URL canônica, produto ou título
+    const isDup = await isPublicationDuplicate(db, offer.user_id, destination.id, offer, 24);
+    if (isDup) {
+      publishedKeys.add(`${offer.id}::${destination.id}`);
+      await db
+        .from("offers")
+        .update({ status: "processed", processed_at: new Date().toISOString() })
+        .eq("id", offer.id);
+      report.offersIgnored++;
+      continue;
+    }
 
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
