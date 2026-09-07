@@ -54,18 +54,13 @@ export const automationsService = {
       ai_instruction?: string | null;
       include_banner?: boolean;
       banner_id?: string | null;
-      marketplace_ids?: string[];
     };
-    const report = await runAutomation({
+    return runAutomation({
       source_id: automation.source_id,
       destination_id: automation.destination_id,
       template_id: automation.template_id,
       configuration: config,
     });
-    if (automation.status === "active") {
-      await this.update(id, { last_run_at: new Date().toISOString() });
-    }
-    return report;
   },
 };
 

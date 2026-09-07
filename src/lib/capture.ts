@@ -521,7 +521,6 @@ export async function runAutomation(automation: {
     ai_instruction?: string | null;
     include_banner?: boolean;
     banner_id?: string | null;
-    marketplace_ids?: string[];
   };
 }): Promise<AutomationReport> {
   const userId = await requireUserId();
@@ -609,18 +608,11 @@ export async function runAutomation(automation: {
   const template = automation.template_id
     ? await templatesRepo.getById(automation.template_id)
     : null;
-  const marketplaceIds = Array.isArray(automation.configuration?.marketplace_ids)
-    ? automation.configuration.marketplace_ids.filter((id): id is string => Boolean(id))
-    : [];
 
   if (destination) {
     const publicationList = await publicationsRepo.list();
     const freshOffers = (await offersRepo.list()).filter(
-      (offer) =>
-        offer.source_id === source.id &&
-        PROCESSABLE_OFFER_STATUS.includes(offer.status) &&
-        (!marketplaceIds.length ||
-          (offer.marketplace_id && marketplaceIds.includes(offer.marketplace_id))),
+      (offer) => offer.source_id === source.id && PROCESSABLE_OFFER_STATUS.includes(offer.status),
     );
     for (const offer of freshOffers) {
       if (
