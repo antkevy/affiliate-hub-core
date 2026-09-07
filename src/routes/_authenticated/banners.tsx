@@ -75,7 +75,7 @@ function BannersPage() {
 
   function edit(banner: Banner) {
     setEditing(banner);
-    setDraft(bannerConfigOf(banner));
+    setDraft(JSON.parse(JSON.stringify(bannerConfigOf(banner))));
     setName(banner.name);
   }
 
@@ -86,11 +86,11 @@ function BannersPage() {
 
   function applyTemplate(templateId: string) {
     const template = BANNER_TEMPLATES.find((item) => item.id === templateId);
-    if (template) setDraft({ ...template.defaultConfig });
+    if (template) setDraft(JSON.parse(JSON.stringify(template.defaultConfig)));
   }
 
   function resetDraft() {
-    if (editing) setDraft(bannerConfigOf(editing));
+    if (editing) setDraft(JSON.parse(JSON.stringify(bannerConfigOf(editing))));
   }
 
   async function saveBanner() {

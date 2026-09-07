@@ -42,6 +42,13 @@ export type BannerConfig = {
   showSticker?: boolean;
   stickerText?: string;
   showButton?: boolean;
+  showTitle?: boolean;
+  showSubtitle?: boolean;
+  showPrices?: boolean;
+  showBadge?: boolean;
+  showCoupon?: boolean;
+  showTagline?: boolean;
+  showMarketplace?: boolean;
 };
 
 export type BannerTemplate = {

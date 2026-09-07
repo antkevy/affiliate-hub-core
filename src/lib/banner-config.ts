@@ -21,6 +21,13 @@ export const EMPTY_BANNER_CONFIG: BannerConfig = {
   showSticker: false,
   stickerText: "",
   showButton: true,
+  showTitle: true,
+  showSubtitle: true,
+  showPrices: true,
+  showBadge: true,
+  showCoupon: true,
+  showTagline: true,
+  showMarketplace: true,
   style: {
     backgroundGradient: "from-slate-950 via-zinc-900 to-black",
     textColor: "text-white",
@@ -47,6 +54,13 @@ export function bannerConfigOf(banner: Banner): BannerConfig {
     aspectRatio: stored.aspectRatio ?? EMPTY_BANNER_CONFIG.aspectRatio,
     marketplace: stored.marketplace ?? EMPTY_BANNER_CONFIG.marketplace,
     showButton: stored.showButton ?? true,
+    showTitle: stored.showTitle ?? true,
+    showSubtitle: stored.showSubtitle ?? true,
+    showPrices: stored.showPrices ?? true,
+    showBadge: stored.showBadge ?? true,
+    showCoupon: stored.showCoupon ?? true,
+    showTagline: stored.showTagline ?? true,
+    showMarketplace: stored.showMarketplace ?? true,
     style,
   };
 }

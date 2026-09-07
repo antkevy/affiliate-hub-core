@@ -268,18 +268,128 @@ export function BannerEditor({ config, onChange, onReset }: BannerEditorProps) {
               </div>
             </div>
 
-            <div className="space-y-3 pt-3 border-t border-border/50">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-xs font-semibold">Modo Post de Grupo (Sem Botão)</Label>
-                  <p className="text-[11px] text-muted-foreground">
-                    Oculta o botão CTA inferior para gerar imagens focadas em anúncios de grupos
-                  </p>
+            <div className="space-y-4 pt-3 border-t border-border/50">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-bold text-foreground">
+                      Modo Post de Grupo Minimalista Clean
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Padroniza no estilo Minimalista Clean (Apple), ocultando nome do produto, texto e botão, deixando a imagem ampliada.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={
+                      config.showButton === false &&
+                      config.showTitle === false &&
+                      config.showSubtitle === false
+                    }
+                    onCheckedChange={(active) => {
+                      if (active) {
+                        onChange({
+                          ...config,
+                          showButton: false,
+                          showTitle: false,
+                          showSubtitle: false,
+                          showPrices: true,
+                          showBadge: true,
+                          showCoupon: true,
+                          showTagline: true,
+                          showMarketplace: true,
+                          style: {
+                            ...config.style,
+                            backgroundGradient: "from-slate-100 via-gray-100 to-slate-200",
+                            textColor: "text-slate-900",
+                            accentColor: "text-slate-600",
+                            badgeBg: "bg-slate-900",
+                            badgeText: "text-white font-bold",
+                            buttonBg: "bg-slate-900 hover:bg-slate-800 text-white font-bold",
+                            buttonText: "COMPRAR AGORA",
+                            patternOverlay: "none",
+                            glassmorphism: false,
+                          },
+                        });
+                      } else {
+                        onChange({
+                          ...config,
+                          showButton: true,
+                          showTitle: true,
+                          showSubtitle: true,
+                        });
+                      }
+                    }}
+                  />
                 </div>
-                <Switch
-                  checked={config.showButton === false}
-                  onCheckedChange={(isGroupPost) => handleInputChange("showButton", !isGroupPost)}
-                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Visibilidade dos Elementos e Textos</Label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center justify-between p-2 rounded-lg border border-border bg-background">
+                    <span>Nome do Produto</span>
+                    <Switch
+                      checked={config.showTitle ?? true}
+                      onCheckedChange={(checked) => handleInputChange("showTitle", checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-lg border border-border bg-background">
+                    <span>Subtítulo / Descrição</span>
+                    <Switch
+                      checked={config.showSubtitle ?? true}
+                      onCheckedChange={(checked) => handleInputChange("showSubtitle", checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-lg border border-border bg-background">
+                    <span>Bloco de Preços</span>
+                    <Switch
+                      checked={config.showPrices ?? true}
+                      onCheckedChange={(checked) => handleInputChange("showPrices", checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-lg border border-border bg-background">
+                    <span>Selo de Desconto</span>
+                    <Switch
+                      checked={config.showBadge ?? true}
+                      onCheckedChange={(checked) => handleInputChange("showBadge", checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-lg border border-border bg-background">
+                    <span>Código do Cupom</span>
+                    <Switch
+                      checked={config.showCoupon ?? true}
+                      onCheckedChange={(checked) => handleInputChange("showCoupon", checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-lg border border-border bg-background">
+                    <span>Tagline do Topo</span>
+                    <Switch
+                      checked={config.showTagline ?? true}
+                      onCheckedChange={(checked) => handleInputChange("showTagline", checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-lg border border-border bg-background">
+                    <span>Logo Marketplace</span>
+                    <Switch
+                      checked={config.showMarketplace ?? true}
+                      onCheckedChange={(checked) => handleInputChange("showMarketplace", checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-lg border border-border bg-background">
+                    <span>Botão CTA (Rodapé)</span>
+                    <Switch
+                      checked={config.showButton ?? true}
+                      onCheckedChange={(checked) => handleInputChange("showButton", checked)}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </TabsContent>

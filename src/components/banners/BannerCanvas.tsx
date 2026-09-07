@@ -21,6 +21,13 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
       couponCode,
       buttonText,
       showButton = true,
+      showTitle = true,
+      showSubtitle = true,
+      showPrices = true,
+      showBadge = true,
+      showCoupon = true,
+      showTagline = true,
+      showMarketplace = true,
       imageUrl,
       imageScale = 1,
       imagePositionX = 0,
@@ -49,6 +56,7 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
 
     const isHorizontal = aspectRatio === "16:9";
     const isVertical = aspectRatio === "9:16";
+    const isCompactText = !showTitle && !showSubtitle;
 
     return (
       <div
@@ -95,13 +103,13 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
 
         <div className="relative z-10 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
-            {tagline && (
+            {showTagline && tagline && (
               <span className="inline-flex items-center gap-1 rounded-full bg-white/20 backdrop-blur-md px-3 py-1 text-xs font-semibold tracking-wide text-white uppercase border border-white/20 shadow-sm">
                 <Sparkles className="h-3 w-3 text-yellow-300" />
                 {tagline}
               </span>
             )}
-            {marketplace !== "none" && (
+            {showMarketplace && marketplace !== "none" && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-2.5 py-1 text-[11px] font-bold tracking-wider text-slate-900 dark:text-white shadow-md border border-white/40">
                 <MarketplaceLogo marketplace={marketplace} size={18} />
                 <span>{marketplaceLabel(marketplace)}</span>
@@ -120,8 +128,8 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
 
         {isHorizontal ? (
           <div className="relative z-10 grid grid-cols-12 gap-4 items-center my-auto">
-            <div className="col-span-5 flex justify-center items-center">
-              <div className="relative h-44 w-full rounded-xl bg-white/10 backdrop-blur-md p-2 border border-white/20 shadow-xl overflow-hidden flex items-center justify-center">
+            <div className={`${isCompactText ? "col-span-6" : "col-span-5"} flex justify-center items-center`}>
+              <div className={`relative ${isCompactText ? "h-52" : "h-44"} w-full rounded-xl bg-white/10 backdrop-blur-md p-2 border border-white/20 shadow-xl overflow-hidden flex items-center justify-center`}>
                 {imageUrl ? (
                   <img
                     src={imageUrl}
@@ -134,7 +142,7 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                 ) : (
                   <ShoppingBag className="h-16 w-16 text-white/40" />
                 )}
-                {discountBadge && (
+                {showBadge && discountBadge && (
                   <div className="absolute top-2 left-2 rounded-lg bg-red-600 text-white font-extrabold px-2.5 py-1 text-xs shadow-md">
                     {discountBadge}
                   </div>
@@ -142,31 +150,35 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
               </div>
             </div>
 
-            <div className="col-span-7 space-y-2 text-left">
-              <h2
-                className={`font-black tracking-tight leading-tight line-clamp-2 ${style.textColor} text-xl`}
-              >
-                {title || "NOME DO PRODUTO"}
-              </h2>
-              {subtitle && (
+            <div className={`${isCompactText ? "col-span-6" : "col-span-7"} space-y-2 text-left`}>
+              {showTitle && (
+                <h2
+                  className={`font-black tracking-tight leading-tight line-clamp-2 ${style.textColor} text-xl`}
+                >
+                  {title || "NOME DO PRODUTO"}
+                </h2>
+              )}
+              {showSubtitle && subtitle && (
                 <p className="text-xs text-white/80 line-clamp-1 font-medium">{subtitle}</p>
               )}
 
-              <div className="pt-1 flex items-baseline gap-2 flex-wrap">
-                {originalPrice && (
-                  <span className="text-xs text-white/60 line-through font-semibold">
-                    {originalPrice}
+              {showPrices && (
+                <div className="pt-1 flex items-baseline gap-2 flex-wrap">
+                  {originalPrice && (
+                    <span className="text-xs text-white/60 line-through font-semibold">
+                      {originalPrice}
+                    </span>
+                  )}
+                  <span className={`text-2xl font-black ${style.accentColor} drop-shadow-md`}>
+                    {currentPrice || "R$ 0,00"}
                   </span>
-                )}
-                <span className={`text-2xl font-black ${style.accentColor} drop-shadow-md`}>
-                  {currentPrice || "R$ 0,00"}
-                </span>
-                {installmentText && (
-                  <span className="text-[11px] text-white/80 font-medium">{installmentText}</span>
-                )}
-              </div>
+                  {installmentText && (
+                    <span className="text-[11px] text-white/80 font-medium">{installmentText}</span>
+                  )}
+                </div>
+              )}
 
-              {couponCode && (
+              {showCoupon && couponCode && (
                 <div className="inline-flex items-center gap-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-dashed border-white/40 px-2.5 py-1 text-xs font-mono font-bold text-white">
                   <Tag className="h-3 w-3 text-yellow-400" />
                   CUPOM: <span className="text-yellow-300">{couponCode}</span>
@@ -177,9 +189,21 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
         ) : (
           <div className="relative z-10 flex-1 flex flex-col justify-center items-center my-3 text-center space-y-4">
             <div
-              className={`relative w-full ${isVertical ? "h-64" : "h-48"} flex items-center justify-center`}
+              className={`relative w-full ${
+                isCompactText
+                  ? isVertical
+                    ? "h-76"
+                    : "h-64"
+                  : isVertical
+                    ? "h-64"
+                    : "h-48"
+              } flex items-center justify-center`}
             >
-              <div className="relative h-full w-full max-w-[280px] rounded-2xl bg-white/10 backdrop-blur-md p-3 border border-white/20 shadow-2xl overflow-hidden flex items-center justify-center">
+              <div
+                className={`relative h-full w-full ${
+                  isCompactText ? "max-w-[330px]" : "max-w-[280px]"
+                } rounded-2xl bg-white/10 backdrop-blur-md p-3 border border-white/20 shadow-2xl overflow-hidden flex items-center justify-center`}
+              >
                 {imageUrl ? (
                   <img
                     src={imageUrl}
@@ -193,7 +217,7 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                   <ShoppingBag className="h-20 w-20 text-white/40" />
                 )}
 
-                {discountBadge && (
+                {showBadge && discountBadge && (
                   <div
                     className={`absolute top-3 right-3 rounded-xl ${style.badgeBg} ${style.badgeText} px-3 py-1.5 text-xs tracking-wider shadow-xl transform rotate-2 border border-white/40`}
                   >
@@ -203,39 +227,45 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
               </div>
             </div>
 
-            <div className="space-y-1.5 max-w-xs mx-auto">
-              <h2
-                className={`font-black tracking-tight leading-snug line-clamp-2 ${style.textColor} ${
-                  isVertical ? "text-2xl" : "text-lg"
-                }`}
-              >
-                {title || "TÍTULO DO PRODUTO"}
-              </h2>
-              {subtitle && (
-                <p className="text-xs text-white/80 font-medium line-clamp-2 px-2">{subtitle}</p>
-              )}
-            </div>
-
-            <div className="space-y-1 bg-black/20 backdrop-blur-md px-5 py-2.5 rounded-xl border border-white/15 inline-block w-full max-w-xs shadow-inner">
-              <div className="flex items-center justify-center gap-2">
-                {originalPrice && (
-                  <span className="text-xs text-white/60 line-through font-medium">
-                    De: {originalPrice}
-                  </span>
+            {(showTitle || (showSubtitle && subtitle)) && (
+              <div className="space-y-1.5 max-w-xs mx-auto">
+                {showTitle && (
+                  <h2
+                    className={`font-black tracking-tight leading-snug line-clamp-2 ${style.textColor} ${
+                      isVertical ? "text-2xl" : "text-lg"
+                    }`}
+                  >
+                    {title || "TÍTULO DO PRODUTO"}
+                  </h2>
                 )}
-                <span className="text-xs text-white/80 font-bold">Por apenas:</span>
+                {showSubtitle && subtitle && (
+                  <p className="text-xs text-white/80 font-medium line-clamp-2 px-2">{subtitle}</p>
+                )}
               </div>
-              <div
-                className={`text-3xl font-black ${style.accentColor} tracking-tight drop-shadow-lg`}
-              >
-                {currentPrice || "R$ 0,00"}
-              </div>
-              {installmentText && (
-                <p className="text-[11px] text-white/90 font-semibold">{installmentText}</p>
-              )}
-            </div>
+            )}
 
-            {couponCode && (
+            {showPrices && (
+              <div className="space-y-1 bg-black/20 backdrop-blur-md px-5 py-2.5 rounded-xl border border-white/15 inline-block w-full max-w-xs shadow-inner">
+                <div className="flex items-center justify-center gap-2">
+                  {originalPrice && (
+                    <span className="text-xs text-white/60 line-through font-medium">
+                      De: {originalPrice}
+                    </span>
+                  )}
+                  <span className="text-xs text-white/80 font-bold">Por apenas:</span>
+                </div>
+                <div
+                  className={`text-3xl font-black ${style.accentColor} tracking-tight drop-shadow-lg`}
+                >
+                  {currentPrice || "R$ 0,00"}
+                </div>
+                {installmentText && (
+                  <p className="text-[11px] text-white/90 font-semibold">{installmentText}</p>
+                )}
+              </div>
+            )}
+
+            {showCoupon && couponCode && (
               <div className="inline-flex items-center gap-2 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 px-3.5 py-1.5 text-xs font-mono font-bold text-white shadow-md">
                 <Tag className="h-3.5 w-3.5 text-yellow-300" />
                 CUPOM:{" "}
