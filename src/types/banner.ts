@@ -49,6 +49,7 @@ export type BannerConfig = {
   showCoupon?: boolean;
   showTagline?: boolean;
   showMarketplace?: boolean;
+  isDefault?: boolean;
 };
 
 export type BannerTemplate = {

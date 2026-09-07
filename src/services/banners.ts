@@ -52,4 +52,20 @@ export const bannersService = {
     link.href = dataUrl;
     link.click();
   },
+
+  /** Define um banner como o padrão para automações/capturas e desmarca os demais. */
+  async setDefault(bannerId: string): Promise<void> {
+    const list = await bannersService.list();
+    const { bannerConfigOf, buildBannerConfiguration } = await import("@/lib/banner-config");
+    for (const item of list) {
+      const config = bannerConfigOf(item);
+      const isTarget = item.id === bannerId;
+      if (Boolean(config.isDefault) !== isTarget) {
+        config.isDefault = isTarget;
+        await bannersService.update(item.id, {
+          configuration: buildBannerConfiguration(config),
+        });
+      }
+    }
+  },
 };

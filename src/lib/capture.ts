@@ -758,6 +758,14 @@ async function buildPublicationMedia(
       const banner = await bannersRepo.getById(config.banner_id);
       if (banner) saved = bannerConfigOf(banner);
     }
+    if (!saved) {
+      const allBanners = await bannersRepo.list();
+      const defaultBanner = allBanners.find((b) => {
+        const c = bannerConfigOf(b);
+        return c.isDefault === true;
+      }) ?? allBanners[0];
+      if (defaultBanner) saved = bannerConfigOf(defaultBanner);
+    }
 
     const bannerConfig = buildOfferBannerConfig(offer, marketplaceName, imageDataUrl, saved);
     const bannerBlob = await renderBannerToBlob(bannerConfig, 1);

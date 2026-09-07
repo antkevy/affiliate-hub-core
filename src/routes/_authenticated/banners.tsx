@@ -1,7 +1,7 @@
 import { useRef, useState, type RefObject } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, ImagePlus, Image as ImageIcon, Loader2, X } from "lucide-react";
+import { Download, ImagePlus, Image as ImageIcon, Loader2, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -97,6 +98,9 @@ function BannersPage() {
     if (!editing || !draft) return;
     setSaving(true);
     try {
+      if (draft.isDefault) {
+        await bannersService.setDefault(editing.id);
+      }
       await bannersService.update(editing.id, {
         name: name.trim() || editing.name,
         configuration: buildBannerConfiguration(draft),
@@ -110,10 +114,23 @@ function BannersPage() {
     }
   }
 
+  async function handleSetDefault(banner: Banner) {
+    try {
+      await bannersService.setDefault(banner.id);
+      invalidate();
+      toast.success(`⭐ Banner "${banner.name}" configurado como padrão de automação.`);
+    } catch (error) {
+      toast.error("Erro ao definir banner padrão", { description: toUserMessage(error) });
+    }
+  }
+
   async function generateImage() {
     if (!editing || !draft || !canvasRef.current) return;
     setGenerating(true);
     try {
+      if (draft.isDefault) {
+        await bannersService.setDefault(editing.id);
+      }
       await bannersService.update(editing.id, {
         name: name.trim() || editing.name,
         configuration: buildBannerConfiguration(draft),
@@ -213,7 +230,12 @@ function BannersPage() {
             />
           }
         >
-          <SavedBannersGrid banners={query.data ?? []} onSelectEdit={edit} onDelete={setDeleting} />
+          <SavedBannersGrid
+            banners={query.data ?? []}
+            onSelectEdit={edit}
+            onDelete={setDeleting}
+            onSetDefault={handleSetDefault}
+          />
         </DataState>
       )}
 
@@ -288,19 +310,33 @@ function BannerStudio({
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-2 h-9">
+              <Switch
+                id="default-banner-toggle"
+                checked={draft.isDefault === true}
+                onCheckedChange={(checked) =>
+                  onConfigChange({ ...draft, isDefault: checked })
+                }
+              />
+              <Label htmlFor="default-banner-toggle" className="cursor-pointer text-xs font-medium flex items-center gap-1">
+                <Star className={`size-3.5 ${draft.isDefault ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+                Banner Padrão
+              </Label>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="banner-name">Nome do banner</Label>
               <Input
                 id="banner-name"
                 value={name}
                 onChange={(event) => onNameChange(event.target.value)}
-                className="sm:w-60"
+                className="sm:w-52"
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="banner-template">Template visual</Label>
               <Select value={draft.templateId} onValueChange={onTemplateChange}>
-                <SelectTrigger id="banner-template" className="sm:w-56">
+                <SelectTrigger id="banner-template" className="sm:w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

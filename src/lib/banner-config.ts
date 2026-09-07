@@ -61,6 +61,7 @@ export function bannerConfigOf(banner: Banner): BannerConfig {
     showCoupon: stored.showCoupon ?? true,
     showTagline: stored.showTagline ?? true,
     showMarketplace: stored.showMarketplace ?? true,
+    isDefault: stored.isDefault ?? false,
     style,
   };
 }
