@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { Edit3, Star, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,10 +8,34 @@ import { BannerCanvas } from "./BannerCanvas";
 
 function BannerPreview({ banner }: { banner: Banner }) {
   const config = bannerConfigOf(banner);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    const node = canvasRef.current;
+    if (!box || !node) return;
+    const width = node.offsetWidth;
+    const height = node.offsetHeight;
+    const boxWidth = box.clientWidth;
+    const boxHeight = box.clientHeight;
+    if (!width || !height || !boxWidth || !boxHeight) return;
+    setScale(Math.min(boxWidth / width, boxHeight / height));
+  }, [config]);
+
+  if (scale === null) return null;
 
   return (
-    <div className="h-full w-full overflow-hidden flex items-center justify-center p-2 bg-slate-950/20">
-      <div className="w-full max-w-[280px] pointer-events-none scale-75 transform origin-center">
+    <div
+      ref={boxRef}
+      className="h-full w-full overflow-hidden flex items-center justify-center p-1.5 bg-slate-950/20"
+    >
+      <div
+        ref={canvasRef}
+        className="shrink-0 origin-center"
+        style={{ transform: `scale(${scale})` }}
+      >
         <BannerCanvas config={config} isPreview />
       </div>
     </div>
