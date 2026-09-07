@@ -1,13 +1,7 @@
-name: Publicação Automática
+name: Publicação Automática (manual)
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
-
-concurrency:
-  group: publicacao-automatica
-  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -15,9 +9,9 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - name: Disparar pipeline do app (tick a cada ~1 min)
+      - name: Disparar pipeline do app
         shell: bash
         env:
           PUBLISH_URL: ${{ vars.PUBLISH_URL }}
@@ -28,14 +22,6 @@ jobs:
             echo "::error::Configure o segredo PUBLISH_CRON_SECRET nas settings do repositório."
             exit 1
           fi
-          echo "Chamando $URL (5 ticks, espaçados de 1 min)"
-          for i in 1 2 3 4 5; do
-            if curl -fsS --max-time 90 -X POST "$URL" \
-              -H "Authorization: Bearer $PUBLISH_SECRET" \
-              -H "Content-Type: application/json"; then
-              echo "[$i/5] ok"
-            else
-              echo "[$i/5] falha na chamada — tentando de novo no próximo minuto"
-            fi
-            sleep 60
-          done
+          curl -fsS --max-time 90 -X POST "$URL" \
+            -H "Authorization: Bearer $PUBLISH_SECRET" \
+            -H "Content-Type: application/json"
