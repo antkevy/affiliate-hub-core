@@ -97,7 +97,10 @@ function cleanEntities(str: string): string {
 
 /** Extrai a primeira foto de mídia real de um post (ignora sprites de emoji e avatares). */
 export function extractImage(rawInner: string): string | null {
-  const inner = cleanEntities(rawInner);
+  const inner = cleanEntities(rawInner).replace(
+    /<div class="tgme_widget_message_user"[^>]*>[\s\S]*?<\/div\s*>/gi,
+    "",
+  );
 
   const bgRe = /background-image:\s*url\(['"]?([^'")\s]+)['"]?\)/gi;
   let m: RegExpExecArray | null;
