@@ -10,6 +10,7 @@ import {
   type TelegramProxyPayload,
 } from "@/lib/telegram-proxy.server";
 import { rewriteOfferWithAI } from "@/lib/ai.server";
+import { removeOptionalLines } from "@/lib/template-lines";
 import {
   ALIEXPRESS_DEFAULT_TRACKING_ID,
   generateAliExpressAffiliateLink,
@@ -465,7 +466,13 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
       const content = resolveContent(offer, template?.content, marketplaceName);
       const finalContent =
         config.ai_enabled && content
-          ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName, Boolean(template))
+          ? await applyAiOrDefault(
+              offer,
+              content,
+              config.ai_instruction,
+              marketplaceName,
+              Boolean(template),
+            )
           : content;
       const attempt = await publishToDestinationServer(
         db,
@@ -531,7 +538,13 @@ async function publishForMonitor(
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
       config.ai_enabled && content
-        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName, Boolean(template))
+        ? await applyAiOrDefault(
+            offer,
+            content,
+            config.ai_instruction,
+            marketplaceName,
+            Boolean(template),
+          )
         : content;
     const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
     await recordPublication(db, offer, destination, finalContent, attempt, report, publishedKeys);
@@ -721,7 +734,10 @@ function renderTemplateServer(
     marketplace: offer.marketplace_id ? (marketplaceName.get(offer.marketplace_id) ?? "—") : "—",
     categoria: "—",
   };
-  return content.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match);
+  return removeOptionalLines(content, offer).replace(
+    /\{(\w+)\}/g,
+    (match, key: string) => values[key] ?? match,
+  );
 }
 
 function defaultContentServer(offer: Offer, marketplaceName: Map<string, string>): string {
@@ -1084,7 +1100,13 @@ export async function publishOfferForSource(
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
       config.ai_enabled && content
-        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName, Boolean(template))
+        ? await applyAiOrDefault(
+            offer,
+            content,
+            config.ai_instruction,
+            marketplaceName,
+            Boolean(template),
+          )
         : content;
     const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
     await recordPublication(
@@ -1122,7 +1144,13 @@ export async function publishOfferForSource(
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
       config.ai_enabled && content
-        ? await applyAiOrDefault(offer, content, config.ai_instruction, marketplaceName, Boolean(template))
+        ? await applyAiOrDefault(
+            offer,
+            content,
+            config.ai_instruction,
+            marketplaceName,
+            Boolean(template),
+          )
         : content;
     const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
     await recordPublication(

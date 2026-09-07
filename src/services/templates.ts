@@ -1,5 +1,6 @@
 import { createCrud } from "./base";
 import type { Offer } from "@/types";
+import { removeOptionalLines } from "@/lib/template-lines";
 
 export const templatesService = createCrud("templates");
 
@@ -53,7 +54,10 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
         url: SAMPLE.link,
       };
 
-  return content.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match);
+  return removeOptionalLines(content, offer ?? {}).replace(
+    /\{(\w+)\}/g,
+    (match, key: string) => values[key] ?? match,
+  );
 }
 
 function formatMoney(value: number | null | undefined) {
