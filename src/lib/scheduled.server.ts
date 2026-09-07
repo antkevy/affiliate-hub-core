@@ -9,6 +9,10 @@ import {
   type TelegramProxyPayload,
 } from "@/lib/telegram-proxy.server";
 import { rewriteOfferWithAI } from "@/lib/ai.server";
+import {
+  ALIEXPRESS_DEFAULT_TRACKING_ID,
+  generateAliExpressAffiliateLink,
+} from "@/lib/aliexpress-affiliate.server";
 import type { Destination, Monitor, Offer, Source } from "@/types";
 
 // Cliente Supabase sem tipagem estática — mesmas colunas validadas no schema
@@ -25,6 +29,84 @@ export interface ScheduledRunReport {
 }
 
 const PROCESSABLE_OFFER_STATUS = ["captured", "processing", "processed", "approved", "error"];
+
+interface AliExpressAccount {
+  marketplace_id: string | null;
+  app_key: string;
+  app_secret: string;
+  tracking_id: string | null;
+}
+
+/**
+ * Reúne as contas de afiliado AliExpress conectadas (config com app_key/app_secret),
+ * indexadas por usuário. Fallback de tracking_id = "default" (aceito pela API).
+ */
+function buildAliExpressAccounts(rows: unknown[]): Map<string, AliExpressAccount> {
+  const accounts = new Map<string, AliExpressAccount>();
+  for (const row of rows) {
+    const record = row as {
+      user_id?: string;
+      marketplace_id?: string | null;
+      status?: string;
+      configuration?: unknown;
+    } | null;
+    if (!record?.user_id || record.status !== "connected") continue;
+    const configuration = record.configuration;
+    if (!configuration || typeof configuration !== "object") continue;
+    const config = configuration as Record<string, unknown>;
+    const app_key =
+      typeof config["app_key"] === "string" && config["app_key"].trim()
+        ? config["app_key"].trim()
+        : null;
+    const app_secret =
+      typeof config["app_secret"] === "string" && config["app_secret"].trim()
+        ? config["app_secret"].trim()
+        : null;
+    if (!app_key || !app_secret) continue;
+    let tracking_id: string | null = null;
+    for (const key of ["tracking_id", "trackingId", "affiliate_id", "affiliateId"]) {
+      const value = config[key];
+      if (typeof value === "string" && value.trim()) {
+        tracking_id = value.trim();
+        break;
+      }
+    }
+    accounts.set(record.user_id, {
+      marketplace_id: record.marketplace_id ?? null,
+      app_key,
+      app_secret,
+      tracking_id,
+    });
+  }
+  return accounts;
+}
+
+/**
+ * Converte a URL de uma oferta AliExpress para link de afiliado do usuário e
+ * persiste em offers.affiliate_url. Falhas não bloqueiam: mantém o link original.
+ */
+async function ensureAliExpressAffiliateUrl(
+  db: Db,
+  offer: Offer,
+  aliExpressAccountsByUser: Map<string, AliExpressAccount>,
+): Promise<void> {
+  if (!offer.original_url || offer.affiliate_url) return;
+  const account = aliExpressAccountsByUser.get(offer.user_id ?? "");
+  if (!account || offer.marketplace_id !== account.marketplace_id) return;
+
+  let link: string;
+  try {
+    link = await generateAliExpressAffiliateLink(offer.original_url, {
+      app_key: account.app_key,
+      app_secret: account.app_secret,
+      tracking_id: account.tracking_id ?? ALIEXPRESS_DEFAULT_TRACKING_ID,
+    });
+  } catch {
+    return;
+  }
+  offer.affiliate_url = link;
+  await db.from("offers").update({ affiliate_url: link }).eq("id", offer.id);
+}
 
 /**
  * Pipeline completo de captura → filtro → IA → publicação, executado no
@@ -50,15 +132,23 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
     errors: [],
   };
 
-  const [sourcesRes, monitorsRes, automationsRes, destinationsRes, templatesRes, marketplacesRes] =
-    await Promise.all([
-      db.from("sources").select("*"),
-      db.from("monitors").select("*"),
-      db.from("automations").select("*"),
-      db.from("destinations").select("*"),
-      db.from("templates").select("*"),
-      db.from("marketplaces").select("id, name"),
-    ]);
+  const [
+    sourcesRes,
+    monitorsRes,
+    automationsRes,
+    destinationsRes,
+    templatesRes,
+    marketplacesRes,
+    accountsRes,
+  ] = await Promise.all([
+    db.from("sources").select("*"),
+    db.from("monitors").select("*"),
+    db.from("automations").select("*"),
+    db.from("destinations").select("*"),
+    db.from("templates").select("*"),
+    db.from("marketplaces").select("id, name"),
+    db.from("affiliate_accounts").select("user_id, marketplace_id, status, configuration"),
+  ]);
 
   for (const result of [
     sourcesRes,
@@ -67,6 +157,7 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
     destinationsRes,
     templatesRes,
     marketplacesRes,
+    accountsRes,
   ]) {
     if (result.error) report.errors.push(`Banco de dados: ${result.error.message}`);
   }
@@ -197,6 +288,15 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   for (const row of publishedRes.data ?? []) {
     if (row.offer_id && row.destination_id) {
       publishedKeys.add(`${row.offer_id}::${row.destination_id}`);
+    }
+  }
+
+  const aliExpressAccountsByUser = buildAliExpressAccounts(accountsRes.data ?? []);
+  for (const offerList of offersBySource.values()) {
+    for (const offer of offerList) {
+      if (PROCESSABLE_OFFER_STATUS.includes(offer.status)) {
+        await ensureAliExpressAffiliateUrl(db, offer, aliExpressAccountsByUser);
+      }
     }
   }
 
@@ -741,16 +841,24 @@ export async function publishOfferForSource(
     errors: [],
   };
 
-  const [monitorsRes, automationsRes, destinationsRes, templatesRes, marketplacesRes] =
+  const [monitorsRes, automationsRes, destinationsRes, templatesRes, marketplacesRes, accountsRes] =
     await Promise.all([
       db.from("monitors").select("*"),
       db.from("automations").select("*"),
       db.from("destinations").select("*"),
       db.from("templates").select("*"),
       db.from("marketplaces").select("id, name"),
+      db.from("affiliate_accounts").select("user_id, marketplace_id, status, configuration"),
     ]);
 
-  for (const res of [monitorsRes, automationsRes, destinationsRes, templatesRes, marketplacesRes]) {
+  for (const res of [
+    monitorsRes,
+    automationsRes,
+    destinationsRes,
+    templatesRes,
+    marketplacesRes,
+    accountsRes,
+  ]) {
     if (res.error) result.errors.push(`Banco de dados: ${res.error.message}`);
   }
   if (result.errors.length > 0) return result;
@@ -778,6 +886,8 @@ export async function publishOfferForSource(
       publishedKeys.add(`${row.offer_id}::${row.destination_id}`);
     }
   }
+
+  await ensureAliExpressAffiliateUrl(db, offer, buildAliExpressAccounts(accountsRes.data ?? []));
 
   const touchedMonitorIds = new Set<string>();
   for (const monitor of monitors) {
