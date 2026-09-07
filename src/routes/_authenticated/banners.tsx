@@ -87,7 +87,22 @@ function BannersPage() {
 
   function applyTemplate(templateId: string) {
     const template = BANNER_TEMPLATES.find((item) => item.id === templateId);
-    if (template) setDraft(JSON.parse(JSON.stringify(template.defaultConfig)));
+    if (!template || !draft) return;
+    const base = JSON.parse(JSON.stringify(template.defaultConfig)) as BannerConfig;
+    setDraft({
+      ...base,
+      title: draft.title || base.title,
+      subtitle: draft.subtitle ?? base.subtitle ?? "",
+      originalPrice: draft.originalPrice || base.originalPrice,
+      currentPrice: draft.currentPrice || base.currentPrice,
+      discountBadge: draft.discountBadge || base.discountBadge,
+      couponCode: draft.couponCode ?? base.couponCode ?? "",
+      imageUrl: draft.imageUrl || base.imageUrl,
+      imageScale: draft.imageScale ?? base.imageScale ?? 1,
+      imagePositionX: draft.imagePositionX ?? base.imagePositionX ?? 0,
+      imagePositionY: draft.imagePositionY ?? base.imagePositionY ?? 0,
+      isDefault: draft.isDefault ?? false,
+    });
   }
 
   function resetDraft() {

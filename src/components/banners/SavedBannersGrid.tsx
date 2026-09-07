@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { bannerConfigOf } from "@/lib/banner-config";
 import { bannersService } from "@/services/banners";
 import type { Banner } from "@/types";
+import { BannerCanvas } from "./BannerCanvas";
 
 function BannerPreview({ banner }: { banner: Banner }) {
   const [url, setUrl] = useState<string | null>(null);
+  const config = bannerConfigOf(banner);
 
   useEffect(() => {
     let active = true;
@@ -26,21 +28,22 @@ function BannerPreview({ banner }: { banner: Banner }) {
     };
   }, [banner.preview_url]);
 
-  if (!url) {
+  if (url) {
     return (
-      <span className="flex flex-col items-center gap-2 text-muted-foreground">
-        <ImageIcon className="size-6" />
-        <span className="text-xs">Sem imagem gerada</span>
-      </span>
+      <img
+        src={url}
+        alt={banner.name}
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+      />
     );
   }
 
   return (
-    <img
-      src={url}
-      alt={banner.name}
-      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-    />
+    <div className="h-full w-full overflow-hidden flex items-center justify-center p-2 bg-slate-950/20">
+      <div className="w-full max-w-[280px] pointer-events-none scale-75 transform origin-center">
+        <BannerCanvas config={config} isPreview />
+      </div>
+    </div>
   );
 }
 

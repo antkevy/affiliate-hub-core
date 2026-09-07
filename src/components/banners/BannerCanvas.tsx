@@ -58,6 +58,13 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
     const isVertical = aspectRatio === "9:16";
     const isCompactText = !showTitle && !showSubtitle;
 
+    const isLightTheme =
+      style.textColor?.includes("slate-950") ||
+      style.textColor?.includes("slate-900") ||
+      style.textColor?.includes("black") ||
+      style.backgroundGradient?.includes("slate-100") ||
+      style.backgroundGradient?.includes("white");
+
     return (
       <div
         ref={ref}
@@ -104,8 +111,14 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
         <div className="relative z-10 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             {showTagline && tagline && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/20 backdrop-blur-md px-3 py-1 text-xs font-semibold tracking-wide text-white uppercase border border-white/20 shadow-sm">
-                <Sparkles className="h-3 w-3 text-yellow-300" />
+              <span
+                className={`inline-flex items-center gap-1 rounded-full backdrop-blur-md px-3 py-1 text-xs font-semibold tracking-wide uppercase shadow-sm ${
+                  isLightTheme
+                    ? "bg-slate-900/10 text-slate-900 border border-slate-900/15"
+                    : "bg-white/20 text-white border border-white/20"
+                }`}
+              >
+                <Sparkles className={`h-3 w-3 ${isLightTheme ? "text-amber-600" : "text-yellow-300"}`} />
                 {tagline}
               </span>
             )}
@@ -129,7 +142,11 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
         {isHorizontal ? (
           <div className="relative z-10 grid grid-cols-12 gap-4 items-center my-auto">
             <div className={`${isCompactText ? "col-span-6" : "col-span-5"} flex justify-center items-center`}>
-              <div className={`relative ${isCompactText ? "h-52" : "h-44"} w-full rounded-xl bg-white/10 backdrop-blur-md p-2 border border-white/20 shadow-xl overflow-hidden flex items-center justify-center`}>
+              <div
+                className={`relative ${isCompactText ? "h-52" : "h-44"} w-full rounded-xl ${
+                  isLightTheme ? "bg-black/5 border-black/10 shadow-lg" : "bg-white/10 border-white/20 shadow-xl"
+                } backdrop-blur-md p-2 overflow-hidden flex items-center justify-center`}
+              >
                 {imageUrl ? (
                   <img
                     src={imageUrl}
@@ -140,7 +157,7 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                     }}
                   />
                 ) : (
-                  <ShoppingBag className="h-16 w-16 text-white/40" />
+                  <ShoppingBag className={`h-16 w-16 ${isLightTheme ? "text-slate-400" : "text-white/40"}`} />
                 )}
                 {showBadge && discountBadge && (
                   <div className="absolute top-2 left-2 rounded-lg bg-red-600 text-white font-extrabold px-2.5 py-1 text-xs shadow-md">
@@ -159,13 +176,15 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                 </h2>
               )}
               {showSubtitle && subtitle && (
-                <p className="text-xs text-white/80 line-clamp-1 font-medium">{subtitle}</p>
+                <p className={`text-xs line-clamp-1 font-medium ${isLightTheme ? "text-slate-600" : "text-white/80"}`}>
+                  {subtitle}
+                </p>
               )}
 
               {showPrices && (
                 <div className="pt-1 flex items-baseline gap-2 flex-wrap">
                   {originalPrice && (
-                    <span className="text-xs text-white/60 line-through font-semibold">
+                    <span className={`text-xs line-through font-semibold ${isLightTheme ? "text-slate-500" : "text-white/60"}`}>
                       {originalPrice}
                     </span>
                   )}
@@ -173,15 +192,23 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                     {currentPrice || "R$ 0,00"}
                   </span>
                   {installmentText && (
-                    <span className="text-[11px] text-white/80 font-medium">{installmentText}</span>
+                    <span className={`text-[11px] font-medium ${isLightTheme ? "text-slate-600" : "text-white/80"}`}>
+                      {installmentText}
+                    </span>
                   )}
                 </div>
               )}
 
               {showCoupon && couponCode && (
-                <div className="inline-flex items-center gap-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-dashed border-white/40 px-2.5 py-1 text-xs font-mono font-bold text-white">
-                  <Tag className="h-3 w-3 text-yellow-400" />
-                  CUPOM: <span className="text-yellow-300">{couponCode}</span>
+                <div
+                  className={`inline-flex items-center gap-1.5 rounded-lg backdrop-blur-sm border border-dashed px-2.5 py-1 text-xs font-mono font-bold ${
+                    isLightTheme
+                      ? "bg-slate-900/10 border-slate-900/30 text-slate-900"
+                      : "bg-black/30 border-white/40 text-white"
+                  }`}
+                >
+                  <Tag className={`h-3 w-3 ${isLightTheme ? "text-amber-600" : "text-yellow-400"}`} />
+                  CUPOM: <span className={isLightTheme ? "text-amber-700 font-extrabold" : "text-yellow-300"}>{couponCode}</span>
                 </div>
               )}
             </div>
@@ -202,7 +229,9 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
               <div
                 className={`relative h-full w-full ${
                   isCompactText ? "max-w-[330px]" : "max-w-[280px]"
-                } rounded-2xl bg-white/10 backdrop-blur-md p-3 border border-white/20 shadow-2xl overflow-hidden flex items-center justify-center`}
+                } rounded-2xl ${
+                  isLightTheme ? "bg-black/5 border-black/10 shadow-lg" : "bg-white/10 border-white/20 shadow-2xl"
+                } backdrop-blur-md p-3 overflow-hidden flex items-center justify-center`}
               >
                 {imageUrl ? (
                   <img
@@ -214,7 +243,7 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                     }}
                   />
                 ) : (
-                  <ShoppingBag className="h-20 w-20 text-white/40" />
+                  <ShoppingBag className={`h-20 w-20 ${isLightTheme ? "text-slate-400" : "text-white/40"}`} />
                 )}
 
                 {showBadge && discountBadge && (
@@ -239,20 +268,28 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                   </h2>
                 )}
                 {showSubtitle && subtitle && (
-                  <p className="text-xs text-white/80 font-medium line-clamp-2 px-2">{subtitle}</p>
+                  <p className={`text-xs font-medium line-clamp-2 px-2 ${isLightTheme ? "text-slate-600" : "text-white/80"}`}>
+                    {subtitle}
+                  </p>
                 )}
               </div>
             )}
 
             {showPrices && (
-              <div className="space-y-1 bg-black/20 backdrop-blur-md px-5 py-2.5 rounded-xl border border-white/15 inline-block w-full max-w-xs shadow-inner">
+              <div
+                className={`space-y-1 ${
+                  isLightTheme ? "bg-slate-900/10 border-slate-900/15" : "bg-black/20 border-white/15"
+                } backdrop-blur-md px-5 py-2.5 rounded-xl border inline-block w-full max-w-xs shadow-inner`}
+              >
                 <div className="flex items-center justify-center gap-2">
                   {originalPrice && (
-                    <span className="text-xs text-white/60 line-through font-medium">
+                    <span className={`text-xs line-through font-medium ${isLightTheme ? "text-slate-500" : "text-white/60"}`}>
                       De: {originalPrice}
                     </span>
                   )}
-                  <span className="text-xs text-white/80 font-bold">Por apenas:</span>
+                  <span className={`text-xs font-bold ${isLightTheme ? "text-slate-700" : "text-white/80"}`}>
+                    Por apenas:
+                  </span>
                 </div>
                 <div
                   className={`text-3xl font-black ${style.accentColor} tracking-tight drop-shadow-lg`}
@@ -260,16 +297,28 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                   {currentPrice || "R$ 0,00"}
                 </div>
                 {installmentText && (
-                  <p className="text-[11px] text-white/90 font-semibold">{installmentText}</p>
+                  <p className={`text-[11px] font-semibold ${isLightTheme ? "text-slate-700" : "text-white/90"}`}>
+                    {installmentText}
+                  </p>
                 )}
               </div>
             )}
 
             {showCoupon && couponCode && (
-              <div className="inline-flex items-center gap-2 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 px-3.5 py-1.5 text-xs font-mono font-bold text-white shadow-md">
-                <Tag className="h-3.5 w-3.5 text-yellow-300" />
+              <div
+                className={`inline-flex items-center gap-2 rounded-xl backdrop-blur-md border px-3.5 py-1.5 text-xs font-mono font-bold shadow-md ${
+                  isLightTheme
+                    ? "bg-slate-900/10 border-slate-900/20 text-slate-900"
+                    : "bg-white/20 border-white/30 text-white"
+                }`}
+              >
+                <Tag className={`h-3.5 w-3.5 ${isLightTheme ? "text-amber-600" : "text-yellow-300"}`} />
                 CUPOM:{" "}
-                <span className="text-yellow-300 underline decoration-yellow-400 font-extrabold">
+                <span
+                  className={`underline font-extrabold ${
+                    isLightTheme ? "text-amber-700 decoration-amber-600" : "text-yellow-300 decoration-yellow-400"
+                  }`}
+                >
                   {couponCode}
                 </span>
               </div>
