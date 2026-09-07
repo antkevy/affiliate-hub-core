@@ -10,30 +10,49 @@ function BannerPreview({ banner }: { banner: Banner }) {
   const config = bannerConfigOf(banner);
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState<number | null>(null);
+  const [scale, setScale] = useState<number>(0.35);
 
   useLayoutEffect(() => {
     const box = boxRef.current;
     const node = canvasRef.current;
     if (!box || !node) return;
-    const width = node.offsetWidth;
-    const height = node.offsetHeight;
-    const boxWidth = box.clientWidth;
-    const boxHeight = box.clientHeight;
-    if (!width || !height || !boxWidth || !boxHeight) return;
-    setScale(Math.min(boxWidth / width, boxHeight / height));
+
+    const measure = () => {
+      const width = node.offsetWidth;
+      const height = node.offsetHeight;
+      const boxWidth = box.clientWidth - 16;
+      const boxHeight = box.clientHeight - 16;
+      if (width > 0 && height > 0 && boxWidth > 0 && boxHeight > 0) {
+        setScale(Math.min(boxWidth / width, boxHeight / height));
+      }
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(box);
+    observer.observe(node);
+
+    return () => observer.disconnect();
   }, [config]);
 
-  if (scale === null) return null;
+  const canvasWidth =
+    config.aspectRatio === "9:16"
+      ? "w-[280px]"
+      : config.aspectRatio === "16:9"
+        ? "w-[520px]"
+        : config.aspectRatio === "4:5"
+          ? "w-[340px]"
+          : "w-[380px]";
 
   return (
     <div
       ref={boxRef}
-      className="h-full w-full overflow-hidden flex items-center justify-center p-1.5 bg-slate-950/20"
+      className="h-full w-full overflow-hidden flex items-center justify-center p-2 bg-slate-950/40 relative"
     >
       <div
         ref={canvasRef}
-        className="shrink-0 origin-center"
+        className={`shrink-0 origin-center ${canvasWidth} pointer-events-none transition-transform duration-150`}
         style={{ transform: `scale(${scale})` }}
       >
         <BannerCanvas config={config} isPreview />
