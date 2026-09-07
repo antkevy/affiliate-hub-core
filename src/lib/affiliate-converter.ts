@@ -7,11 +7,13 @@
  *   (BlueBot — `clean_and_inject_params`).
  * - Magalu: rebuild no padrão canônico `magazinevoce.com.br/{loja}/p/{codigo}/`
  *   (fallback do smart-affiliate).
+ * - Mercado Livre: tag simples (`tag=<etiqueta>`) conforme "Formato 1 - Tag Simples"
+ *   do programa de afiliados; remove etiqueta/UTM antigas antes de injetar a nova.
  */
 
 export interface AffiliateConversion {
   url: string;
-  method: "original" | "amazon" | "shopee" | "magalu";
+  method: "original" | "amazon" | "shopee" | "magalu" | "mercadolivre";
   note?: string;
 }
 
@@ -29,6 +31,33 @@ export const AFFILIATE_NOTE_NO_ID =
 
 export const AFFILIATE_NOTE_UNSUPPORTED =
   "Marketplace exige automação externa (padrão BlueBot) para converter o link.";
+
+/** Parâmetros internos de rastreio do Mercado Livre que devem ser limpos. */
+const MERCADO_LIVRE_TRACKING_PARAMS = new Set([
+  "tag",
+  "matt_tool",
+  "matt_word",
+  "matt_source",
+  "matt_campaign",
+  "matt_content",
+  "matt_term",
+  "matt_search",
+  "matt_subsource",
+  "matt_user",
+  "dsu",
+  "pdp_filters",
+  "searchVariation",
+  "searchingol",
+  "ext",
+  "nome_origem",
+  "categoria_origem",
+  "nro_idioma",
+  "wid",
+  "cid",
+  "urlRedirected",
+  "translate",
+  "srsltid",
+]);
 
 /** Normaliza texto ignorando caixa e acentos (NFKD) — padrão BlueBot/smart-affiliate. */
 export function normalizeText(value: string): string {
@@ -83,6 +112,7 @@ export function createAffiliateUrl(
     case "magalu":
       return convertMagalu(url, options.store?.trim() || trackingId);
     case "mercadolivre":
+      return convertMercadoLivre(url, trackingId);
     case "aliexpress":
       return { url: url.toString(), method: "original", note: AFFILIATE_NOTE_UNSUPPORTED };
     default:
@@ -136,6 +166,24 @@ function convertMagalu(url: URL, store: string | null): AffiliateConversion {
     url: `https://www.magazinevoce.com.br/${encodeURIComponent(effectiveStore)}/p/${code}/`,
     method: "magalu",
   };
+}
+
+/**
+ * Converte um link do Mercado Livre no formato "tag simples": limpa parâmetros
+ * internos de rastreio e injeta `tag=<etiqueta>` no lugar. Sem etiqueta
+ * configurada, devolve a URL original com a nota de ID ausente.
+ */
+export function convertMercadoLivre(url: URL, trackingId: string | null): AffiliateConversion {
+  if (!trackingId) return { url: url.toString(), method: "original", note: AFFILIATE_NOTE_NO_ID };
+  const params = new URLSearchParams(url.search);
+  for (const key of [...params.keys()]) {
+    if (MERCADO_LIVRE_TRACKING_PARAMS.has(key)) params.delete(key);
+  }
+  params.set("tag", trackingId);
+  params.sort();
+  url.search = params.toString();
+  url.hash = "";
+  return { url: url.toString(), method: "mercadolivre" };
 }
 
 /** Extrai o código do produto do path — ex.: "/p/aa11bb22/" ou "/produto/aa11bb22/". */

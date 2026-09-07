@@ -828,9 +828,18 @@ async function sendWebhook(url: string, offer: Offer): Promise<{ ok: boolean; er
 
 function defaultContent(offer: Offer, marketplaceName: Map<string, string>): string {
   const parts: string[] = [];
+  const isCoupon =
+    Boolean(offer.coupon?.trim()) ||
+    /cupom|cupons|voucher/i.test(offer.title ?? "");
 
   if (offer.title) {
-    parts.push(`➡️ ${offer.title}`);
+    if (offer.title.startsWith("➡️")) {
+      parts.push(offer.title);
+    } else if (isCoupon && !offer.title.includes("🔥")) {
+      parts.push(`➡️ 🔥 ${offer.title}`);
+    } else {
+      parts.push(`➡️ ${offer.title}`);
+    }
   }
 
   const priceLines: string[] = [];

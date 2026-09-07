@@ -56,17 +56,82 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     offer.url ? `Link: ${offer.url}` : null,
   ].filter((line): line is string => Boolean(line));
 
+  const hasTemplate = Boolean(data.content?.trim());
+  const isCoupon =
+    Boolean(offer.coupon?.trim()) ||
+    /cupom|cupons|voucher/i.test(offer.title ?? "") ||
+    /cupom|cupons|voucher/i.test(data.content ?? "");
+
+  const couponDefaultInstruction =
+    "Esta captura é sobre um CUPOM DE DESCONTO. Pegue o texto original/título e reescreva-o " +
+    "com palavras DIFERENTES e atraentes para o público de afiliados, utilizando o seguinte formato base:\n" +
+    "➡️ 🔥 [Título ou chamada sobre o cupom reescrita com palavras diferentes]\n\n" +
+    "🔥 [Preço ou Valor do cupom: ex: R$ 60,00]\n" +
+    "⚡ [Desconto] OFF\n" +
+    "🏷️ Cupom: [Código do cupom, se houver]\n\n" +
+    "🛒 [Link]\n" +
+    "Reescreva com palavras diferentes. Use emojis com moderação (sem exagerar). Omita a linha de cupom apenas se não houver código.";
+
+  const defaultInstruction =
+    "Escreva em português do Brasil, tom persuasivo para canal de ofertas. " +
+    "Use exatamente este formato, linha por linha (troque tudo entre {} pelos valores reais):\n" +
+    "➡️ {titulo}\n\n" +
+    "🔥 {preco}\n" +
+    "⚡ {desconto} OFF\n" +
+    "🏷️ Cupom: {cupom}\n\n" +
+    "🛒 {link}\n" +
+    "Use emojis com moderação (sem exagerar). Omita a linha de desconto se não houver " +
+    "desconto e a linha de cupom se não houver cupom; se não houver nem cupom nem desconto, " +
+    "deixe apenas título, preço e link.";
+
+  const templateInstruction =
+    "Reescreva a mensagem SEGUINDO EXATAMENTE o template abaixo (\"Mensagem original\"), " +
+    "mantendo as mesmas linhas, emojis, formatação e ordem. Não invente linhas nem altere a " +
+    "estrutura; apenas corrija as inconsistências com os dados reais da oferta. Valores \"—\" " +
+    "significam dado ausente: remova a linha inteira. Se não houver nem cupom nem desconto, " +
+    "mantenha apenas o restante.";
+
   const instruction =
     data.instruction?.trim() ||
-    "Escreva em português do Brasil, tom persuasivo para canal de ofertas. " +
-      "Siga estritamente o formato de publicação padrão:\n" +
-      "➡️ {titulo}\n\n" +
-      "🔥 {preco}\n" +
-      "⚡ {desconto} OFF\n" +
-      "🏷️ Cupom: {cupom}\n\n" +
-      "🛒 {link}\n" +
-      "Use emojis com moderação (sem exagerar). Omita o cupom se não houver cupom.";
-  if (data.content) parts.push(`\nMensagem original:\n${data.content}`);
+    (hasTemplate ? templateInstruction : isCoupon ? couponDefaultInstruction : defaultInstruction);
+  if (data.content) parts.push(`\nMensagem original (template do usuário):\n${data.content}`);
+
+  const templateSystemPrompt =
+    "Você é um copywriter de ofertas afiliadas. O usuário configurou um TEMPLATE PERSONALIZADO " +
+    "para suas publicações. Sua ÚNICA tarefa é reproduzir a mensagem final copiando EXATAMENTE a estrutura, " +
+    "emojis, linhas e ordem do template do usuário fornecido em \"Mensagem original (template do usuário)\", " +
+    "preenchendo os dados reais da oferta e removendo apenas linhas cujo valor está ausente (\"—\"). " +
+    "NÃO altere nem desobedeça a estrutura do template criado pelo usuário. Responda apenas com a mensagem final pronta para publicação, sem comentários.";
+
+  const couponSystemPrompt =
+    "Você é um copywriter de elite para canais de ofertas de afiliados. " +
+    "Quando a captura for sobre CUPOM, você deve PEGAR O TEXTO ORIGINAL E REESCREVER " +
+    "a chamada com palavras DIFERENTES e atraentes, estruturando no padrão base:\n" +
+    "➡️ 🔥 [Título ou chamada reescrita com palavras diferentes]\n\n" +
+    "🔥 [Preço ou Valor do cupom]\n" +
+    "⚡ [Desconto] OFF\n" +
+    "🏷️ Cupom: [Código do cupom (se houver)]\n\n" +
+    "🛒 [Link]\n" +
+    "Utilize emojis moderados (sem exageros). Responda apenas com a mensagem final pronta para publicação no Telegram/WhatsApp, sem comentários.";
+
+  const generalSystemPrompt =
+    "Você é um copywriter de ofertas afiliadas. Recebe apenas os dados de uma oferta e deve " +
+    "produzir a mensagem final pronta para publicação em um canal do Telegram/WhatsApp " +
+    "seguindo a estrutura:\n" +
+    "➡️ [Título]\n\n" +
+    "🔥 [Preço]\n" +
+    "⚡ [Desconto] OFF\n" +
+    "🏷️ Cupom: [Cupom]\n\n" +
+    "🛒 [Link]\n" +
+    "Omita a linha de desconto se não houver desconto e a linha de cupom se não houver " +
+    "cupom; se não houver nem cupom nem desconto, deixe apenas título, preço e link. Sem " +
+    "comentários adicionais, usando emojis moderados e sem exagero.";
+
+  const systemPrompt = hasTemplate
+    ? templateSystemPrompt
+    : isCoupon
+      ? couponSystemPrompt
+      : generalSystemPrompt;
 
   try {
     const client = new Groq({ apiKey });
@@ -77,16 +142,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
       messages: [
         {
           role: "system",
-          content:
-            "Você é um copywriter de ofertas afiliadas. Recebe os dados de uma oferta e " +
-            "deve produzir apenas a mensagem final pronta para publicação em um canal do " +
-            "Telegram/WhatsApp, seguindo a estrutura:\n" +
-            "➡️ [Título]\n\n" +
-            "🔥 [Preço]\n" +
-            "⚡ [Desconto] OFF\n" +
-            "🏷️ Cupom: [Cupom]\n\n" +
-            "🛒 [Link]\n" +
-            "Sem comentários adicionais, usando emojis moderados e sem exagero.",
+          content: systemPrompt,
         },
         {
           role: "user",

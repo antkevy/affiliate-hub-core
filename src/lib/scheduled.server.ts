@@ -1,7 +1,8 @@
 import { configurationOf } from "@/lib/monitor-config";
 import { automationConfigOf } from "@/lib/automation-config";
 import { destinationConfiguration } from "@/lib/destination-config";
-import { normalizeText } from "@/lib/affiliate-converter";
+import { convertMercadoLivre, normalizeText } from "@/lib/affiliate-converter";
+import { generateMercadoLivreAffiliateUrl } from "@/lib/mercado-livre-affiliate.server";
 import { captureTelegramChannel } from "@/lib/telegram.server";
 import {
   downloadImageBase64,
@@ -35,6 +36,109 @@ interface AliExpressAccount {
   app_key: string;
   app_secret: string;
   tracking_id: string | null;
+}
+
+/** Chaves aceitas para a etiqueta do Mercado Livre na configuração da conta. */
+const MERCADO_LIVRE_TAG_KEYS = ["tag", "tracking_id", "trackingId", "affiliate_id", "affiliateId"];
+
+/** Chaves aceitas para o cookie de sessão do Mercado Livre na configuração. */
+const MERCADO_LIVRE_COOKIE_KEYS = ["cookie", "session_cookie"];
+
+export interface MercadoLivreAccount {
+  tag: string;
+  cookie: string | null;
+}
+
+/**
+ * Reúne as credenciais do Mercado Livre por usuário, a partir das contas
+ * conectadas do marketplace: tag + cookie de sessão. O cookie é opcional —
+ * sem ele, a conversão cai no formato "tag simples".
+ */
+function buildMercadoLivreAccounts(
+  rows: unknown[],
+  mercadolivreMarketplaceId: string | null,
+): Map<string, MercadoLivreAccount> {
+  const accountsByUser = new Map<string, MercadoLivreAccount>();
+  if (!mercadolivreMarketplaceId) return accountsByUser;
+  for (const row of rows) {
+    const record = row as {
+      user_id?: string;
+      marketplace_id?: string | null;
+      status?: string;
+      configuration?: unknown;
+    } | null;
+    if (!record?.user_id || record.status !== "connected") continue;
+    if (record.marketplace_id !== mercadolivreMarketplaceId) continue;
+    const configuration = record.configuration;
+    if (!configuration || typeof configuration !== "object") continue;
+    const config = configuration as Record<string, unknown>;
+    let tag = "";
+    for (const key of MERCADO_LIVRE_TAG_KEYS) {
+      const value = config[key];
+      if (typeof value === "string" && value.trim()) {
+        tag = value.trim();
+        break;
+      }
+    }
+    if (!tag) continue;
+    let cookie: string | null = null;
+    for (const key of MERCADO_LIVRE_COOKIE_KEYS) {
+      const value = config[key];
+      if (typeof value === "string" && value.trim()) {
+        cookie = value.trim();
+        break;
+      }
+    }
+    accountsByUser.set(record.user_id, { tag, cookie });
+  }
+  return accountsByUser;
+}
+
+/** Link no formato "tag simples" (?tag=) quando não há cookie ou a API falha. */
+function tagOnlyMercadoLivreLink(originalUrl: string, tag: string): string | null {
+  try {
+    const url = new URL(originalUrl.startsWith("http") ? originalUrl : `https://${originalUrl}`);
+    const result = convertMercadoLivre(url, tag);
+    return result.method === "mercadolivre" ? result.url : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Converte a URL de uma oferta do Mercado Livre para link de afiliado real
+ * (gerador interno do ML com tag + cookie de sessão) e persiste em
+ * offers.affiliate_url. Sem cookie ou se a API falhar, usa o formato "tag
+ * simples". Falhas nunca bloqueiam: mantém o link original quando nenhum
+ * método funciona.
+ */
+async function ensureMercadoLivreAffiliateUrl(
+  db: Db,
+  offer: Offer,
+  mercadolivreAccountsByUser: Map<string, MercadoLivreAccount>,
+  mercadolivreMarketplaceId: string | null,
+): Promise<void> {
+  if (!offer.original_url || offer.affiliate_url) return;
+  if (!mercadolivreMarketplaceId || offer.marketplace_id !== mercadolivreMarketplaceId) return;
+  const credentials = mercadolivreAccountsByUser.get(offer.user_id ?? "");
+  if (!credentials) return;
+
+  let link: string | null = null;
+  if (credentials.cookie) {
+    try {
+      link = await generateMercadoLivreAffiliateUrl(offer.original_url, {
+        tag: credentials.tag,
+        cookie: credentials.cookie,
+      });
+    } catch {
+      link = tagOnlyMercadoLivreLink(offer.original_url, credentials.tag);
+    }
+  } else {
+    link = tagOnlyMercadoLivreLink(offer.original_url, credentials.tag);
+  }
+  if (!link) return;
+  offer.affiliate_url = link;
+  await db.from("offers").update({ affiliate_url: link }).eq("id", offer.id);
 }
 
 /**
@@ -171,6 +275,10 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   const marketplaceName = new Map<string, string>(
     (marketplacesRes.data ?? []).map((item: { id: string; name: string }) => [item.id, item.name]),
   );
+  const mercadolivreMarketplaceId =
+    (marketplacesRes.data ?? []).find(
+      (item: { slug?: string }) => (item.slug ?? "").toLowerCase() === "mercado-livre",
+    )?.id ?? null;
 
   const activeSourcesById = new Map<string, Source>(
     sources.filter((source) => source.status === "active").map((source) => [source.id, source]),
@@ -292,10 +400,20 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   }
 
   const aliExpressAccountsByUser = buildAliExpressAccounts(accountsRes.data ?? []);
+  const mercadolivreAccountsByUser = buildMercadoLivreAccounts(
+    accountsRes.data ?? [],
+    mercadolivreMarketplaceId,
+  );
   for (const offerList of offersBySource.values()) {
     for (const offer of offerList) {
       if (PROCESSABLE_OFFER_STATUS.includes(offer.status)) {
         await ensureAliExpressAffiliateUrl(db, offer, aliExpressAccountsByUser);
+        await ensureMercadoLivreAffiliateUrl(
+          db,
+          offer,
+          mercadolivreAccountsByUser,
+          mercadolivreMarketplaceId,
+        );
       }
     }
   }
@@ -576,16 +694,28 @@ function renderTemplateServer(
   offer: Offer,
   marketplaceName: Map<string, string>,
 ): string {
+  const salePriceFormatted = money(offer.sale_price);
+  const origPriceFormatted = money(offer.original_price);
+  const discountFormatted =
+    offer.discount_percentage !== null && offer.discount_percentage !== undefined
+      ? `${offer.discount_percentage}%`
+      : "—";
+
   const values: Record<string, string> = {
     titulo: offer.title,
-    preco: money(offer.sale_price),
-    preco_antigo: money(offer.original_price),
-    desconto:
-      offer.discount_percentage !== null && offer.discount_percentage !== undefined
-        ? `${offer.discount_percentage}%`
-        : "—",
+    title: offer.title,
+    preco: salePriceFormatted,
+    price: salePriceFormatted,
+    sale_price: salePriceFormatted,
+    preco_antigo: origPriceFormatted,
+    original_price: origPriceFormatted,
+    desconto: discountFormatted,
+    discount: discountFormatted,
+    discount_percentage: discountFormatted,
     cupom: offer.coupon ?? "—",
+    coupon: offer.coupon ?? "—",
     link: offer.affiliate_url ?? offer.original_url ?? "—",
+    url: offer.affiliate_url ?? offer.original_url ?? "—",
     marketplace: offer.marketplace_id ? (marketplaceName.get(offer.marketplace_id) ?? "—") : "—",
     categoria: "—",
   };
@@ -594,9 +724,16 @@ function renderTemplateServer(
 
 function defaultContentServer(offer: Offer, marketplaceName: Map<string, string>): string {
   const parts: string[] = [];
+  const isCoupon = Boolean(offer.coupon?.trim()) || /cupom|cupons|voucher/i.test(offer.title ?? "");
 
   if (offer.title) {
-    parts.push(`➡️ ${offer.title}`);
+    if (offer.title.startsWith("➡️")) {
+      parts.push(offer.title);
+    } else if (isCoupon && !offer.title.includes("🔥")) {
+      parts.push(`➡️ 🔥 ${offer.title}`);
+    } else {
+      parts.push(`➡️ ${offer.title}`);
+    }
   }
 
   const priceLines: string[] = [];
@@ -860,7 +997,7 @@ export async function publishOfferForSource(
       db.from("automations").select("*"),
       db.from("destinations").select("*"),
       db.from("templates").select("*"),
-      db.from("marketplaces").select("id, name"),
+      db.from("marketplaces").select("id, name, slug"),
       db.from("affiliate_accounts").select("user_id, marketplace_id, status, configuration"),
     ]);
 
@@ -883,6 +1020,10 @@ export async function publishOfferForSource(
   const marketplaceName = new Map<string, string>(
     (marketplacesRes.data ?? []).map((item: { id: string; name: string }) => [item.id, item.name]),
   );
+  const mercadolivreMarketplaceId =
+    (marketplacesRes.data ?? []).find(
+      (item: { slug?: string }) => (item.slug ?? "").toLowerCase() === "mercado-livre",
+    )?.id ?? null;
   const destinationsById = new Map<string, Destination>(destinations.map((d) => [d.id, d]));
   const templatesById = new Map<string, { id: string; content: string }>(
     (templates as Array<{ id: string; content: string }>).map((item) => [item.id, item]),
@@ -901,6 +1042,12 @@ export async function publishOfferForSource(
   }
 
   await ensureAliExpressAffiliateUrl(db, offer, buildAliExpressAccounts(accountsRes.data ?? []));
+  await ensureMercadoLivreAffiliateUrl(
+    db,
+    offer,
+    buildMercadoLivreAccounts(accountsRes.data ?? [], mercadolivreMarketplaceId),
+    mercadolivreMarketplaceId,
+  );
 
   const touchedMonitorIds = new Set<string>();
   for (const monitor of monitors) {

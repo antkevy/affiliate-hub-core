@@ -16,21 +16,42 @@ const SAMPLE = {
 
 /** Substitui variáveis do template. Usa dados de exemplo no preview. */
 export function renderTemplate(content: string, offer?: Partial<Offer> & { marketplace?: string }) {
+  const salePriceFormatted = formatMoney(offer?.sale_price);
+  const origPriceFormatted = formatMoney(offer?.original_price);
+  const discountFormatted =
+    offer?.discount_percentage !== null && offer?.discount_percentage !== undefined
+      ? `${offer.discount_percentage}%`
+      : "—";
+
   const values: Record<string, string> = offer
     ? {
         titulo: offer.title ?? SAMPLE.titulo,
-        preco: formatMoney(offer.sale_price),
-        preco_antigo: formatMoney(offer.original_price),
-        desconto:
-          offer.discount_percentage !== null && offer.discount_percentage !== undefined
-            ? `${offer.discount_percentage}%`
-            : "—",
+        title: offer.title ?? SAMPLE.titulo,
+        preco: salePriceFormatted,
+        price: salePriceFormatted,
+        sale_price: salePriceFormatted,
+        preco_antigo: origPriceFormatted,
+        original_price: origPriceFormatted,
+        desconto: discountFormatted,
+        discount: discountFormatted,
+        discount_percentage: discountFormatted,
         cupom: offer.coupon ?? "—",
+        coupon: offer.coupon ?? "—",
         link: offer.affiliate_url ?? offer.original_url ?? "—",
+        url: offer.affiliate_url ?? offer.original_url ?? "—",
         marketplace: offer.marketplace ?? "—",
         categoria: "—",
       }
-    : SAMPLE;
+    : {
+        ...SAMPLE,
+        title: SAMPLE.titulo,
+        price: SAMPLE.preco,
+        sale_price: SAMPLE.preco,
+        original_price: SAMPLE.preco_antigo,
+        discount: SAMPLE.desconto,
+        coupon: SAMPLE.cupom,
+        url: SAMPLE.link,
+      };
 
   return content.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match);
 }

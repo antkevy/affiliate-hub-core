@@ -28,8 +28,13 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     kind: "marketplace",
     description: "Conversão de links e dados de produtos.",
     fields: [
-      { key: "client_id", label: "Client ID" },
-      { key: "client_secret", label: "Client Secret", secret: true },
+      { key: "client_id", label: "Tag/etiqueta do afiliado", placeholder: "Ex.: fastpromo" },
+      {
+        key: "cookie",
+        label: "Cookie de sessão (createLink)",
+        secret: true,
+        helper: "Ferramentas do dev → Rede → requisição createLink → cabeçalho Cookie.",
+      },
     ],
   },
   {
