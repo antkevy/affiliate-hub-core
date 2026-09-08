@@ -175,10 +175,10 @@ export function findProductsInHtml(html: string): Array<{ mbid: string; url: str
   const found = new Map<string, string>();
   const seen = new Set<string>();
   const pattern =
-    /(?:https?:)?\/\/(?:www\.|produto\.|articulo\.|item\.|m\.)?mercadolivre(?:\.com\.br|\.com|\.com\.mx)\/(?:p\/|[\w-]+\/)?(MLB[-]?\d{6,12}[-a-z0-9]*)/gi;
+    /(?:https?:)?(?:\/\/(?:www\.|produto\.|articulo\.|item\.|m\.)?mercadolivre(?:\.com\.br|\.com|\.com\.mx))?(\/(?:p\/|[\w-]+\/)?MLB[-]?\d{6,12}[-a-z0-9]*)/gi;
   for (const match of html.matchAll(pattern)) {
     const candidate = match[0];
-    const raw = candidate.startsWith("/") ? `https:${candidate}` : candidate;
+    const raw = candidate.startsWith("/") ? `https://www.mercadolivre.com.br${candidate}` : candidate;
     const clean = cleanMercadoLivreUrl(raw);
     if (!clean) continue;
     const mbid = extractMercadoLivreId(clean);
@@ -186,6 +186,19 @@ export function findProductsInHtml(html: string): Array<{ mbid: string; url: str
     if (!seen.has(clean)) seen.add(clean);
     if (!found.has(mbid)) found.set(mbid, clean);
   }
+
+  if (found.size === 0) {
+    const mlbMatches = html.matchAll(/\b(MLB[-]?\d{6,12})\b/gi);
+    for (const match of mlbMatches) {
+      const rawId = match[1];
+      const mbid = extractMercadoLivreId(rawId);
+      if (mbid && !found.has(mbid)) {
+        const clean = `https://produto.mercadolivre.com.br/${mbid}`;
+        found.set(mbid, clean);
+      }
+    }
+  }
+
   return [...found.entries()].map(([mbid, url]) => ({ mbid, url }));
 }
 

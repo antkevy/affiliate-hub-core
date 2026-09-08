@@ -73,12 +73,27 @@ export interface MercadoLivreAccount {
  * conectadas do marketplace: tag + cookie de sessão. O cookie é opcional —
  * sem ele, a conversão cai no formato "tag simples".
  */
-function buildMercadoLivreAccounts(
+async function buildMercadoLivreAccounts(
+  db: Db,
   rows: unknown[],
   mercadolivreMarketplaceId: string | null,
-): Map<string, MercadoLivreAccount> {
+): Promise<Map<string, MercadoLivreAccount>> {
   const accountsByUser = new Map<string, MercadoLivreAccount>();
   if (!mercadolivreMarketplaceId) return accountsByUser;
+
+  const cookiesByUserId = new Map<string, string>();
+  try {
+    const { data: meliSessions } = await db
+      .from("meli_sessions")
+      .select("user_id, cookies, status")
+      .eq("status", "active");
+    for (const s of meliSessions ?? []) {
+      if (s.user_id && s.cookies) cookiesByUserId.set(s.user_id, s.cookies);
+    }
+  } catch {
+    // best-effort
+  }
+
   for (const row of rows) {
     const record = row as {
       id?: string;
@@ -101,12 +116,14 @@ function buildMercadoLivreAccounts(
       }
     }
     if (!tag) continue;
-    let cookie: string | null = null;
-    for (const key of MERCADO_LIVRE_COOKIE_KEYS) {
-      const value = config[key];
-      if (typeof value === "string" && value.trim()) {
-        cookie = value.trim();
-        break;
+    let cookie: string | null = cookiesByUserId.get(record.user_id) ?? null;
+    if (!cookie) {
+      for (const key of MERCADO_LIVRE_COOKIE_KEYS) {
+        const value = config[key];
+        if (typeof value === "string" && value.trim()) {
+          cookie = value.trim();
+          break;
+        }
       }
     }
     accountsByUser.set(record.user_id, {
@@ -142,9 +159,18 @@ async function ensureMercadoLivreAffiliateUrl(
   mercadolivreAccountsByUser: Map<string, MercadoLivreAccount>,
   mercadolivreMarketplaceId: string | null,
 ): Promise<void> {
-  if (!offer.original_url || offer.affiliate_url) return;
-  if (!mercadolivreMarketplaceId || offer.marketplace_id !== mercadolivreMarketplaceId) return;
-  const credentials = mercadolivreAccountsByUser.get(offer.user_id ?? "");
+  if (!offer.original_url) return;
+  if (offer.affiliate_url && offer.affiliate_url.includes("meli.la")) return;
+
+  const isMlUrl =
+    /mercadolivr|mercadolibr|meli\.la/i.test(offer.original_url) ||
+    (Boolean(mercadolivreMarketplaceId) && offer.marketplace_id === mercadolivreMarketplaceId);
+  if (!isMlUrl) return;
+
+  let credentials = mercadolivreAccountsByUser.get(offer.user_id ?? "");
+  if (!credentials && mercadolivreAccountsByUser.size > 0) {
+    credentials = Array.from(mercadolivreAccountsByUser.values())[0];
+  }
   if (!credentials) return;
 
   let link: string | null = null;
@@ -160,9 +186,13 @@ async function ensureMercadoLivreAffiliateUrl(
       renewedCookie = conversion.cookie_renewed;
     } catch {
       // conversão de afiliação nunca pode derrubar o ciclo de publicação
-      return;
     }
   }
+
+  if (!link || !link.includes("meli.la")) {
+    link = tagOnlyMercadoLivreLink(offer.original_url, credentials.tag);
+  }
+
   if (renewedCookie && credentials.id && renewedCookie !== credentials.cookie) {
     try {
       const { data: current } = await db
@@ -183,7 +213,8 @@ async function ensureMercadoLivreAffiliateUrl(
       // persistência do cookie renovado é best-effort
     }
   }
-  if (!link || !link.includes("meli.la")) return;
+
+  if (!link) return;
   offer.affiliate_url = link;
   await db.from("offers").update({ affiliate_url: link }).eq("id", offer.id);
 }
@@ -473,7 +504,8 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   }
 
   const aliExpressAccountsByUser = buildAliExpressAccounts(accountsRes.data ?? []);
-  const mercadolivreAccountsByUser = buildMercadoLivreAccounts(
+  const mercadolivreAccountsByUser = await buildMercadoLivreAccounts(
+    db,
     accountsRes.data ?? [],
     mercadolivreMarketplaceId,
   );
@@ -549,6 +581,22 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
         continue;
       }
 
+      await withSoftTimeout(
+        ensureAliExpressAffiliateUrl(db, offer, aliExpressAccountsByUser),
+        12000,
+        undefined,
+      );
+      await withSoftTimeout(
+        ensureMercadoLivreAffiliateUrl(
+          db,
+          offer,
+          mercadolivreAccountsByUser,
+          mercadolivreMarketplaceId,
+        ),
+        12000,
+        undefined,
+      );
+
       const content = resolveContent(offer, template?.content, marketplaceName);
       const finalContent =
         config.ai_enabled && content
@@ -582,6 +630,13 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   return report;
 }
 
+// Rotação justa entre marketplaces por monitor: a cada ciclo a avaliação dos
+// candidatos começa por um marketplace diferente. Com spacing_minutes = 1 o
+// ciclo publica apenas 1 oferta e encerra; sem rotação, a fonte com mais
+// volume (ex.: AliExpress) vence sempre esse slot e marketplaces menores
+// (ex.: Mercado Livre) nunca são publicados, acumulando backlog de "captured".
+const monitorRotationByMarketplace = new Map<string, number>();
+
 async function publishForMonitor(
   db: Db,
   monitor: Monitor,
@@ -612,11 +667,26 @@ async function publishForMonitor(
   const template = config.template_id ? templatesById.get(config.template_id) : null;
 
   const candidates: Offer[] = [];
-  for (const sourceId of sourceIds) {
-    for (const offer of offersBySource.get(sourceId) ?? []) {
-      if (PROCESSABLE_OFFER_STATUS.includes(offer.status) && passesFilters(offer, config)) {
-        candidates.push(offer);
+  {
+    const byMarketplace = new Map<string, Offer[]>();
+    for (const sourceId of sourceIds) {
+      for (const offer of offersBySource.get(sourceId) ?? []) {
+        if (PROCESSABLE_OFFER_STATUS.includes(offer.status) && passesFilters(offer, config)) {
+          const marketplaceKey = offer.marketplace_id ?? "";
+          const bucket = byMarketplace.get(marketplaceKey) ?? [];
+          bucket.push(offer);
+          byMarketplace.set(marketplaceKey, bucket);
+        }
       }
+    }
+    const marketplaces = Array.from(byMarketplace.keys());
+    if (marketplaces.length === 0) return true;
+    const rotation = (monitorRotationByMarketplace.get(monitor.id) ?? 0) % marketplaces.length;
+    monitorRotationByMarketplace.set(monitor.id, (rotation + 1) % marketplaces.length);
+    for (let i = 0; i < marketplaces.length; i++) {
+      const marketplaceKey = marketplaces[(rotation + i) % marketplaces.length] ?? "";
+      const bucket = byMarketplace.get(marketplaceKey);
+      if (bucket) candidates.push(...bucket);
     }
   }
   if (candidates.length === 0) return true;
@@ -642,12 +712,20 @@ async function publishForMonitor(
       continue;
     }
 
-    await ensureAliExpressAffiliateUrl(db, offer, aliExpressAccountsByUser);
-    await ensureMercadoLivreAffiliateUrl(
-      db,
-      offer,
-      mercadolivreAccountsByUser,
-      mercadolivreMarketplaceId,
+    await withSoftTimeout(
+      ensureAliExpressAffiliateUrl(db, offer, aliExpressAccountsByUser),
+      12000,
+      undefined,
+    );
+    await withSoftTimeout(
+      ensureMercadoLivreAffiliateUrl(
+        db,
+        offer,
+        mercadolivreAccountsByUser,
+        mercadolivreMarketplaceId,
+      ),
+      12000,
+      undefined,
     );
 
     const content = resolveContent(offer, template?.content, marketplaceName);
