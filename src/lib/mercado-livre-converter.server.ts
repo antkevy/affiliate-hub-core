@@ -83,7 +83,10 @@ function accountCredentials(account: AccountRecord | null): MercadoLivreCredenti
     (typeof configuration["tag"] === "string" && configuration["tag"].trim()
       ? configuration["tag"].trim()
       : "") ||
-    (typeof configuration["client_id"] === "string" ? configuration["client_id"].trim() : "");
+    (typeof configuration["client_id"] === "string" && configuration["client_id"].trim()
+      ? configuration["client_id"].trim()
+      : "") ||
+    "fastpromo";
   const cookie =
     (typeof configuration["cookie"] === "string" && configuration["cookie"].trim()
       ? configuration["cookie"].trim()
