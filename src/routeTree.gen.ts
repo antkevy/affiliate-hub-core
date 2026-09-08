@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated/automacoes'
 import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedConversorRouteImport } from './routes/_authenticated/conversor'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDestinosRouteImport } from './routes/_authenticated/destinos'
 import { Route as AuthenticatedEstatisticasRouteImport } from './routes/_authenticated/estatisticas'
@@ -56,6 +57,11 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedConversorRoute = AuthenticatedConversorRouteImport.update({
+  id: '/conversor',
+  path: '/conversor',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/conversor': typeof AuthenticatedConversorRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/destinos': typeof AuthenticatedDestinosRoute
   '/estatisticas': typeof AuthenticatedEstatisticasRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/conversor': typeof AuthenticatedConversorRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/destinos': typeof AuthenticatedDestinosRoute
   '/estatisticas': typeof AuthenticatedEstatisticasRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
   '/_authenticated/banners': typeof AuthenticatedBannersRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/conversor': typeof AuthenticatedConversorRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/destinos': typeof AuthenticatedDestinosRoute
   '/_authenticated/estatisticas': typeof AuthenticatedEstatisticasRoute
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/banners'
     | '/configuracoes'
+    | '/conversor'
     | '/dashboard'
     | '/destinos'
     | '/estatisticas'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/banners'
     | '/configuracoes'
+    | '/conversor'
     | '/dashboard'
     | '/destinos'
     | '/estatisticas'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/_authenticated/automacoes'
     | '/_authenticated/banners'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/conversor'
     | '/_authenticated/dashboard'
     | '/_authenticated/destinos'
     | '/_authenticated/estatisticas'
@@ -267,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/conversor': {
+      id: '/_authenticated/conversor'
+      path: '/conversor'
+      fullPath: '/conversor'
+      preLoaderRoute: typeof AuthenticatedConversorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -346,6 +365,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
   AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedConversorRoute: typeof AuthenticatedConversorRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDestinosRoute: typeof AuthenticatedDestinosRoute
   AuthenticatedEstatisticasRoute: typeof AuthenticatedEstatisticasRoute
@@ -362,6 +382,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
   AuthenticatedBannersRoute: AuthenticatedBannersRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedConversorRoute: AuthenticatedConversorRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDestinosRoute: AuthenticatedDestinosRoute,
   AuthenticatedEstatisticasRoute: AuthenticatedEstatisticasRoute,

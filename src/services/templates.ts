@@ -70,10 +70,43 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
   return rendered.replace(/`+([^`\n]+)`+/g, "`$1`");
 }
 
+const NON_CODE_WORDS = new Set([
+  "APP", "BRASIL", "BRL", "OFF", "COM", "OU", "SEM", "COMBO",
+  "FRETE", "LOJA", "MOEDAS", "GRATIS", "GRÁTIS", "MAIS", "PARA",
+  "PELO", "PELA", "TODOS", "ATE", "ATÉ", "TEM", "USAR", "BAIXO",
+  "PRIME", "ITEM", "DESCONTO", "CUPOM", "CUPONS", "MOEDA"
+]);
+
 function formatCouponCode(coupon: string | null | undefined): string {
   if (!coupon || !coupon.trim() || coupon === "—") return "—";
   const clean = coupon.replace(/[`]/g, "").trim();
-  return clean ? `\`${clean}\`` : "—";
+  if (!clean) return "—";
+
+  if (coupon.includes("`")) {
+    return coupon.replace(/`+([^`\n]+)`+/g, "`$1`");
+  }
+
+  let hasFormattedCode = false;
+  const formatted = clean.replace(/\b([A-Z0-9_-]{3,25})\b/g, (match, code: string) => {
+    if (NON_CODE_WORDS.has(code.toUpperCase())) {
+      return match;
+    }
+    const hasLetter = /[A-Z]/i.test(code);
+    const hasDigit = /\d/.test(code);
+    const isUpperCode = code.length >= 4 && code === code.toUpperCase();
+
+    if (hasLetter && (hasDigit || isUpperCode)) {
+      hasFormattedCode = true;
+      return `\`${code}\``;
+    }
+    return match;
+  });
+
+  if (!hasFormattedCode && clean.length <= 30 && !clean.includes(" ")) {
+    return `\`${clean}\``;
+  }
+
+  return formatted;
 }
 
 function formatMoney(value: number | null | undefined) {

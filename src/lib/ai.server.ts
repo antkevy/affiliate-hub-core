@@ -69,8 +69,9 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "⚡ [Desconto] OFF\n" +
     "🏷️ Cupom: `[Código do cupom, se houver]`\n\n" +
     "🛒 [Link]\n" +
-    "O código do cupom deve ficar entre crases para ser copiável com 1 toque no Telegram. Reescreva com palavras diferentes. Use emojis com moderação (sem exagerar). Omita a linha de cupom apenas se não houver código. " +
-    'Se o cupom incluir moedas do AliExpress (ex.: "BRFS8 + 581 moedas no APP"), mantenha a informação de moedas completa na mesma linha de cupom.';
+    "IMPORTANTE PARA CUPONS: Se houver mais de um código de cupom (ex: 'BRFS1 ou IFPJOE0C') ou observações (ex: '+ cupom da loja + 741 moedas no APP' ou 'selecione a aba Moedas no APP'), " +
+    "IDENTIFIQUE TODOS OS CÓDIGOS DE CUPOM E COLOQUE CADA CÓDIGO INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C` + cupom da loja + 741 moedas no APP). " +
+    "Mantenha todas as informações de moedas, cupons de loja e abas do aplicativo completas na linha do cupom.";
 
   const defaultInstruction =
     "Escreva em português do Brasil, tom persuasivo para canal de ofertas. " +
@@ -82,16 +83,15 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "🛒 {link}\n" +
     "Use emojis com moderação (sem exagerar). Omita a linha de desconto se não houver " +
     "desconto e a linha de cupom se não houver cupom; se não houver nem cupom nem desconto, " +
-    "deixe apenas título, preço e link. Se o cupom incluir moedas do AliExpress (ex.: " +
-    '"BRFS8 + 581 moedas no APP"), mantenha o trecho de moedas completo na linha de cupom.';
+    "deixe apenas título, preço e link. Se houver mais de um código de cupom (ex: 'BRFS1 ou IFPJOE0C') ou observações (ex: '+ 741 moedas no APP' ou 'aba Moedas no APP'), " +
+    "coloque CADA CÓDIGO INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`) e mantenha as observações completas.";
 
   const templateInstruction =
     'Reescreva a mensagem SEGUINDO EXATAMENTE o template abaixo ("Mensagem original do template do usuário"), ' +
     "mantendo as mesmas linhas, emojis, formatação e ordem. Não invente linhas nem altere a " +
     'estrutura; apenas corrija as inconsistências com os dados reais da oferta. Valores "—" ' +
-    "significam dado ausente: remova a linha inteira. Se não houver nem cupom nem desconto, " +
-    "mantenha apenas o restante. Mantenha a informação de moedas/bônus do AliExpress " +
-    '(ex.: "581 moedas no APP") quando presente no cupom.';
+    "significam dado ausente: remova a linha inteira. Se houver múltiplos códigos de cupom, coloque cada código entre crases individualmente " +
+    '(ex: `BRFS1` ou `IFPJOE0C`) e mantenha informações de moedas/bônus/abas do app completas.';
 
   const userInstruction = data.instruction?.trim();
   const instruction = hasCustomTemplate
@@ -109,6 +109,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "para suas publicações. Sua ÚNICA tarefa é reproduzir a mensagem final copiando EXATAMENTE a estrutura, " +
     'emojis, linhas e ordem do template do usuário fornecido em "Mensagem original do template do usuário", ' +
     'preenchendo os dados reais da oferta e removendo apenas linhas cujo valor está ausente ("—"). ' +
+    "Se houver múltiplos códigos de cupom, coloque CADA CÓDIGO INDIVIDUALMENTE ENTRE CRASES para cópia de 1 toque no Telegram. " +
     "NÃO altere nem desobedeça a estrutura do template criado pelo usuário. Responda apenas com a mensagem final pronta para publicação, sem comentários.";
 
   const couponSystemPrompt =
@@ -120,8 +121,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "⚡ [Desconto] OFF\n" +
     "🏷️ Cupom: `[Código do cupom (se houver)]`\n\n" +
     "🛒 [Link]\n" +
-    "Coloque o código do cupom entre crases. Utilize emojis moderados (sem exageros). Responda apenas com a mensagem final pronta para publicação no Telegram/WhatsApp, sem comentários. " +
-    'Se o cupom tiver moedas do AliExpress (ex.: "BRFS8 + 581 moedas no APP"), mantenha a informação de moedas na linha de cupom.';
+    "Coloque CADA CÓDIGO DE CUPOM INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`). Se a oferta mencionar moedas do app (ex: 741 moedas), cupons de loja ou instrução de abas (ex: 'aba de Moedas ou BRASIL somente pelo APP'), mantenha essas informações na mensagem. Responda apenas com a mensagem final pronta para publicação, sem comentários.";
 
   const generalSystemPrompt =
     "Você é um copywriter de ofertas afiliadas. Recebe apenas os dados de uma oferta e deve " +
@@ -133,10 +133,8 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "🏷️ Cupom: [Cupom]\n\n" +
     "🛒 [Link]\n" +
     "Omita a linha de desconto se não houver desconto e a linha de cupom se não houver " +
-    "cupom; se não houver nem cupom nem desconto, deixe apenas título, preço e link. Se o " +
-    'cupom tiver moedas do AliExpress (ex.: "BRFS8 + 581 moedas no APP"), mantenha a ' +
-    "informação de moedas na linha de cupom. Sem " +
-    "comentários adicionais, usando emojis moderados e sem exagero.";
+    "cupom. Se houver múltiplos códigos de cupom (ex: 'BRFS1 ou IFPJOE0C'), envolva CADA CÓDIGO INDIVIDUALMENTE entre crases. " +
+    "Mantenha informações extras de moedas do APP, cupons de loja ou orientações de abas na mensagem. Sem comentários adicionais, usando emojis moderados.";
 
   const systemPrompt = hasCustomTemplate
     ? templateSystemPrompt

@@ -142,17 +142,47 @@ export const callTelegramApi = createServerFn({ method: "POST" })
   .validator((payload: TelegramProxyPayload) => payload)
   .handler(async ({ data }): Promise<TelegramProxyResult> => postTelegram(data));
 
+/**
+ * Converte marcações de texto (como crases `CUPOM` para <code>CUPOM</code>)
+ * em HTML seguro para o Telegram Bot API. Evita erros de parsing por '_' em URLs.
+ */
+export function formatTelegramTextHtml(text: string | undefined): { textHtml: string; isFormatted: boolean } {
+  if (!text || !text.trim()) return { textHtml: "", isFormatted: false };
+
+  const hasHtml = /<\/?(code|b|i|strong|em|a|pre)\b/i.test(text);
+  const hasBackticks = text.includes("`");
+  const hasBold = /\*\*[^*]+\*\*/.test(text);
+
+  if (!hasHtml && !hasBackticks && !hasBold) {
+    return { textHtml: text, isFormatted: false };
+  }
+
+  if (hasHtml) {
+    return { textHtml: text, isFormatted: true };
+  }
+
+  let escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  escaped = escaped.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  escaped = escaped.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+
+  return { textHtml: escaped, isFormatted: true };
+}
+
 /** Núcleo reutilizável por server fn e pelo job agendado do servidor. */
 export async function postTelegram(data: TelegramProxyPayload): Promise<TelegramProxyResult> {
   try {
     const { token, method, chat_id, text } = data;
     const url = `https://api.telegram.org/bot${token}/${method}`;
 
-    const hasMarkdown = Boolean(text && text.includes("`"));
+    const { textHtml, isFormatted } = formatTelegramTextHtml(text);
 
     if (method === "sendMessage") {
-      const payload: Record<string, unknown> = { chat_id, text };
-      if (hasMarkdown) payload["parse_mode"] = "Markdown";
+      const payload: Record<string, unknown> = { chat_id, text: isFormatted ? textHtml : text };
+      if (isFormatted) payload["parse_mode"] = "HTML";
 
       let response = await telegramFetch(token, url, {
         method: "POST",
@@ -162,6 +192,7 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
       let result = await parseResult(response);
       if (!result.ok && payload["parse_mode"]) {
         delete payload["parse_mode"];
+        payload["text"] = text;
         response = await telegramFetch(token, url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -174,7 +205,7 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
 
     const form = new FormData();
     form.append("chat_id", chat_id);
-    if (hasMarkdown) form.append("parse_mode", "Markdown");
+    if (isFormatted) form.append("parse_mode", "HTML");
 
     const uploaded: { name: string; blob: Blob }[] = [];
     for (const file of data.files ?? []) {
@@ -185,18 +216,20 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
       return { ok: false, error: "Nenhuma imagem pôde ser carregada." };
     }
 
-    const shortCaption = text ? text.slice(0, 1000) : undefined;
+    const rawCaption = text ? text.slice(0, 1000) : undefined;
+    const formattedCaption = isFormatted && rawCaption ? formatTelegramTextHtml(rawCaption).textHtml : rawCaption;
+
     if (method === "sendPhoto") {
       const first = uploaded[0];
       if (!first) return { ok: false, error: "Nenhuma imagem anexada." };
       form.append("photo", first.blob, first.name);
-      if (shortCaption) form.append("caption", shortCaption);
+      if (formattedCaption) form.append("caption", formattedCaption);
     } else {
       const photos = uploaded.map((item, index) => ({
         type: "photo" as const,
         media: `attach://${item.name}`,
-        ...(index === 0 && shortCaption
-          ? { caption: shortCaption, ...(hasMarkdown ? { parse_mode: "Markdown" } : {}) }
+        ...(index === 0 && formattedCaption
+          ? { caption: formattedCaption, ...(isFormatted ? { parse_mode: "HTML" } : {}) }
           : {}),
       }));
       form.append("media", JSON.stringify(photos));
@@ -205,7 +238,7 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
 
     let response = await telegramFetch(token, url, { method: "POST", body: form });
     let result = await parseResult(response);
-    if (!result.ok && hasMarkdown) {
+    if (!result.ok && isFormatted) {
       // Retenta sem parse_mode se houver erro de parsing
       const fallbackForm = new FormData();
       fallbackForm.append("chat_id", chat_id);
@@ -213,13 +246,13 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
         const first = uploaded[0];
         if (first) {
           fallbackForm.append("photo", first.blob, first.name);
-          if (shortCaption) fallbackForm.append("caption", shortCaption);
+          if (rawCaption) fallbackForm.append("caption", rawCaption);
         }
       } else {
         const photos = uploaded.map((item, index) => ({
           type: "photo" as const,
           media: `attach://${item.name}`,
-          ...(index === 0 && shortCaption ? { caption: shortCaption } : {}),
+          ...(index === 0 && rawCaption ? { caption: rawCaption } : {}),
         }));
         fallbackForm.append("media", JSON.stringify(photos));
         for (const item of uploaded) fallbackForm.append(item.name, item.blob, item.name);

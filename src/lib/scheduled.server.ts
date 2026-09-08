@@ -2,7 +2,7 @@ import { configurationOf } from "@/lib/monitor-config";
 import { automationConfigOf } from "@/lib/automation-config";
 import { destinationConfiguration } from "@/lib/destination-config";
 import { convertMercadoLivre, normalizeText } from "@/lib/affiliate-converter";
-import { generateMercadoLivreAffiliateUrl } from "@/lib/mercado-livre-affiliate.server";
+import { generateMercadoLivreAffiliateUrlSmart } from "@/lib/mercado-livre-affiliate.server";
 import { captureTelegramChannel } from "@/lib/telegram.server";
 import { captureAmazonOffers } from "@/lib/amazon-creators.server";
 import {
@@ -32,7 +32,7 @@ export interface ScheduledRunReport {
   errors: string[];
 }
 
-const PROCESSABLE_OFFER_STATUS = ["captured", "processing", "processed", "approved", "error"];
+const PROCESSABLE_OFFER_STATUS = ["captured", "processing", "approved"];
 
 interface AliExpressAccount {
   marketplace_id: string | null;
@@ -48,6 +48,7 @@ const MERCADO_LIVRE_TAG_KEYS = ["tag", "tracking_id", "trackingId", "affiliate_i
 const MERCADO_LIVRE_COOKIE_KEYS = ["cookie", "session_cookie"];
 
 export interface MercadoLivreAccount {
+  id?: string;
   tag: string;
   cookie: string | null;
 }
@@ -65,6 +66,7 @@ function buildMercadoLivreAccounts(
   if (!mercadolivreMarketplaceId) return accountsByUser;
   for (const row of rows) {
     const record = row as {
+      id?: string;
       user_id?: string;
       marketplace_id?: string | null;
       status?: string;
@@ -92,7 +94,11 @@ function buildMercadoLivreAccounts(
         break;
       }
     }
-    accountsByUser.set(record.user_id, { tag, cookie });
+    accountsByUser.set(record.user_id, {
+      ...(record.id ? { id: record.id } : {}),
+      tag,
+      cookie,
+    });
   }
   return accountsByUser;
 }
@@ -127,15 +133,34 @@ async function ensureMercadoLivreAffiliateUrl(
   if (!credentials) return;
 
   let link: string | null = null;
+  let renewedCookie: string | undefined;
   if (credentials.cookie) {
+    const conversion = await generateMercadoLivreAffiliateUrlSmart(
+      offer.original_url,
+      { tag: credentials.tag, cookie: credentials.cookie },
+      { title: offer.title ?? null },
+    );
+    link = conversion.affiliate_url;
+    renewedCookie = conversion.cookie_renewed;
+  }
+  if (renewedCookie && credentials.id && renewedCookie !== credentials.cookie) {
     try {
-      link = await generateMercadoLivreAffiliateUrl(offer.original_url, {
-        tag: credentials.tag,
-        cookie: credentials.cookie,
-      });
+      const { data: current } = await db
+        .from("affiliate_accounts")
+        .select("configuration")
+        .eq("id", credentials.id)
+        .maybeSingle();
+      const configuration =
+        current?.configuration && typeof current.configuration === "object"
+          ? { ...(current.configuration as Record<string, unknown>) }
+          : {};
+      configuration["cookie"] = renewedCookie;
+      await db
+        .from("affiliate_accounts")
+        .update({ configuration, status: "connected" })
+        .eq("id", credentials.id);
     } catch {
-      // Se a geração meli.la falhar por cookie expirado, não publica link não comissionado
-      link = null;
+      // persistência do cookie renovado é best-effort
     }
   }
   if (!link || !link.includes("meli.la")) return;
@@ -399,7 +424,12 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
     }
   }
 
-  const freshRes = await db.from("offers").select("*");
+  const freshRes = await db
+    .from("offers")
+    .select("*")
+    .in("status", ["captured", "processing", "approved"])
+    .order("created_at", { ascending: false })
+    .limit(50);
   if (freshRes.error) {
     report.errors.push(`Banco de dados: ${freshRes.error.message}`);
     return report;
@@ -427,19 +457,6 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
     accountsRes.data ?? [],
     mercadolivreMarketplaceId,
   );
-  for (const offerList of offersBySource.values()) {
-    for (const offer of offerList) {
-      if (PROCESSABLE_OFFER_STATUS.includes(offer.status)) {
-        await ensureAliExpressAffiliateUrl(db, offer, aliExpressAccountsByUser);
-        await ensureMercadoLivreAffiliateUrl(
-          db,
-          offer,
-          mercadolivreAccountsByUser,
-          mercadolivreMarketplaceId,
-        );
-      }
-    }
-  }
 
   for (const monitor of monitorList) {
     if (Date.now() - startTime > MAX_EXECUTION_MS) {
@@ -459,6 +476,9 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
       marketplaceName,
       publishedKeys,
       report,
+      aliExpressAccountsByUser,
+      mercadolivreAccountsByUser,
+      mercadolivreMarketplaceId,
       startTime,
       MAX_EXECUTION_MS,
     );
@@ -552,6 +572,9 @@ async function publishForMonitor(
   marketplaceName: Map<string, string>,
   publishedKeys: Set<string>,
   report: ScheduledRunReport,
+  aliExpressAccountsByUser: Map<string, AliExpressAccount>,
+  mercadolivreAccountsByUser: Map<string, MercadoLivreAccount>,
+  mercadolivreMarketplaceId: string | null,
   startTime?: number,
   maxMs?: number,
 ): Promise<boolean> {
@@ -598,6 +621,14 @@ async function publishForMonitor(
       report.offersIgnored++;
       continue;
     }
+
+    await ensureAliExpressAffiliateUrl(db, offer, aliExpressAccountsByUser);
+    await ensureMercadoLivreAffiliateUrl(
+      db,
+      offer,
+      mercadolivreAccountsByUser,
+      mercadolivreMarketplaceId,
+    );
 
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
@@ -809,10 +840,43 @@ function renderTemplateServer(
   return rendered.replace(/`+([^`\n]+)`+/g, "`$1`");
 }
 
+const NON_CODE_WORDS = new Set([
+  "APP", "BRASIL", "BRL", "OFF", "COM", "OU", "SEM", "COMBO",
+  "FRETE", "LOJA", "MOEDAS", "GRATIS", "GRÁTIS", "MAIS", "PARA",
+  "PELO", "PELA", "TODOS", "ATE", "ATÉ", "TEM", "USAR", "BAIXO",
+  "PRIME", "ITEM", "DESCONTO", "CUPOM", "CUPONS", "MOEDA"
+]);
+
 function formatCouponCodeServer(coupon: string | null | undefined): string {
   if (!coupon || !coupon.trim() || coupon === "—") return "—";
   const clean = coupon.replace(/[`]/g, "").trim();
-  return clean ? `\`${clean}\`` : "—";
+  if (!clean) return "—";
+
+  if (coupon.includes("`")) {
+    return coupon.replace(/`+([^`\n]+)`+/g, "`$1`");
+  }
+
+  let hasFormattedCode = false;
+  const formatted = clean.replace(/\b([A-Z0-9_-]{3,25})\b/g, (match, code: string) => {
+    if (NON_CODE_WORDS.has(code.toUpperCase())) {
+      return match;
+    }
+    const hasLetter = /[A-Z]/i.test(code);
+    const hasDigit = /\d/.test(code);
+    const isUpperCode = code.length >= 4 && code === code.toUpperCase();
+
+    if (hasLetter && (hasDigit || isUpperCode)) {
+      hasFormattedCode = true;
+      return `\`${code}\``;
+    }
+    return match;
+  });
+
+  if (!hasFormattedCode && clean.length <= 30 && !clean.includes(" ")) {
+    return `\`${clean}\``;
+  }
+
+  return formatted;
 }
 
 function defaultContentServer(offer: Offer, marketplaceName: Map<string, string>): string {
@@ -837,8 +901,8 @@ function defaultContentServer(offer: Offer, marketplaceName: Map<string, string>
     priceLines.push(`⚡ ${offer.discount_percentage}% OFF`);
   }
   if (offer.coupon) {
-    const code = offer.coupon.replace(/[`]/g, "").trim();
-    priceLines.push(`🏷️ Cupom: \`${code}\``);
+    const formattedCoupon = formatCouponCodeServer(offer.coupon);
+    priceLines.push(`🏷️ Cupom: ${formattedCoupon}`);
   }
 
   if (priceLines.length > 0) {

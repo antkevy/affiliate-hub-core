@@ -12,6 +12,7 @@ import {
   BarChart3,
   Plug,
   Settings,
+  Wand2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -52,7 +53,10 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Afiliados",
-    items: [{ label: "Links de Afiliado", to: "/links", icon: Link2 }],
+    items: [
+      { label: "Conversor de Ofertas", to: "/conversor", icon: Wand2 },
+      { label: "Links de Afiliado", to: "/links", icon: Link2 },
+    ],
   },
   {
     title: "Relatórios",
