@@ -14,6 +14,7 @@ import type { Database } from "@/integrations/supabase/types";
 import {
   generateMercadoLivreAffiliateUrlSmart,
   renewMercadoLivreSession,
+  tagOnlyMercadoLivreAffiliateUrl,
   type MercadoLivreCredentials,
 } from "@/lib/mercado-livre-affiliate.server";
 import { extractUrlsFromText, isMercadoLivreLink } from "@/lib/mercado-livre-resolver.server";
@@ -498,17 +499,21 @@ async function convertOne(
     if (conversion.cookie_renewed && activeCookie !== conversion.cookie_renewed) {
       activeCookie = conversion.cookie_renewed;
     }
+    const fallbackLink = conversion.canonical_url
+      ? tagOnlyMercadoLivreAffiliateUrl(conversion.canonical_url, tag)
+      : null;
+    const effectiveAffiliate = conversion.affiliate_url ?? fallbackLink;
     const record: ConvertedLinkResult = {
       original: url,
       canonical: conversion.canonical_url,
-      affiliate: conversion.affiliate_url,
-      status: conversion.status,
-      error_log: conversion.error_log,
+      affiliate: effectiveAffiliate,
+      status: effectiveAffiliate ? "success" : conversion.status,
+      error_log: effectiveAffiliate ? null : conversion.error_log,
       response_time_ms: conversion.response_time_ms,
     };
     links.push(record);
-    if (conversion.affiliate_url) {
-      processedText = replaceUrlLiteral(processedText, url, conversion.affiliate_url);
+    if (effectiveAffiliate) {
+      processedText = replaceUrlLiteral(processedText, url, effectiveAffiliate);
     } else if (conversion.canonical_url) {
       processedText = replaceUrlLiteral(processedText, url, conversion.canonical_url);
     }

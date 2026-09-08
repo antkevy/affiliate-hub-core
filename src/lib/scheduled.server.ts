@@ -2,7 +2,10 @@ import { configurationOf } from "@/lib/monitor-config";
 import { automationConfigOf } from "@/lib/automation-config";
 import { destinationConfiguration } from "@/lib/destination-config";
 import { convertMercadoLivre, normalizeText } from "@/lib/affiliate-converter";
-import { generateMercadoLivreAffiliateUrlSmart } from "@/lib/mercado-livre-affiliate.server";
+import {
+  generateMercadoLivreAffiliateUrlSmart,
+  tagOnlyMercadoLivreAffiliateUrl,
+} from "@/lib/mercado-livre-affiliate.server";
 import { captureTelegramChannel } from "@/lib/telegram.server";
 import { captureAmazonOffers } from "@/lib/amazon-creators.server";
 import {
@@ -187,22 +190,24 @@ async function ensureMercadoLivreAffiliateUrl(
 
   let link: string | null = null;
   let renewedCookie: string | undefined;
-  if (credentials.cookie) {
-    try {
-      const conversion = await generateMercadoLivreAffiliateUrlSmart(
-        offer.original_url,
-        { tag: credentials.tag, cookie: credentials.cookie },
-        { title: offer.title ?? null },
-      );
-      link = conversion.affiliate_url;
-      renewedCookie = conversion.cookie_renewed;
-    } catch {
-      // conversão de afiliação nunca pode derrubar o ciclo de publicação
-    }
+  let canonicalUrl: string | null = null;
+
+  try {
+    const conversion = await generateMercadoLivreAffiliateUrlSmart(
+      offer.original_url,
+      { tag: credentials.tag, cookie: credentials.cookie ?? "" },
+      { title: offer.title ?? null },
+    );
+    link = conversion.affiliate_url;
+    renewedCookie = conversion.cookie_renewed;
+    canonicalUrl = conversion.canonical_url;
+  } catch {
+    // conversão de afiliação nunca pode derrubar o ciclo de publicação
   }
 
-  if (!link || !link.includes("meli.la")) {
-    link = tagOnlyMercadoLivreLink(offer.original_url, credentials.tag);
+  if (!link) {
+    const targetUrl = canonicalUrl ?? offer.original_url;
+    link = tagOnlyMercadoLivreAffiliateUrl(targetUrl, credentials.tag);
   }
 
   if (renewedCookie && credentials.id && renewedCookie !== credentials.cookie) {
@@ -605,7 +610,7 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
           mercadolivreAccountsByUser,
           mercadolivreMarketplaceId,
         ),
-        12000,
+        25000,
         undefined,
       );
 
@@ -736,7 +741,7 @@ async function publishForMonitor(
         mercadolivreAccountsByUser,
         mercadolivreMarketplaceId,
       ),
-      12000,
+      25000,
       undefined,
     );
 
