@@ -489,9 +489,16 @@ export async function generateMercadoLivreAffiliateUrlSmart(
 
 /** Formato "tag simples" (sem cookie) para o Mercado Livre — fallback de último caso. */
 export function tagOnlyMercadoLivreAffiliateUrl(originalUrl: string, tag: string): string | null {
+  if (/(meli\.la|meli\.link|\/sec\/)/i.test(originalUrl)) {
+    const resolvedCanonical = cleanMercadoLivreUrl(originalUrl);
+    if (!resolvedCanonical) return null;
+    return tagOnlyMercadoLivreAffiliateUrl(resolvedCanonical, tag);
+  }
+
   const canonical = cleanMercadoLivreUrl(originalUrl) ?? originalUrl;
   try {
     const url = new URL(canonical.startsWith("http") ? canonical : `https://${canonical}`);
+    if (url.hostname.includes("meli.la") || url.hostname.includes("meli.link")) return null;
     const isProduct =
       /(^|\/)(p\/)?MLB[-]?\d/i.test(url.pathname) || !!extractMercadoLivreId(url.href);
     if (!isProduct) return null;

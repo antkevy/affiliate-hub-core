@@ -175,6 +175,9 @@ function convertMagalu(url: URL, store: string | null): AffiliateConversion {
  */
 export function convertMercadoLivre(url: URL, trackingId: string | null): AffiliateConversion {
   if (!trackingId) return { url: url.toString(), method: "original", note: AFFILIATE_NOTE_NO_ID };
+  if (url.hostname.includes("meli.la") || url.hostname.includes("meli.link") || url.pathname.includes("/sec/")) {
+    return { url: url.toString(), method: "original", note: "Links encurtados meli.la exige conversão de sessão de afiliado." };
+  }
   const params = new URLSearchParams(url.search);
   for (const key of [...params.keys()]) {
     if (MERCADO_LIVRE_TRACKING_PARAMS.has(key)) params.delete(key);

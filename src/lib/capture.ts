@@ -868,9 +868,11 @@ async function buildPublicationMedia(
 
     const bannerConfig = buildOfferBannerConfig(offer, marketplaceName, imageDataUrl, saved);
     const bannerBlob = await renderBannerToBlob(bannerConfig, 1);
-    if (bannerBlob) items.push({ name: "banner.png", base64: await blobToBase64(bannerBlob) });
-
-    if (imageUrl) items.push({ name: "product.png", url: imageUrl });
+    if (bannerBlob) {
+      items.push({ name: "banner.png", base64: await blobToBase64(bannerBlob) });
+    } else if (imageUrl) {
+      items.push({ name: "product.png", url: imageUrl });
+    }
   } catch {
     return [];
   }
