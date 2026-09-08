@@ -5,12 +5,14 @@ import {
   Check,
   Clock,
   Copy,
+  ExternalLink,
   History,
   Inbox,
   KeyRound,
   Loader2,
   Play,
   RefreshCw,
+  Send,
   ShieldAlert,
   ShieldCheck,
   Wand2,
@@ -32,6 +34,7 @@ import {
   getMercadoLivreSessionStatus,
   listMercadoLivreConversions,
   listMercadoLivreQueue,
+  publishQueuedOfferWithLink,
   reprocessMercadoLivreQueue,
   saveMercadoLivreSession,
   type ConvertedLinkResult,
@@ -592,7 +595,7 @@ function QueueTab() {
           ) : (
             <div className="divide-y divide-border">
               {rows.map((row) => (
-                <QueueRowCard key={row.id} row={row} />
+                <QueueRowCard key={row.id} row={row} onRefetch={() => queue.refetch()} />
               ))}
             </div>
           )}
@@ -602,12 +605,44 @@ function QueueTab() {
   );
 }
 
-function QueueRowCard({ row }: { row: QueueRow }) {
+function QueueRowCard({ row, onRefetch }: { row: QueueRow; onRefetch?: () => void }) {
+  const [customUrl, setCustomUrl] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  const productUrl = row.source_links?.[0] ?? "";
+
+  async function handlePostCustomLink() {
+    if (!customUrl.trim()) {
+      toast.error("Cole o seu link meli.la gerado no site do Mercado Livre.");
+      return;
+    }
+    setPosting(true);
+    try {
+      const token = await sessionToken();
+      const res = await publishQueuedOfferWithLink({
+        data: { token, queueId: row.id, customAffiliateUrl: customUrl.trim() },
+      });
+      toast.success(res.message ?? "Oferta publicada com sucesso!");
+      if (onRefetch) onRefetch();
+    } catch (error) {
+      toast.error("Não foi possível publicar", { description: toUserMessage(error) });
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  function handleCopyAndOpenProduct() {
+    if (!productUrl) return;
+    navigator.clipboard.writeText(productUrl);
+    window.open(productUrl, "_blank", "noopener,noreferrer");
+    toast.success("Link do produto copiado e aberto! Gere o seu link meli.la no site do Mercado Livre e cole abaixo.");
+  }
+
   const badge = (() => {
     if (row.status === "waiting")
       return (
         <Badge variant="secondary" className="gap-1 bg-amber-500/15 text-[11px] text-amber-500">
-          <Clock className="size-3" /> aguardando cookie
+          <Clock className="size-3" /> aguardando link / cookie
         </Badge>
       );
     if (row.status === "processing")
@@ -630,39 +665,75 @@ function QueueRowCard({ row }: { row: QueueRow }) {
   })();
 
   return (
-    <div className="flex flex-wrap items-start gap-3 py-3 sm:flex-nowrap">
-      <div className="min-w-0 flex-1">
-        <p className="font-mono text-xs">{row.mode === "single" ? "URL única" : "Mensagem"}</p>
-        <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">
-          {row.source_text.slice(0, 200)}
-          {row.source_text.length > 200 ? "…" : ""}
-        </p>
-        {row.source_links.length > 0 ? (
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {row.source_links.slice(0, 3).map((link) => (
-              <span
-                key={link}
-                className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+    <div className="space-y-3 py-3">
+      <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-medium">{row.mode === "single" ? "URL única" : "Mensagem"}</span>
+            {productUrl ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10"
+                onClick={handleCopyAndOpenProduct}
               >
-                {link.length > 48 ? `${link.slice(0, 48)}…` : link}
-              </span>
-            ))}
-            {row.source_links.length > 3 ? (
-              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                +{row.source_links.length - 3}
-              </span>
+                <ExternalLink className="mr-1 size-3" /> Copiar / Gerar no Mercado Livre
+              </Button>
             ) : null}
           </div>
-        ) : null}
-        {row.last_error ? (
-          <p className="mt-1 text-[11px] text-destructive">{row.last_error}</p>
-        ) : null}
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          {"enfileirada em "}
-          {new Date(row.created_at).toLocaleString("pt-BR")}
-        </p>
+          <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">
+            {row.source_text.slice(0, 200)}
+            {row.source_text.length > 200 ? "…" : ""}
+          </p>
+          {row.source_links.length > 0 ? (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {row.source_links.map((link) => (
+                <a
+                  key={link}
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-primary hover:underline"
+                >
+                  {link.length > 48 ? `${link.slice(0, 48)}…` : link}
+                </a>
+              ))}
+            </div>
+          ) : null}
+          {row.last_error ? (
+            <p className="mt-1 text-[11px] text-destructive">{row.last_error}</p>
+          ) : null}
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {"enfileirada em "}
+            {new Date(row.created_at).toLocaleString("pt-BR")}
+          </p>
+        </div>
+        <div className="shrink-0">{badge}</div>
       </div>
-      <div className="shrink-0">{badge}</div>
+
+      {row.status === "waiting" || row.status === "failed" ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-2 sm:flex-nowrap">
+          <Input
+            placeholder="Cole seu link meli.la gerado no site (ex: https://meli.la/...)"
+            value={customUrl}
+            onChange={(e) => setCustomUrl(e.target.value)}
+            className="h-8 flex-1 text-xs font-mono"
+          />
+          <Button
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={handlePostCustomLink}
+            disabled={posting || !customUrl.trim()}
+          >
+            {posting ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <Send className="size-3" />
+            )}
+            Postar no Canal
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

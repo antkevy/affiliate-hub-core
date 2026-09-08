@@ -18,6 +18,8 @@ import {
   type MercadoLivreCredentials,
 } from "@/lib/mercado-livre-affiliate.server";
 import { extractUrlsFromText, isMercadoLivreLink } from "@/lib/mercado-livre-resolver.server";
+import { postTelegram } from "@/lib/telegram-proxy.server";
+import { destinationConfiguration } from "@/lib/destination-config";
 
 interface SessionRecord {
   id?: string;
@@ -677,4 +679,88 @@ export const reprocessMercadoLivreQueue = createServerFn({ method: "POST" })
     }
 
     return { processed, succeeded, stillWaiting, failed, db_tables_missing: false };
+  });
+
+export interface PublishQueuedOfferPayload {
+  token: string;
+  queueId: string;
+  customAffiliateUrl: string;
+}
+
+export interface PublishQueuedOfferResult {
+  ok: boolean;
+  publishedCount: number;
+  message?: string;
+}
+
+/**
+ * Permite ao usuário colar o link de afiliado gerado manualmente no site do Mercado Livre
+ * para uma oferta da fila, publicando a mensagem imediatamente no canal de destino.
+ */
+export const publishQueuedOfferWithLink = createServerFn({ method: "POST" })
+  .validator((payload: PublishQueuedOfferPayload) => payload)
+  .handler(async ({ data }): Promise<PublishQueuedOfferResult> => {
+    const { db, userId } = await authedContext(data.token);
+    const { data: queueRow, error } = await db
+      .from("meli_queue")
+      .select("*")
+      .eq("id", data.queueId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error || !queueRow) {
+      throw new Error("Item da fila não encontrado.");
+    }
+
+    const affiliateUrl = data.customAffiliateUrl.trim();
+    if (!affiliateUrl.startsWith("http")) {
+      throw new Error("Cole um link válido do Mercado Livre (ex: https://meli.la/...)");
+    }
+
+    let processedText = queueRow.source_text || "";
+    const sourceLinks: string[] = Array.isArray(queueRow.source_links) ? queueRow.source_links : [];
+
+    for (const srcLink of sourceLinks) {
+      processedText = replaceUrlLiteral(processedText, srcLink, affiliateUrl);
+    }
+
+    if (!processedText.includes(affiliateUrl)) {
+      processedText = `${processedText}\n\n🛒 ${affiliateUrl}`;
+    }
+
+    await db
+      .from("meli_queue")
+      .update({
+        status: "done",
+        result_links: [{ original: sourceLinks[0] ?? null, affiliate: affiliateUrl, status: "success" }],
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.queueId);
+
+    const { data: destinations } = await db
+      .from("destinations")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("status", "active");
+
+    let publishedCount = 0;
+    for (const dest of destinations ?? []) {
+      const config = destinationConfiguration(dest);
+      if (dest.type === "telegram" && config.token && config.chat_id) {
+        const res = await postTelegram({
+          token: config.token,
+          method: "sendMessage",
+          chat_id: config.chat_id,
+          text: processedText,
+        });
+        if (res.ok) publishedCount++;
+      }
+    }
+
+    return {
+      ok: true,
+      publishedCount,
+      message: `Oferta publicada com sucesso em ${publishedCount} destino(s)!`,
+    };
   });

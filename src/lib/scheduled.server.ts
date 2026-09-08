@@ -592,6 +592,31 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
         undefined,
       );
 
+      const isMlOffer =
+        /mercadolivr|mercadolibr|meli\.la/i.test(offer.original_url ?? "") ||
+        (Boolean(mercadolivreMarketplaceId) && offer.marketplace_id === mercadolivreMarketplaceId);
+
+      if (isMlOffer && (!offer.affiliate_url || !offer.affiliate_url.includes("meli.la"))) {
+        try {
+          await db.from("meli_queue").insert({
+            user_id: offer.user_id,
+            mode: "single",
+            source_text: offer.title ?? "Oferta do Mercado Livre",
+            source_links: [offer.original_url],
+            status: "waiting",
+            last_error: "Sessão sem cookie meli.la ativo. Cole o link gerado na Fila de Ofertas.",
+          });
+        } catch {
+          // best-effort
+        }
+        await db
+          .from("offers")
+          .update({ status: "error" })
+          .eq("id", offer.id);
+        report.offersIgnored++;
+        continue;
+      }
+
       const content = resolveContent(offer, template?.content, marketplaceName);
       const finalContent =
         config.ai_enabled && content
@@ -722,6 +747,31 @@ async function publishForMonitor(
       25000,
       undefined,
     );
+
+    const isMlOfferMonitor =
+      /mercadolivr|mercadolibr|meli\.la/i.test(offer.original_url ?? "") ||
+      (Boolean(mercadolivreMarketplaceId) && offer.marketplace_id === mercadolivreMarketplaceId);
+
+    if (isMlOfferMonitor && (!offer.affiliate_url || !offer.affiliate_url.includes("meli.la"))) {
+      try {
+        await db.from("meli_queue").insert({
+          user_id: offer.user_id,
+          mode: "single",
+          source_text: offer.title ?? "Oferta do Mercado Livre",
+          source_links: [offer.original_url],
+          status: "waiting",
+          last_error: "Sessão sem cookie meli.la ativo. Cole o link gerado na Fila de Ofertas.",
+        });
+      } catch {
+        // best-effort
+      }
+      await db
+        .from("offers")
+        .update({ status: "error" })
+        .eq("id", offer.id);
+      report.offersIgnored++;
+      continue;
+    }
 
     const content = resolveContent(offer, template?.content, marketplaceName);
     const finalContent =
