@@ -251,8 +251,18 @@ export function extractPrice(text: string): number | null {
 }
 
 export function extractCoupon(text: string): string | null {
-  const match = text.match(/(?:cupom|code|codigo|código)[:\s]*([A-Z0-9]{4,})/i);
-  return match ? match[1]!.toUpperCase() : null;
+  const lines = text.split("\n");
+  for (const line of lines) {
+    const match = line.match(/(?:🎟️|🏷️|⚡)?\s*(?:cupom|code|codigo|código)[:\s]*(.+)/i);
+    if (match?.[1]?.trim()) {
+      let couponContent = match[1].trim();
+      couponContent = couponContent.split(/https?:\/\//i)[0]!.trim();
+      if (couponContent) return couponContent;
+    }
+  }
+
+  const match = text.match(/\b([A-Z0-9_-]{4,20})\b/);
+  return match ? match[1]! : null;
 }
 
 /**
@@ -268,10 +278,10 @@ export function extractCouponBonus(text: string): string | null {
 
 /** Cupom completo: código + bônus de moedas (ex.: "BRFS8 + 581 moedas no APP"). */
 export function extractCouponWithBonus(text: string): string | null {
-  const code = extractCoupon(text);
+  const lineCoupon = extractCoupon(text);
+  if (lineCoupon) return lineCoupon;
   const bonus = extractCouponBonus(text);
-  if (bonus) return code ? `${code} + ${bonus}` : bonus;
-  return code;
+  return bonus ?? null;
 }
 
 export function extractDiscount(text: string): number | null {

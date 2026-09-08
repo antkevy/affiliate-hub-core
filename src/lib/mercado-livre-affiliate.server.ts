@@ -47,10 +47,10 @@ const STRIPE_LINKS_ENDPOINT =
 const CREATE_LINK_ENDPOINT =
   "https://www.mercadolivre.com.br/affiliate-program/api/v2/affiliates/createLink";
 const LINK_BUILDER_LINKS_ENDPOINT =
-  "https://www.mercadolivre.com.br/afiliados/link-builder/api/links";
+  "https://www.mercadolivre.com.br/afiliados/linkbuilder/api/links";
 
 const LINK_GENERATOR_URL = "https://www.mercadolivre.com.br/afiliados/linkbuilder";
-const LINK_BUILDER_URL = "https://www.mercadolivre.com.br/afiliados/link-builder";
+const LINK_BUILDER_URL = "https://www.mercadolivre.com.br/afiliados/linkbuilder";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -288,9 +288,11 @@ export async function renewMercadoLivreSession(
     );
     const merged = mergeCookies(cookie, setCookiesOf(response));
     const renewed = merged !== cookie && merged.length > 0;
+    const isLoginRedirect = response.url.includes("/login") || response.url.includes("/jms/mlb/");
+    const ok = response.ok && !isLoginRedirect;
     return {
       cookie: merged || cookie,
-      ok: response.ok,
+      ok,
       status: response.status,
       renewed,
     };

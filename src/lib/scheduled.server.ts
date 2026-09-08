@@ -24,6 +24,21 @@ import type { Destination, Monitor, Offer, Source } from "@/types";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = any;
 
+/** Resolve a promessa ou devolve o fallback após `ms` (nunca rejeita). */
+async function withSoftTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((resolve) => {
+        timer = setTimeout(() => resolve(fallback), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export interface ScheduledRunReport {
   offersCaptured: number;
   offersIgnored: number;
@@ -135,13 +150,18 @@ async function ensureMercadoLivreAffiliateUrl(
   let link: string | null = null;
   let renewedCookie: string | undefined;
   if (credentials.cookie) {
-    const conversion = await generateMercadoLivreAffiliateUrlSmart(
-      offer.original_url,
-      { tag: credentials.tag, cookie: credentials.cookie },
-      { title: offer.title ?? null },
-    );
-    link = conversion.affiliate_url;
-    renewedCookie = conversion.cookie_renewed;
+    try {
+      const conversion = await generateMercadoLivreAffiliateUrlSmart(
+        offer.original_url,
+        { tag: credentials.tag, cookie: credentials.cookie },
+        { title: offer.title ?? null },
+      );
+      link = conversion.affiliate_url;
+      renewedCookie = conversion.cookie_renewed;
+    } catch {
+      // conversão de afiliação nunca pode derrubar o ciclo de publicação
+      return;
+    }
   }
   if (renewedCookie && credentials.id && renewedCookie !== credentials.cookie) {
     try {
@@ -847,7 +867,7 @@ const NON_CODE_WORDS = new Set([
   "PRIME", "ITEM", "DESCONTO", "CUPOM", "CUPONS", "MOEDA"
 ]);
 
-function formatCouponCodeServer(coupon: string | null | undefined): string {
+export function formatCouponCodeServer(coupon: string | null | undefined): string {
   if (!coupon || !coupon.trim() || coupon === "—") return "—";
   const clean = coupon.replace(/[`]/g, "").trim();
   if (!clean) return "—";
