@@ -1298,12 +1298,12 @@ export async function publishOfferForSource(
   }
 
   await ensureAliExpressAffiliateUrl(db, offer, buildAliExpressAccounts(accountsRes.data ?? []));
-  await ensureMercadoLivreAffiliateUrl(
+  const mercadolivreAccounts = await buildMercadoLivreAccounts(
     db,
-    offer,
-    buildMercadoLivreAccounts(accountsRes.data ?? [], mercadolivreMarketplaceId),
+    accountsRes.data ?? [],
     mercadolivreMarketplaceId,
   );
+  await ensureMercadoLivreAffiliateUrl(db, offer, mercadolivreAccounts, mercadolivreMarketplaceId);
 
   const touchedMonitorIds = new Set<string>();
   for (const monitor of monitors) {

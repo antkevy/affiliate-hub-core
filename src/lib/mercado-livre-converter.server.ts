@@ -457,7 +457,21 @@ async function convertOne(
   const sessionCookie = session?.cookies?.trim() || credentials.cookie || "";
   const tag = credentials.tag || "";
 
-  const urls = [...new Set(extractUrlsFromText(text).filter((url) => isMercadoLivreLink(url)))];
+  let normalizedText = text.trim();
+  if (single && !normalizedText.includes("://")) {
+    if (/^(meli\.la|meli\.link|mercadolivre\.com|mercadolibre\.com)\//i.test(normalizedText)) {
+      normalizedText = `https://${normalizedText}`;
+    }
+  }
+
+  let urls = [...new Set(extractUrlsFromText(normalizedText).filter((url) => isMercadoLivreLink(url)))];
+  if (urls.length === 0) {
+    const rawMatches = normalizedText.match(/\b(?:meli\.la|meli\.link|mercadolivre\.com|mercadolibre\.com)\/[^\s<>"]+/gi);
+    if (rawMatches) {
+      urls = [...new Set(rawMatches.map((u) => u.startsWith("http") ? u : `https://${u}`).filter((url) => isMercadoLivreLink(url)))];
+    }
+  }
+
   if (urls.length === 0) {
     return {
       mode: single ? "single" : "message",
@@ -479,7 +493,7 @@ async function convertOne(
     const conversion = await generateMercadoLivreAffiliateUrlSmart(
       url,
       { tag, cookie: activeCookie },
-      {},
+      { title: text },
     );
     if (conversion.cookie_renewed && activeCookie !== conversion.cookie_renewed) {
       activeCookie = conversion.cookie_renewed;

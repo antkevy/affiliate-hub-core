@@ -127,7 +127,10 @@ export function cleanMercadoLivreUrl(rawUrl: string): string | null {
       .replace(/[^a-z0-9-]+/g, "-")
       .replace(/(^-+|-+$)/g, "");
   }
-  return `https://produto.mercadolivre.com.br/${idPart}${slug ? `-${slug}` : ""}`;
+  if (slug) {
+    return `https://produto.mercadolivre.com.br/${idPart}-${slug}`;
+  }
+  return `https://www.mercadolivre.com.br/p/${idPart}`;
 }
 
 /** Indica se a URL já é uma página de produto reconhecível (sem precisar da rede). */
@@ -191,6 +194,7 @@ export function findProductsInHtml(html: string): Array<{ mbid: string; url: str
     const mlbMatches = html.matchAll(/\b(MLB[-]?\d{6,12})\b/gi);
     for (const match of mlbMatches) {
       const rawId = match[1];
+      if (!rawId) continue;
       const mbid = extractMercadoLivreId(rawId);
       if (mbid && !found.has(mbid)) {
         const clean = `https://produto.mercadolivre.com.br/${mbid}`;
