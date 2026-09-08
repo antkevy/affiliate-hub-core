@@ -193,6 +193,13 @@ export function DestinationDialog({
                   Privado: use o ID numérico (consulte{" "}
                   <code className="rounded bg-muted px-1">@userinfobot</code>).
                 </p>
+                {form.type === "telegram" ? (
+                  <p className="text-xs text-muted-foreground">
+                    Comentários: vincule um grupo de discussão ao canal (Configurações → Discussion)
+                    e adicione o bot como admin do grupo. O bot adiciona o botão 💬 Comentar
+                    automaticamente.
+                  </p>
+                ) : null}
               </div>
             </>
           )}

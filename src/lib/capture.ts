@@ -363,6 +363,32 @@ function firstNonEmpty(...values: unknown[]): string {
   return "";
 }
 
+async function ensureOfferAffiliateUrlClient(offer: Offer): Promise<void> {
+  if (!offer.original_url) return;
+  if (offer.affiliate_url && offer.affiliate_url.includes("meli.la")) return;
+
+  const isMlUrl = /mercadolivr|mercadolibr|meli\.la/i.test(offer.original_url);
+  if (!isMlUrl) return;
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (token) {
+      const { convertMercadoLivreMessage } = await import("@/lib/mercado-livre-converter.server");
+      const outcome = await convertMercadoLivreMessage({
+        data: { token, text: offer.original_url, single: true },
+      });
+      const convertedLink = outcome.links.find((l) => l.status === "success" && l.affiliate)?.affiliate;
+      if (convertedLink) {
+        offer.affiliate_url = convertedLink;
+        await offersRepo.update(offer.id, { affiliate_url: convertedLink });
+      }
+    }
+  } catch {
+    // best-effort
+  }
+}
+
 interface MonitorRun {
   published: number;
   failed: number;
@@ -442,6 +468,8 @@ async function processMonitor(
       });
       continue;
     }
+
+    await ensureOfferAffiliateUrlClient(offer);
 
     const content = template
       ? renderTemplate(template.content, {

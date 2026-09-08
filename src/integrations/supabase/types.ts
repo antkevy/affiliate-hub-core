@@ -720,10 +720,14 @@ export type Database = {
           content: string | null
           created_at: string
           destination_id: string | null
+          discussion_chat_id: number | null
+          discussion_message_id: number | null
           error_message: string | null
           id: string
           offer_id: string | null
           published_at: string | null
+          remote_chat_id: number | null
+          remote_message_id: number | null
           scheduled_at: string | null
           status: Database["public"]["Enums"]["publication_status"]
           updated_at: string
@@ -734,10 +738,14 @@ export type Database = {
           content?: string | null
           created_at?: string
           destination_id?: string | null
+          discussion_chat_id?: number | null
+          discussion_message_id?: number | null
           error_message?: string | null
           id?: string
           offer_id?: string | null
           published_at?: string | null
+          remote_chat_id?: number | null
+          remote_message_id?: number | null
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["publication_status"]
           updated_at?: string
@@ -748,10 +756,14 @@ export type Database = {
           content?: string | null
           created_at?: string
           destination_id?: string | null
+          discussion_chat_id?: number | null
+          discussion_message_id?: number | null
           error_message?: string | null
           id?: string
           offer_id?: string | null
           published_at?: string | null
+          remote_chat_id?: number | null
+          remote_message_id?: number | null
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["publication_status"]
           updated_at?: string

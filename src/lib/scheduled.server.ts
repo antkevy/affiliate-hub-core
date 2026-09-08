@@ -132,6 +132,16 @@ async function buildMercadoLivreAccounts(
       cookie,
     });
   }
+
+  for (const [userId, cookie] of cookiesByUserId.entries()) {
+    if (!accountsByUser.has(userId)) {
+      accountsByUser.set(userId, {
+        tag: "fastpromo",
+        cookie,
+      });
+    }
+  }
+
   return accountsByUser;
 }
 
@@ -171,7 +181,9 @@ async function ensureMercadoLivreAffiliateUrl(
   if (!credentials && mercadolivreAccountsByUser.size > 0) {
     credentials = Array.from(mercadolivreAccountsByUser.values())[0];
   }
-  if (!credentials) return;
+  if (!credentials) {
+    credentials = { tag: "fastpromo", cookie: null };
+  }
 
   let link: string | null = null;
   let renewedCookie: string | undefined;
@@ -756,7 +768,7 @@ async function recordPublication(
   offer: Offer,
   destination: Destination,
   content: string,
-  attempt: { ok: boolean; error?: string },
+  attempt: { ok: boolean; error?: string; chat_id?: number; message_id?: number },
   report: ScheduledRunReport,
   publishedKeys: Set<string>,
 ): Promise<void> {
@@ -770,6 +782,12 @@ async function recordPublication(
     status: attempt.ok ? "published" : "failed",
     published_at: attempt.ok ? now : null,
     error_message: attempt.ok ? null : (attempt.error ?? "Falha ao publicar"),
+    ...(attempt.ok && typeof attempt.chat_id === "number"
+      ? { remote_chat_id: attempt.chat_id }
+      : {}),
+    ...(attempt.ok && typeof attempt.message_id === "number"
+      ? { remote_message_id: attempt.message_id }
+      : {}),
   });
   await db
     .from("offers")
@@ -795,7 +813,7 @@ async function publishToDestinationServer(
   offer: Offer,
   config: { include_banner?: boolean },
   content: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; chat_id?: number; message_id?: number }> {
   const dc = destinationConfiguration(destination);
   if (destination.type === "telegram") {
     if (!dc.token || !dc.chat_id) {

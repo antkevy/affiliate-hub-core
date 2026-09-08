@@ -19,6 +19,10 @@ export interface TelegramProxyPayload {
 export interface TelegramProxyResult {
   ok: boolean;
   error?: string;
+  /** chat_id numérico do post publicado (canal/grupo), vindo de `result.chat.id`. */
+  chat_id?: number;
+  /** message_id do post publicado, vindo de `result.message_id`. */
+  message_id?: number;
 }
 
 const MIN_SEND_INTERVAL_MS = 2000;
@@ -111,23 +115,35 @@ async function readFile(file: {
   }
 }
 
-/** Interpreta a resposta do Bot API: objeto {ok} OU array (sendMediaGroup). */
-export function parseTelegramResult(
-  body: unknown,
-  responseOk: boolean,
-): { ok: boolean; error?: string } {
+/** Interpreta a resposta do Bot API: objeto {ok, result} OU array (sendMediaGroup). */
+export function parseTelegramResult(body: unknown, responseOk: boolean): TelegramProxyResult {
   const obj = (Array.isArray(body) ? undefined : body) as
-    { ok?: boolean; description?: string } | undefined;
+    | {
+        ok?: boolean;
+        description?: string;
+        result?: { message_id?: number; chat?: { id?: number } };
+      }
+    | undefined;
+  const resultItem =
+    Array.isArray(body) && body.length > 0
+      ? (body[0] as { result?: { message_id?: number; chat?: { id?: number } } })?.result
+      : obj?.result;
   const ok = Array.isArray(body) ? responseOk : obj?.ok === true;
-  if (responseOk && ok) return { ok: true };
+  if (responseOk && ok) {
+    return {
+      ok: true,
+      ...(typeof resultItem?.message_id === "number" ? { message_id: resultItem.message_id } : {}),
+      ...(typeof resultItem?.chat?.id === "number" ? { chat_id: resultItem.chat.id } : {}),
+    };
+  }
   return { ok: false, error: obj?.description ?? "" };
 }
 
 async function parseResult(response: Response): Promise<TelegramProxyResult> {
   const body = (await response.json().catch(() => ({}))) as unknown;
   const parsed = parseTelegramResult(body, response.ok);
+  if (parsed.ok) return parsed;
   const obj = (Array.isArray(body) ? undefined : body) as { description?: string } | undefined;
-  if (parsed.ok) return { ok: true };
   return {
     ok: false,
     error: parsed.error ?? obj?.description ?? `Telegram HTTP ${response.status}`,
@@ -267,4 +283,53 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
       error: error instanceof Error ? error.message : "Falha ao contactar o Telegram.",
     };
   }
+}
+
+export interface TelegramEditPayload {
+  token: string;
+  chat_id: number | string;
+  message_id: number;
+  inline_keyboard: Array<Array<{ text: string; url: string }>>;
+}
+
+/**
+ * Anexa (ou substitui) o texto de um botão inline a uma mensagem já enviada
+ * pelo bot — usado para adicionar o botão "Comentar" apontando para a thread
+ * do grupo de discussão depois que o Telegram encaminha o post do canal.
+ */
+export async function editTelegramReplyMarkup(
+  data: TelegramEditPayload,
+): Promise<TelegramProxyResult> {
+  try {
+    const payload = {
+      chat_id: data.chat_id,
+      message_id: data.message_id,
+      reply_markup: { inline_keyboard: data.inline_keyboard },
+    };
+    const response = await telegramFetch(
+      data.token,
+      `https://api.telegram.org/bot${data.token}/editMessageReplyMarkup`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
+    return await parseResult(response);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Falha ao editar a mensagem no Telegram.",
+    };
+  }
+}
+
+/**
+ * URL deep-link de um supergrupo/canal numérico em `t.me/c/{id}/{msgId}`.
+ * Para supergrupos o id chega como `-100xxxxxxxxxx`; o formato /c/ espera o
+ * id sem o prefixo `-100`.
+ */
+export function telegramThreadUrl(chatId: number, messageId: number): string {
+  const id = String(chatId).replace(/^-100/, "");
+  return `https://t.me/c/${id}/${messageId}`;
 }
