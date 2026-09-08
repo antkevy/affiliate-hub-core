@@ -10,6 +10,7 @@ export interface AIOfferInput {
   coupon: string | null;
   marketplace?: string;
   url: string | null;
+  raw_message?: string | null;
 }
 
 export interface AIFormatPayload {
@@ -56,6 +57,9 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     offer.coupon ? `Cupom: ${offer.coupon}` : null,
     offer.marketplace ? `Marketplace: ${offer.marketplace}` : null,
     offer.url ? `Link: ${offer.url}` : null,
+    offer.raw_message
+      ? `\nTexto/Mensagem original capturada do concorrente:\n"""\n${offer.raw_message}\n"""`
+      : null,
   ].filter((line): line is string => Boolean(line));
 
   const hasCustomTemplate = Boolean(data.hasCustomTemplate);
@@ -69,29 +73,30 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     "⚡ [Desconto] OFF\n" +
     "🏷️ Cupom: `[Código do cupom, se houver]`\n\n" +
     "🛒 [Link]\n" +
-    "IMPORTANTE PARA CUPONS: Se houver mais de um código de cupom (ex: 'BRFS1 ou IFPJOE0C') ou observações (ex: '+ cupom da loja + 741 moedas no APP' ou 'selecione a aba Moedas no APP'), " +
-    "IDENTIFIQUE TODOS OS CÓDIGOS DE CUPOM E COLOQUE CADA CÓDIGO INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C` + cupom da loja + 741 moedas no APP). " +
-    "Mantenha todas as informações de moedas, cupons de loja e abas do aplicativo completas na linha do cupom.";
+    "IMPORTANTE: Analise a mensagem capturada do concorrente para identificar qualquer informação adicional " +
+    "(múltiplos cupons ex: 'BRFS1 ou IFPJOE0C', moedas no app ex: '741 moedas no APP', orientação de abas ex: 'aba Moedas ou BRASIL no APP', cupons de loja). " +
+    "REAMODELE E INCLUA TODAS ESSAS INFORMAÇÕES na mensagem, colocando CADA CÓDIGO DE CUPOM INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`).";
 
   const defaultInstruction =
     "Escreva em português do Brasil, tom persuasivo para canal de ofertas. " +
-    "Use exatamente este formato, linha por linha (troque tudo entre {} pelos valores reais):\n" +
+    "Siga estritamente este formato base, linha por linha (preenchendo com os dados reais):\n" +
     "➡️ {titulo}\n\n" +
     "✅ {preco}\n" +
     "⚡ {desconto} OFF\n" +
     "🏷️ Cupom: {cupom}\n\n" +
     "🛒 {link}\n" +
-    "Use emojis com moderação (sem exagerar). Omita a linha de desconto se não houver " +
-    "desconto e a linha de cupom se não houver cupom; se não houver nem cupom nem desconto, " +
-    "deixe apenas título, preço e link. Se houver mais de um código de cupom (ex: 'BRFS1 ou IFPJOE0C') ou observações (ex: '+ 741 moedas no APP' ou 'aba Moedas no APP'), " +
-    "coloque CADA CÓDIGO INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`) e mantenha as observações completas.";
+    "REAMODELAGEM DE CONTEÚDO ADICIONAL: Analise a mensagem capturada do concorrente. Se houver informações " +
+    "adicionais (como múltiplos cupons ex: 'BRFS1 ou IFPJOE0C', moedas no aplicativo ex: '741 moedas no APP', " +
+    "orientações de abas ex: 'aba Moedas ou BRASIL no APP', cupons de loja ou frete grátis), REAMODELE E INCLUA " +
+    "essas informações na mensagem (de preferência na linha do cupom ou em destaques logo acima do link). " +
+    "Coloque CADA CÓDIGO DE CUPOM INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`) para cópia de 1 toque no Telegram. " +
+    "Omita a linha de desconto se não houver desconto e a linha de cupom se não houver cupom.";
 
   const templateInstruction =
-    'Reescreva a mensagem SEGUINDO EXATAMENTE o template abaixo ("Mensagem original do template do usuário"), ' +
-    "mantendo as mesmas linhas, emojis, formatação e ordem. Não invente linhas nem altere a " +
-    'estrutura; apenas corrija as inconsistências com os dados reais da oferta. Valores "—" ' +
-    "significam dado ausente: remova a linha inteira. Se houver múltiplos códigos de cupom, coloque cada código entre crases individualmente " +
-    '(ex: `BRFS1` ou `IFPJOE0C`) e mantenha informações de moedas/bônus/abas do app completas.';
+    'Reescreva a mensagem SEGUINDO O TEMPLATE DO USUÁRIO em "Mensagem original do template do usuário", ' +
+    "mantendo a estrutura e ordem. Analise a mensagem capturada do concorrente para reamodelar qualquer " +
+    "informação adicional (cupons, moedas, abas do app) de forma harmônica, " +
+    'envolvendo CADA CÓDIGO DE CUPOM INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`).';
 
   const userInstruction = data.instruction?.trim();
   const instruction = hasCustomTemplate
@@ -105,36 +110,40 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
   }
 
   const templateSystemPrompt =
-    "Você é um copywriter de ofertas afiliadas. O usuário configurou um TEMPLATE PERSONALIZADO " +
-    "para suas publicações. Sua ÚNICA tarefa é reproduzir a mensagem final copiando EXATAMENTE a estrutura, " +
-    'emojis, linhas e ordem do template do usuário fornecido em "Mensagem original do template do usuário", ' +
-    'preenchendo os dados reais da oferta e removendo apenas linhas cujo valor está ausente ("—"). ' +
-    "Se houver múltiplos códigos de cupom, coloque CADA CÓDIGO INDIVIDUALMENTE ENTRE CRASES para cópia de 1 toque no Telegram. " +
-    "NÃO altere nem desobedeça a estrutura do template criado pelo usuário. Responda apenas com a mensagem final pronta para publicação, sem comentários.";
+    "Você é um copywriter de ofertas afiliadas. O usuário configurou um TEMPLATE PERSONALIZADO. " +
+    "Sua tarefa é reproduzir a mensagem final copiando a estrutura do template, preenchendo os dados reais " +
+    "e REAMODELANDO qualquer informação adicional (múltiplos cupons, moedas no app, abas do app, cupons de loja) " +
+    "presentes na mensagem capturada. Coloque CADA CÓDIGO DE CUPOM INDIVIDUALMENTE ENTRE CRASES para cópia de 1 toque no Telegram. " +
+    "Responda apenas com a mensagem final pronta para publicação, sem comentários.";
 
   const couponSystemPrompt =
     "Você é um copywriter de elite para canais de ofertas de afiliados. " +
-    "Quando a captura for sobre CUPOM, você deve PEGAR O TEXTO ORIGINAL E REESCREVER " +
-    "a chamada com palavras DIFERENTES e atraentes, estruturando no padrão base:\n" +
-    "➡️ 🔥 [Título ou chamada reescrita com palavras diferentes]\n\n" +
+    "Quando a captura for sobre CUPOM, reescreva a chamada de forma atraente no formato base:\n" +
+    "➡️ 🔥 [Título ou chamada reescrita]\n\n" +
     "✅ [Preço ou Valor do cupom]\n" +
     "⚡ [Desconto] OFF\n" +
-    "🏷️ Cupom: `[Código do cupom (se houver)]`\n\n" +
+    "🏷️ Cupom: `[Código do cupom]`\n\n" +
     "🛒 [Link]\n" +
-    "Coloque CADA CÓDIGO DE CUPOM INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`). Se a oferta mencionar moedas do app (ex: 741 moedas), cupons de loja ou instrução de abas (ex: 'aba de Moedas ou BRASIL somente pelo APP'), mantenha essas informações na mensagem. Responda apenas com a mensagem final pronta para publicação, sem comentários.";
+    "REAMODELAGEM DE CONTEÚDO: Coloque CADA CÓDIGO DE CUPOM INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`). " +
+    "Se a mensagem capturada contiver moedas do app, cupons de loja ou instrução de abas (ex: 'aba de Moedas ou BRASIL somente pelo APP'), " +
+    "REAMODELE E INCLUA essas informações na mensagem final. Responda apenas com a mensagem pronta para envio.";
 
   const generalSystemPrompt =
-    "Você é um copywriter de ofertas afiliadas. Recebe apenas os dados de uma oferta e deve " +
-    "produzir a mensagem final pronta para publicação em um canal do Telegram/WhatsApp " +
-    "seguindo a estrutura:\n" +
-    "➡️ [Título]\n\n" +
-    "✅ [Preço]\n" +
-    "⚡ [Desconto] OFF\n" +
-    "🏷️ Cupom: [Cupom]\n\n" +
-    "🛒 [Link]\n" +
-    "Omita a linha de desconto se não houver desconto e a linha de cupom se não houver " +
-    "cupom. Se houver múltiplos códigos de cupom (ex: 'BRFS1 ou IFPJOE0C'), envolva CADA CÓDIGO INDIVIDUALMENTE entre crases. " +
-    "Mantenha informações extras de moedas do APP, cupons de loja ou orientações de abas na mensagem. Sem comentários adicionais, usando emojis moderados.";
+    "Você é um copywriter de elite para canais de ofertas de afiliados. " +
+    "Sua função é PREVALECER na formatação e reescrita de todas as mensagens capturadas, " +
+    "garantindo um visual extremamente profissional, atraente e organizado.\n\n" +
+    "MODELO BASE PADRÃO DE PUBLICAÇÃO:\n" +
+    "➡️ [Título atraente e limpo da oferta]\n\n" +
+    "✅ [Preço atual formatado em R$]\n" +
+    "⚡ [Desconto]% OFF\n" +
+    "🏷️ Cupom: [Cupons e informações extras de resgate]\n\n" +
+    "🛒 [Link de afiliado]\n\n" +
+    "REGRAS DE REAMODELAGEM E PREVALÊNCIA DA IA:\n" +
+    "1. MANTENHA O PADRÃO VISUAL: Siga a estrutura limpa com as linhas de Título, Preço, Desconto, Cupom e Link.\n" +
+    "2. REAMODELAGEM DE CONTEÚDO ADICIONAL: Examine atentamente o texto original capturado do concorrente/fonte. Se houver informações ou observações adicionais úteis (por exemplo: múltiplos cupons 'BRFS1 ou IFPJOE0C', moedas no aplicativo '741 moedas no app', cupons de loja, frete grátis, orientação de abas 'aba de Moedas ou BRASIL no APP', etc.), REAMODELE E INCLUA TODAS ESSAS INFORMAÇÕES na mensagem final (integrando-as na linha do cupom ou em destaques adicionais acima do link).\n" +
+    "3. COPIÁVEL DE 1 TOQUE (CRASES INDIVIDUAIS): Todo e qualquer código de cupom capturado DEVE ser colocado entre crases INDIVIDUAIS (ex: `BRFS1` ou `IFPJOE0C`). Nunca coloque dois cupons na mesma crase.\n" +
+    "4. Se a oferta não contiver cupom ou desconto, omita as respectivas linhas sem inventar dados.\n" +
+    "5. Responda APENAS com a mensagem final em Markdown formatada pronta para postagem no Telegram, sem introdução, sem saudações e sem comentários.";
 
   const systemPrompt = hasCustomTemplate
     ? templateSystemPrompt

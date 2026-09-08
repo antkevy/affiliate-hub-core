@@ -4,6 +4,7 @@ type T = Database["public"]["Tables"];
 
 export type Offer = T["offers"]["Row"] & {
   image_url?: string | null;
+  raw_message?: string | null;
 };
 export type OfferInsert = T["offers"]["Insert"];
 export type OfferUpdate = T["offers"]["Update"];

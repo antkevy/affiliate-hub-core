@@ -909,6 +909,7 @@ async function applyAiOrDefault(
     discount_percentage: offer.discount_percentage,
     coupon: offer.coupon,
     url: offer.affiliate_url ?? offer.original_url,
+    raw_message: offer.raw_message ?? content,
   };
   const marketplace = offer.marketplace_id ? (marketplaceName.get(offer.marketplace_id) ?? "") : "";
   const result = await rewriteOfferWithAI({

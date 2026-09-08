@@ -827,6 +827,7 @@ async function applyAI(
           discount_percentage: offer.discount_percentage,
           coupon: offer.coupon,
           url: offer.affiliate_url ?? offer.original_url,
+          raw_message: offer.raw_message ?? content,
         },
         content,
         hasCustomTemplate,
