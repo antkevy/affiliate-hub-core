@@ -174,19 +174,11 @@ function convertMagalu(url: URL, store: string | null): AffiliateConversion {
  * configurada, devolve a URL original com a nota de ID ausente.
  */
 export function convertMercadoLivre(url: URL, trackingId: string | null): AffiliateConversion {
-  if (!trackingId) return { url: url.toString(), method: "original", note: AFFILIATE_NOTE_NO_ID };
-  if (url.hostname.includes("meli.la") || url.hostname.includes("meli.link") || url.pathname.includes("/sec/")) {
-    return { url: url.toString(), method: "original", note: "Links encurtados meli.la exige conversão de sessão de afiliado." };
-  }
-  const params = new URLSearchParams(url.search);
-  for (const key of [...params.keys()]) {
-    if (MERCADO_LIVRE_TRACKING_PARAMS.has(key)) params.delete(key);
-  }
-  params.set("tag", trackingId);
-  params.sort();
-  url.search = params.toString();
-  url.hash = "";
-  return { url: url.toString(), method: "mercadolivre" };
+  return {
+    url: url.toString(),
+    method: "original",
+    note: "Links do Mercado Livre exigem conversão oficial via sessão de afiliado (gerador meli.la).",
+  };
 }
 
 /** Extrai o código do produto do path — ex.: "/p/aa11bb22/" ou "/produto/aa11bb22/". */

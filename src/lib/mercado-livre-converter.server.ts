@@ -499,16 +499,18 @@ async function convertOne(
     if (conversion.cookie_renewed && activeCookie !== conversion.cookie_renewed) {
       activeCookie = conversion.cookie_renewed;
     }
-    const fallbackLink = conversion.canonical_url
-      ? tagOnlyMercadoLivreAffiliateUrl(conversion.canonical_url, tag)
-      : null;
-    const effectiveAffiliate = conversion.affiliate_url ?? fallbackLink;
+    const effectiveAffiliate =
+      conversion.affiliate_url && conversion.affiliate_url.includes("meli.la")
+        ? conversion.affiliate_url
+        : null;
     const record: ConvertedLinkResult = {
       original: url,
       canonical: conversion.canonical_url,
       affiliate: effectiveAffiliate,
-      status: effectiveAffiliate ? "success" : conversion.status,
-      error_log: effectiveAffiliate ? null : conversion.error_log,
+      status: effectiveAffiliate ? "success" : "error",
+      error_log: effectiveAffiliate
+        ? null
+        : (conversion.error_log ?? "Requer sessão de afiliado ativa para gerar link meli.la."),
       response_time_ms: conversion.response_time_ms,
     };
     links.push(record);

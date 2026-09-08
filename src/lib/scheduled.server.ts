@@ -205,35 +205,13 @@ async function ensureMercadoLivreAffiliateUrl(
     // conversão de afiliação nunca pode derrubar o ciclo de publicação
   }
 
-  if (!link) {
-    const targetUrl = canonicalUrl ?? offer.original_url;
-    link = tagOnlyMercadoLivreAffiliateUrl(targetUrl, credentials.tag);
+  if (link && link.includes("meli.la")) {
+    offer.affiliate_url = link;
+    await db.from("offers").update({ affiliate_url: link }).eq("id", offer.id);
+  } else if (canonicalUrl && canonicalUrl !== offer.original_url) {
+    offer.original_url = canonicalUrl;
+    await db.from("offers").update({ original_url: canonicalUrl }).eq("id", offer.id);
   }
-
-  if (renewedCookie && credentials.id && renewedCookie !== credentials.cookie) {
-    try {
-      const { data: current } = await db
-        .from("affiliate_accounts")
-        .select("configuration")
-        .eq("id", credentials.id)
-        .maybeSingle();
-      const configuration =
-        current?.configuration && typeof current.configuration === "object"
-          ? { ...(current.configuration as Record<string, unknown>) }
-          : {};
-      configuration["cookie"] = renewedCookie;
-      await db
-        .from("affiliate_accounts")
-        .update({ configuration, status: "connected" })
-        .eq("id", credentials.id);
-    } catch {
-      // persistência do cookie renovado é best-effort
-    }
-  }
-
-  if (!link) return;
-  offer.affiliate_url = link;
-  await db.from("offers").update({ affiliate_url: link }).eq("id", offer.id);
 }
 
 /**
