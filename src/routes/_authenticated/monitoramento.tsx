@@ -451,6 +451,19 @@ function ConfigChips({
   }
   if (config.ai_enabled) chips.push({ key: "ia", label: "IA", tone: "primary" });
   if (config.include_banner) chips.push({ key: "banner", label: "Banner", tone: "info" });
+  if (config.cta_enabled)
+    chips.push({
+      key: "cta",
+      label: config.cta_mode === "manual" ? "CTA por palavra" : "CTA automática",
+      tone: "info",
+    });
+  if (config.post_days && config.post_days.length > 0)
+    chips.push({ key: "days", label: `${config.post_days.length} dia(s)` });
+  if (config.post_start || config.post_end)
+    chips.push({
+      key: "time",
+      label: `${config.post_start ?? "00:00"}–${config.post_end ?? "23:59"}`,
+    });
 
   if (chips.length === 0) {
     return <p className="text-xs text-muted-foreground">Sem filtros ou vínculos</p>;

@@ -54,6 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     let active = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
     profileService
       .get(userId)
       .then((value) => {
@@ -61,9 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (active) setProfile(null);
-      });
+      })
+      .finally(() => window.clearTimeout(timeout));
     return () => {
       active = false;
+      controller.abort();
+      window.clearTimeout(timeout);
     };
   }, [userId]);
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Workflow, ArrowRight, Loader2, Settings2, Clock, Bot, Image } from "lucide-react";
+import { Workflow, ArrowRight, Loader2, Settings2, Clock, Bot, Image, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
@@ -188,6 +188,13 @@ function AutomationsPage() {
                   ai_instruction: get("ai_instruction"),
                   include_banner: get("include_banner") === "yes",
                   banner_id: get("banner_id") || null,
+                  cta_enabled: get("cta_enabled") === "yes",
+                  cta_mode: get("cta_mode") === "manual" ? "manual" : "random",
+                  cta_manual: get("cta_manual"),
+                  cta_random: get("cta_random"),
+                  post_days: get("post_days"),
+                  post_start: get("post_start"),
+                  post_end: get("post_end"),
                 }),
               })
             }
@@ -325,6 +332,58 @@ function AutomationsPage() {
                               options: [{ value: "", label: "Template padrão" }, ...bannerOptions],
                               defaultValue: automationConfig.banner_id ?? "",
                             },
+                            {
+                              key: "cta_enabled",
+                              label: "Chamada para ação (CTA)",
+                              type: "select",
+                              options: [
+                                { value: "yes", label: "Sim" },
+                                { value: "no", label: "Não" },
+                              ],
+                              defaultValue: automationConfig.cta_enabled ? "yes" : "no",
+                            },
+                            {
+                              key: "cta_mode",
+                              label: "Modo do CTA",
+                              type: "select",
+                              options: [
+                                { value: "random", label: "Automática (sorteia uma frase)" },
+                                { value: "manual", label: "Por palavra-chave do título" },
+                              ],
+                              defaultValue: automationConfig.cta_mode ?? "random",
+                            },
+                            {
+                              key: "cta_manual",
+                              label: "CTA por palavra — uma por linha (palavra => frase)",
+                              type: "textarea",
+                              defaultValue: automationConfig.cta_manual,
+                            },
+                            {
+                              key: "cta_random",
+                              label: "Frases do CTA automático — uma por linha",
+                              type: "textarea",
+                              defaultValue: automationConfig.cta_random,
+                            },
+                            {
+                              key: "post_days",
+                              label:
+                                "Dias da semana (0=Dom, 1=Seg ... 6=Sáb) — separados por vírgula. Vazio = todos",
+                              type: "text",
+                              defaultValue: automationConfig.post_days,
+                              placeholder: "Ex.: 1,2,3,4,5",
+                            },
+                            {
+                              key: "post_start",
+                              label: "Postar a partir de (HH:MM)",
+                              type: "time",
+                              defaultValue: automationConfig.post_start,
+                            },
+                            {
+                              key: "post_end",
+                              label: "Postar até (HH:MM, pode virar madrugada)",
+                              type: "time",
+                              defaultValue: automationConfig.post_end,
+                            },
                           ]
                         : []
                     }
@@ -337,6 +396,13 @@ function AutomationsPage() {
                           ai_instruction: get("ai_instruction"),
                           include_banner: get("include_banner") === "yes",
                           banner_id: get("banner_id") || null,
+                          cta_enabled: get("cta_enabled") === "yes",
+                          cta_mode: get("cta_mode") === "manual" ? "manual" : "random",
+                          cta_manual: get("cta_manual"),
+                          cta_random: get("cta_random"),
+                          post_days: get("post_days"),
+                          post_start: get("post_start"),
+                          post_end: get("post_end"),
                         }),
                       });
                     }}
@@ -401,6 +467,28 @@ function AutomationsPage() {
                     <Image className="size-3" />
                     {automationConfig.include_banner ? "Banner ativo" : "Texto simples"}
                   </span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-[11px]",
+                      automationConfig.cta_enabled
+                        ? "border-chart-3/20 bg-chart-3/10 text-chart-3"
+                        : "border-border bg-secondary/40 text-muted-foreground",
+                    )}
+                  >
+                    <Zap className="size-3" />
+                    {automationConfig.cta_enabled
+                      ? automationConfig.cta_mode === "manual"
+                        ? "CTA por palavra"
+                        : "CTA automática"
+                      : "Sem CTA"}
+                  </span>
+                  {automationConfig.post_start || automationConfig.post_end ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/40 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                      <Clock className="size-3" />
+                      {automationConfig.post_start ?? "00:00"}–
+                      {automationConfig.post_end ?? "23:59"}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -428,7 +516,9 @@ function AutomationsPage() {
                         ) : null}
                       </div>
                       <div className="mt-2">
-                        <p className="truncate text-xs font-medium text-foreground">{block.title}</p>
+                        <p className="truncate text-xs font-medium text-foreground">
+                          {block.title}
+                        </p>
                         <p className="truncate text-[10px] text-muted-foreground">{block.detail}</p>
                       </div>
                     </div>

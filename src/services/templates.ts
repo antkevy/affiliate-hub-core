@@ -16,7 +16,11 @@ const SAMPLE = {
 };
 
 /** Substitui variáveis do template. Usa dados de exemplo no preview. */
-export function renderTemplate(content: string, offer?: Partial<Offer> & { marketplace?: string }) {
+export function renderTemplate(
+  content: string,
+  offer?: Partial<Offer> & { marketplace?: string },
+  cta?: string | null,
+) {
   const salePriceFormatted = formatMoney(offer?.sale_price);
   const origPriceFormatted = formatMoney(offer?.original_price);
   const discountFormatted =
@@ -25,6 +29,7 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
       : "—";
 
   const couponFormatted = formatCouponCode(offer?.coupon);
+  const ctaFormatted = cta?.trim() || "—";
 
   const values: Record<string, string> = offer
     ? {
@@ -45,6 +50,7 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
         url: offer.affiliate_url ?? offer.original_url ?? "—",
         marketplace: offer.marketplace ?? "—",
         categoria: "—",
+        cta: ctaFormatted,
       }
     : {
         ...SAMPLE,
@@ -56,6 +62,7 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
         coupon: formatCouponCode(SAMPLE.cupom),
         moedas: "—",
         url: SAMPLE.link,
+        cta: ctaFormatted,
       };
 
   const rendered = (
@@ -64,6 +71,7 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
           coupon: offer.coupon,
           discount_percentage: offer.discount_percentage,
           coins: couponBonus(offer.coupon),
+          cta,
         })
       : content
   ).replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match);
@@ -71,10 +79,35 @@ export function renderTemplate(content: string, offer?: Partial<Offer> & { marke
 }
 
 const NON_CODE_WORDS = new Set([
-  "APP", "BRASIL", "BRL", "OFF", "COM", "OU", "SEM", "COMBO",
-  "FRETE", "LOJA", "MOEDAS", "GRATIS", "GRÁTIS", "MAIS", "PARA",
-  "PELO", "PELA", "TODOS", "ATE", "ATÉ", "TEM", "USAR", "BAIXO",
-  "PRIME", "ITEM", "DESCONTO", "CUPOM", "CUPONS", "MOEDA"
+  "APP",
+  "BRASIL",
+  "BRL",
+  "OFF",
+  "COM",
+  "OU",
+  "SEM",
+  "COMBO",
+  "FRETE",
+  "LOJA",
+  "MOEDAS",
+  "GRATIS",
+  "GRÁTIS",
+  "MAIS",
+  "PARA",
+  "PELO",
+  "PELA",
+  "TODOS",
+  "ATE",
+  "ATÉ",
+  "TEM",
+  "USAR",
+  "BAIXO",
+  "PRIME",
+  "ITEM",
+  "DESCONTO",
+  "CUPOM",
+  "CUPONS",
+  "MOEDA",
 ]);
 
 function formatCouponCode(coupon: string | null | undefined): string {

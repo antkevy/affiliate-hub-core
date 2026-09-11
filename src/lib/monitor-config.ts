@@ -15,6 +15,13 @@ export interface MonitorFormValues {
   ai_instruction: string;
   include_banner: boolean;
   banner_id: string | null;
+  cta_enabled: boolean;
+  cta_mode: "manual" | "random" | null;
+  cta_manual: string;
+  cta_random: string;
+  post_days: number[];
+  post_start: string;
+  post_end: string;
   notes: string;
 }
 
@@ -97,6 +104,13 @@ export function buildConfiguration(values: MonitorFormValues): Json {
     ai_instruction: values.ai_instruction.trim() || null,
     include_banner: values.include_banner,
     banner_id: sanitizeId(values.banner_id),
+    cta_enabled: values.cta_enabled,
+    cta_mode: values.cta_enabled ? values.cta_mode : null,
+    cta_manual: parseKeywords(values.cta_manual),
+    cta_random: parseKeywords(values.cta_random),
+    post_days: values.post_days.length > 0 ? values.post_days : null,
+    post_start: values.post_start || null,
+    post_end: values.post_end || null,
     notes: values.notes || null,
   };
 }
@@ -118,13 +132,20 @@ export function initialForm(monitor: Monitor | null | undefined): MonitorFormVal
     ai_instruction: config.ai_instruction ?? AI_DEFAULT_INSTRUCTION,
     include_banner: config.include_banner ?? false,
     banner_id: config.banner_id ?? null,
+    cta_enabled: config.cta_enabled ?? false,
+    cta_mode: config.cta_mode ?? null,
+    cta_manual: (config.cta_manual ?? []).join("\n"),
+    cta_random: (config.cta_random ?? []).join("\n"),
+    post_days: Array.isArray(config.post_days) ? config.post_days : [],
+    post_start: config.post_start ?? "",
+    post_end: config.post_end ?? "",
     notes: config.notes ?? "",
   };
 }
 
 function parseKeywords(value: string): string[] {
   return value
-    .split(",")
+    .split(/[\n,]/)
     .map((item) => item.trim())
     .filter(Boolean);
 }

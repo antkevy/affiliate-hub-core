@@ -1,6 +1,7 @@
 import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { createCrud } from "./base";
+import type { Json } from "@/types";
 import type { Banner } from "@/types";
 
 export const bannersService = {
@@ -55,17 +56,20 @@ export const bannersService = {
 
   /** Define um banner como o padrão para automações/capturas e desmarca os demais. */
   async setDefault(bannerId: string): Promise<void> {
-    const list = await bannersService.list();
+    const { data, error } = await supabase.from("banners").select("id, configuration");
+    if (error) throw new Error(error.message);
     const { bannerConfigOf, buildBannerConfiguration } = await import("@/lib/banner-config");
-    for (const item of list) {
-      const config = bannerConfigOf(item);
+    const toUpdate: { id: string; configuration: Json }[] = [];
+    for (const item of data ?? []) {
+      const config = bannerConfigOf(item as Banner);
       const isTarget = item.id === bannerId;
       if (Boolean(config.isDefault) !== isTarget) {
         config.isDefault = isTarget;
-        await bannersService.update(item.id, {
-          configuration: buildBannerConfiguration(config),
-        });
+        toUpdate.push({ id: item.id, configuration: buildBannerConfiguration(config) });
       }
     }
+    await Promise.all(
+      toUpdate.map((item) => bannersService.update(item.id, { configuration: item.configuration })),
+    );
   },
 };

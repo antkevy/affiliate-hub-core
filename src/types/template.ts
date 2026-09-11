@@ -31,4 +31,5 @@ export const TEMPLATE_VARIABLES = [
   { token: "{link}", label: "Link de afiliado" },
   { token: "{marketplace}", label: "Marketplace" },
   { token: "{categoria}", label: "Categoria" },
+  { token: "{cta}", label: 'Chamada para ação (ex.: "Oferta relâmpago!")' },
 ] as const;

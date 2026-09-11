@@ -35,9 +35,14 @@ function AuthPage() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session) navigate({ to: "/dashboard", replace: true });
+      })
+      .catch(() => {
+        // Session check failed — stay on auth page
+      });
   }, [navigate]);
 
   async function handleSignIn(event: React.FormEvent) {

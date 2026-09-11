@@ -96,7 +96,7 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
     'Reescreva a mensagem SEGUINDO O TEMPLATE DO USUÁRIO em "Mensagem original do template do usuário", ' +
     "mantendo a estrutura e ordem. Analise a mensagem capturada do concorrente para reamodelar qualquer " +
     "informação adicional (cupons, moedas, abas do app) de forma harmônica, " +
-    'envolvendo CADA CÓDIGO DE CUPOM INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`).';
+    "envolvendo CADA CÓDIGO DE CUPOM INDIVIDUALMENTE ENTRE CRASES (ex: `BRFS1` ou `IFPJOE0C`).";
 
   const userInstruction = data.instruction?.trim();
   const instruction = hasCustomTemplate

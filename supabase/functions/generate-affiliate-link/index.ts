@@ -45,7 +45,11 @@ function mergeCookies(currentCookies: string, setCookieHeaders: string[]): strin
       const value = cookiePart.slice(eqIdx + 1).trim();
       // Only set if key is not a standard cookie directive
       const lowerKey = key.toLowerCase();
-      if (!["path", "domain", "expires", "max-age", "samesite", "httponly", "secure"].includes(lowerKey)) {
+      if (
+        !["path", "domain", "expires", "max-age", "samesite", "httponly", "secure"].includes(
+          lowerKey,
+        )
+      ) {
         cookieMap.set(key, value);
       }
     }
@@ -86,10 +90,10 @@ Deno.serve(async (req: Request) => {
   }
 
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Método não permitido. Use POST." }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Método não permitido. Use POST." }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -99,16 +103,16 @@ Deno.serve(async (req: Request) => {
     const platform = payload.platform?.trim() || "mercadolivre";
 
     if (!targetUrl) {
-      return new Response(
-        JSON.stringify({ error: "A URL do produto é obrigatória." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "A URL do produto é obrigatória." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (!isValidMercadoLivreUrl(targetUrl)) {
       return new Response(
         JSON.stringify({ error: "A URL fornecida não pertence ao Mercado Livre." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -118,8 +122,10 @@ Deno.serve(async (req: Request) => {
 
     if (!supabaseUrl || !supabaseServiceKey) {
       return new Response(
-        JSON.stringify({ error: "Variáveis de ambiente do Supabase não configuradas no servidor." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Variáveis de ambiente do Supabase não configuradas no servidor.",
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -137,7 +143,7 @@ Deno.serve(async (req: Request) => {
           error: `Sessão para a plataforma '${platform}' não encontrada ou com cookies vazios. A sessão precisa ser inicializada.`,
           code: "SESSION_NOT_FOUND",
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -150,8 +156,9 @@ Deno.serve(async (req: Request) => {
       method: "GET",
       headers: {
         "User-Agent": userAgent,
-        "Cookie": initialCookies,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        Cookie: initialCookies,
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
       },
     });
@@ -184,9 +191,9 @@ Deno.serve(async (req: Request) => {
       method: "POST",
       headers: {
         "User-Agent": userAgent,
-        "Cookie": updatedCookies,
+        Cookie: updatedCookies,
         "Content-Type": "application/json",
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify({
         urls: [targetUrl],
@@ -197,10 +204,14 @@ Deno.serve(async (req: Request) => {
     if (postResponse.status === 401 || postResponse.status === 403) {
       return new Response(
         JSON.stringify({
-          error: "A sessão do Mercado Livre expirou. Os cookies precisam ser atualizados manualmente.",
+          error:
+            "A sessão do Mercado Livre expirou. Os cookies precisam ser atualizados manualmente.",
           code: "SESSION_EXPIRED",
         }),
-        { status: postResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: postResponse.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -211,7 +222,10 @@ Deno.serve(async (req: Request) => {
           error: `Erro retornado pelo Mercado Livre (HTTP ${postResponse.status}): ${errorText || postResponse.statusText}`,
           code: "MERCADO_LIVRE_API_ERROR",
         }),
-        { status: postResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: postResponse.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -240,7 +254,7 @@ Deno.serve(async (req: Request) => {
           error: "Não foi possível extrair o link de afiliado da resposta da plataforma.",
           raw_response: responseJson,
         }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -250,13 +264,13 @@ Deno.serve(async (req: Request) => {
         original_url: targetUrl,
         affiliate_url: shortenUrl,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    return new Response(
-      JSON.stringify({ error: `Erro interno no servidor: ${errorMessage}` }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: `Erro interno no servidor: ${errorMessage}` }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

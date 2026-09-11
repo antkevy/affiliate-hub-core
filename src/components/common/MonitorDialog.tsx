@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Bot, Inbox, Landmark, Megaphone, SlidersHorizontal, Tag, Users } from "lucide-react";
+import { Bot, Inbox, Landmark, Megaphone, SlidersHorizontal, Tag, Users, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { MultiSelect } from "@/components/common/MultiSelect";
 import { toUserMessage } from "@/services/base";
+import { cn } from "@/lib/utils";
 import {
   AI_DEFAULT_INSTRUCTION,
   AI_INSTRUCTION_PRESETS,
@@ -61,6 +62,16 @@ interface Option {
   value: string;
   label: string;
 }
+
+const DAY_OPTIONS = [
+  { value: 0, label: "Dom" },
+  { value: 1, label: "Seg" },
+  { value: 2, label: "Ter" },
+  { value: 3, label: "Qua" },
+  { value: 4, label: "Qui" },
+  { value: 5, label: "Sex" },
+  { value: 6, label: "Sáb" },
+];
 
 export function MonitorDialog({
   title,
@@ -126,6 +137,18 @@ export function MonitorDialog({
     if (presetId === "custom") return;
     const preset = AI_INSTRUCTION_PRESETS.find((item) => item.id === presetId);
     if (preset) setForm((current) => ({ ...current, ai_instruction: preset.instruction }));
+  }
+
+  function toggleDay(day: number) {
+    setForm((current) => {
+      const has = current.post_days.includes(day);
+      return {
+        ...current,
+        post_days: has
+          ? current.post_days.filter((item) => item !== day)
+          : [...current.post_days, day].sort((a, b) => a - b),
+      };
+    });
   }
 
   return (
@@ -361,6 +384,135 @@ export function MonitorDialog({
                       placeholder="Template padrão"
                     />
                   </div>
+                ) : null}
+                <div className="space-y-1.5">
+                  <Label>Dias da semana</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DAY_OPTIONS.map((day) => {
+                      const active = form.post_days.includes(day.value);
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => toggleDay(day.value)}
+                          className={cn(
+                            "h-8 min-w-9 rounded-md border px-2 text-xs transition-colors",
+                            active
+                              ? "border-primary/40 bg-primary/10 font-semibold text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/20",
+                          )}
+                        >
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monitor-post-start">Postar a partir de</Label>
+                    <Input
+                      id="monitor-post-start"
+                      type="time"
+                      value={form.post_start}
+                      onChange={(event) =>
+                        setForm((form) => ({ ...form, post_start: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monitor-post-end">Até (pode virar madrugada)</Label>
+                    <Input
+                      id="monitor-post-end"
+                      type="time"
+                      value={form.post_end}
+                      onChange={(event) =>
+                        setForm((form) => ({ ...form, post_end: event.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              </Section>
+
+              <Section
+                icon={Zap}
+                title="Chamada para ação (CTA)"
+                hint="Frase no início do post. Manual casa palavras do título; automática sorteia uma frase."
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="monitor-cta">Adicionar chamada para ação</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Colocada antes da mensagem. Use {`{cta}`} no template para posicionar.
+                    </p>
+                  </div>
+                  <Switch
+                    id="monitor-cta"
+                    checked={form.cta_enabled}
+                    onCheckedChange={(cta_enabled) =>
+                      setForm((form) => ({
+                        ...form,
+                        cta_enabled,
+                        cta_mode: cta_enabled && !form.cta_mode ? "random" : form.cta_mode,
+                      }))
+                    }
+                  />
+                </div>
+                {form.cta_enabled ? (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="monitor-cta-mode">Modo</Label>
+                      <FieldSelect
+                        id="monitor-cta-mode"
+                        value={form.cta_mode ?? "random"}
+                        onValueChange={(value) =>
+                          setForm((form) => ({
+                            ...form,
+                            cta_mode: value === "manual" ? "manual" : "random",
+                          }))
+                        }
+                        options={[
+                          { value: "random", label: "Automática (sorteia uma frase)" },
+                          { value: "manual", label: "Por palavra-chave do título" },
+                        ]}
+                      />
+                    </div>
+                    {form.cta_mode === "manual" ? (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="monitor-cta-manual">
+                          Regras — uma por linha, no formato palavra =&gt; frase
+                        </Label>
+                        <Textarea
+                          id="monitor-cta-manual"
+                          rows={4}
+                          className="font-mono text-xs"
+                          placeholder={
+                            "notebook => Oferta imperdível de notebook!\nfone => Som de primeira, preço de segunda!"
+                          }
+                          value={form.cta_manual}
+                          onChange={(event) =>
+                            setForm((form) => ({ ...form, cta_manual: event.target.value }))
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="monitor-cta-random">Frases — uma por linha</Label>
+                        <Textarea
+                          id="monitor-cta-random"
+                          rows={4}
+                          className="font-mono text-xs"
+                          placeholder={
+                            "Oferta relâmpago! 🔥\nAproveite antes que acabe!\nDesconto por tempo limitado ⚡"
+                          }
+                          value={form.cta_random}
+                          onChange={(event) =>
+                            setForm((form) => ({ ...form, cta_random: event.target.value }))
+                          }
+                        />
+                      </div>
+                    )}
+                  </>
                 ) : null}
               </Section>
 

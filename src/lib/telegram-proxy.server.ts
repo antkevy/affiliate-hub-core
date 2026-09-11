@@ -162,7 +162,10 @@ export const callTelegramApi = createServerFn({ method: "POST" })
  * Converte marcações de texto (como crases `CUPOM` para <code>CUPOM</code>)
  * em HTML seguro para o Telegram Bot API. Evita erros de parsing por '_' em URLs.
  */
-export function formatTelegramTextHtml(text: string | undefined): { textHtml: string; isFormatted: boolean } {
+export function formatTelegramTextHtml(text: string | undefined): {
+  textHtml: string;
+  isFormatted: boolean;
+} {
   if (!text || !text.trim()) return { textHtml: "", isFormatted: false };
 
   const hasHtml = /<\/?(code|b|i|strong|em|a|pre)\b/i.test(text);
@@ -177,10 +180,7 @@ export function formatTelegramTextHtml(text: string | undefined): { textHtml: st
     return { textHtml: text, isFormatted: true };
   }
 
-  let escaped = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  let escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   escaped = escaped.replace(/`([^`\n]+)`/g, "<code>$1</code>");
   escaped = escaped.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
@@ -233,7 +233,8 @@ export async function postTelegram(data: TelegramProxyPayload): Promise<Telegram
     }
 
     const rawCaption = text ? text.slice(0, 1000) : undefined;
-    const formattedCaption = isFormatted && rawCaption ? formatTelegramTextHtml(rawCaption).textHtml : rawCaption;
+    const formattedCaption =
+      isFormatted && rawCaption ? formatTelegramTextHtml(rawCaption).textHtml : rawCaption;
 
     if (method === "sendPhoto") {
       const first = uploaded[0];

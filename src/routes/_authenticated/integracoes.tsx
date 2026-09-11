@@ -6,6 +6,8 @@ import {
   MessageSquare,
   Package,
   ShoppingBag,
+  ShoppingCart,
+  Store,
   Tag,
   Unplug,
 } from "lucide-react";
@@ -39,6 +41,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
   shopee: Tag,
   amazon: Package,
   aliexpress: Globe,
+  magalu: Store,
+  kabum: ShoppingCart,
+  terabyte: Package,
 };
 
 function IntegrationsPage() {
@@ -206,6 +211,12 @@ function MarketplaceSection({
                     </span>
                   </li>
                 ))}
+                <li className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">SubID</span>
+                  <span className="font-mono text-muted-foreground">
+                    <FieldValue account={account} fieldKey="subid" secret={false} />
+                  </span>
+                </li>
               </ul>
               <div className="flex gap-2">
                 <ConnectDialog integration={integration} account={account} onSaved={onSaved} />
@@ -291,6 +302,15 @@ function ConnectDialog({
     return dialogField;
   });
 
+  const subidField: DialogField = {
+    key: "subid",
+    label: "SubID (rastreio de campanha)",
+    type: "text",
+    placeholder: "Ex.: campanha-julho (opcional)",
+    defaultValue: configValue(account, "subid"),
+  };
+  fields.push(subidField);
+
   return (
     <CreateEntityDialog
       title={`Conectar ${integration.name}`}
@@ -304,6 +324,7 @@ function ConnectDialog({
       onSubmit={async (get) => {
         const values: Record<string, string> = {};
         for (const field of integration.fields) values[field.key] = get(field.key);
+        values["subid"] = get("subid");
         await integrationsService.connectMarketplace(integration.slug, values);
       }}
       onSuccess={onSaved}

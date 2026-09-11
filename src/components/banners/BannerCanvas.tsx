@@ -230,7 +230,9 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                       {originalPrice}
                     </span>
                   )}
-                  <span className={`text-xl sm:text-2xl font-black ${style.accentColor} drop-shadow-md`}>
+                  <span
+                    className={`text-xl sm:text-2xl font-black ${style.accentColor} drop-shadow-md`}
+                  >
                     {currentPrice || "R$ 0,00"}
                   </span>
                   {installmentText && (
@@ -268,7 +270,13 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
           <div className="relative z-10 flex-1 min-h-0 flex flex-col justify-between items-center my-2 text-center gap-2">
             <div
               className={`relative w-full flex-1 min-h-0 flex items-center justify-center ${
-                isCompactText ? (isVertical ? "max-h-[260px]" : "max-h-[220px]") : isVertical ? "max-h-[200px]" : "max-h-[140px]"
+                isCompactText
+                  ? isVertical
+                    ? "max-h-[260px]"
+                    : "max-h-[220px]"
+                  : isVertical
+                    ? "max-h-[200px]"
+                    : "max-h-[140px]"
               }`}
             >
               <div
@@ -366,9 +374,7 @@ export const BannerCanvas = forwardRef<HTMLDivElement, BannerCanvasProps>(
                     : "bg-white/20 border-white/30 text-white"
                 }`}
               >
-                <Tag
-                  className={`h-3 w-3 ${isLightTheme ? "text-amber-600" : "text-yellow-300"}`}
-                />
+                <Tag className={`h-3 w-3 ${isLightTheme ? "text-amber-600" : "text-yellow-300"}`} />
                 CUPOM:{" "}
                 <span
                   className={`underline font-extrabold ${

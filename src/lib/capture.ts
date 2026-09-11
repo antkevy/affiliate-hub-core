@@ -2,8 +2,10 @@ import { createCrud, requireUserId, toUserMessage } from "@/services/base";
 import { listMarketplaces } from "@/services/affiliate";
 import { renderTemplate } from "@/services/templates";
 import { configurationOf } from "@/lib/monitor-config";
+import { automationConfigOf } from "@/lib/automation-config";
 import { destinationConfiguration } from "@/lib/destination-config";
 import { normalizeText } from "@/lib/affiliate-converter";
+import { pickCta, type CtaValues } from "@/lib/cta";
 import { captureTelegramSource } from "@/lib/telegram.server";
 import { captureAmazonSourceRpc } from "@/lib/amazon-creators.server";
 import { formatOfferWithAI } from "@/lib/ai.server";
@@ -378,7 +380,9 @@ async function ensureOfferAffiliateUrlClient(offer: Offer): Promise<void> {
       const outcome = await convertMercadoLivreMessage({
         data: { token, text: offer.original_url, single: true },
       });
-      const convertedLink = outcome.links.find((l) => l.status === "success" && l.affiliate)?.affiliate;
+      const convertedLink = outcome.links.find(
+        (l) => l.status === "success" && l.affiliate,
+      )?.affiliate;
       if (convertedLink) {
         offer.affiliate_url = convertedLink;
         await offersRepo.update(offer.id, { affiliate_url: convertedLink });
@@ -395,6 +399,60 @@ interface MonitorRun {
   errors: string[];
 }
 
+function ctaFromConfig(config: MonitorConfiguration): CtaValues {
+  return {
+    enabled: config.cta_enabled ?? false,
+    mode: config.cta_mode ?? null,
+    manual: config.cta_manual ?? [],
+    random: config.cta_random ?? [],
+  };
+}
+
+interface ScheduleConfig {
+  post_days?: number[] | null;
+  post_start?: string | null;
+  post_end?: string | null;
+}
+
+/**
+ * Verifica se a publicação está dentro da agenda configurada
+ * (dias da semana + janela de horário). Janela vazia = sempre liberado.
+ * Janela que atravessa a meia-noite ("22:00" → "06:00") é tratada como noturno.
+ */
+export function isWithinSchedule(config: ScheduleConfig, now: Date = new Date()): boolean {
+  const days = config.post_days;
+  if (days && days.length > 0 && !days.includes(now.getDay())) return false;
+
+  const start = parseHHMM(config.post_start);
+  const end = parseHHMM(config.post_end);
+  if (start === null && end === null) return true;
+
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  if (start === null) return minutes < (end ?? 0);
+  if (end === null) return minutes >= start;
+  if (start <= end) return minutes >= start && minutes < end;
+  return minutes >= start || minutes < end;
+}
+
+function parseHHMM(value: string | null | undefined): number | null {
+  if (!value || !/^\d{1,2}:\d{2}$/.test(value)) return null;
+  const [h, m] = value.split(":").map(Number);
+  if (h === undefined || m === undefined || h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return h * 60 + m;
+}
+
+/** Rótulo legível da agenda para mensagens de relatório (ex.: " (09:00–18:00)"). */
+function scheduleLabel(config: ScheduleConfig): string {
+  const parts: string[] = [];
+  if (config.post_start || config.post_end) {
+    parts.push(`${config.post_start ?? "00:00"}–${config.post_end ?? "23:59"}`);
+  }
+  if (config.post_days && config.post_days.length > 0) {
+    parts.push(`${config.post_days.length} dia(s)`);
+  }
+  return parts.length > 0 ? ` (${parts.join(" · ")})` : "";
+}
+
 async function processMonitor(
   monitor: Monitor,
   offersBySource: Map<string, Offer[]>,
@@ -406,6 +464,14 @@ async function processMonitor(
   const result: MonitorRun = { published: 0, failed: 0, errors: [] };
   const config = configurationOf(monitor);
   const sourceIds = config.source_ids ?? [];
+
+  if (!isWithinSchedule(config)) {
+    result.errors.push(
+      `${monitor.name}: fora da agenda de publicação${scheduleLabel(config)}. Nada será postado agora.`,
+    );
+    await monitorsRepo.update(monitor.id, { last_activity_at: new Date().toISOString() });
+    return result;
+  }
 
   if (sourceIds.length === 0) {
     result.errors.push(`${monitor.name}: sem fontes vinculadas.`);
@@ -471,16 +537,23 @@ async function processMonitor(
 
     await ensureOfferAffiliateUrlClient(offer);
 
+    const cta = config.cta_enabled ? pickCta(ctaFromConfig(config), offer.title) : null;
+    const usesCtaToken = template ? /\{cta\}/i.test(template.content) : false;
     const content = template
-      ? renderTemplate(template.content, {
-          ...offer,
-          marketplace: marketplaceName.get(offer.marketplace_id ?? "") ?? "—",
-        })
+      ? renderTemplate(
+          template.content,
+          {
+            ...offer,
+            marketplace: marketplaceName.get(offer.marketplace_id ?? "") ?? "—",
+          },
+          usesCtaToken ? cta : null,
+        )
       : defaultContent(offer, marketplaceName);
 
     const finalContent = config.ai_enabled
       ? await applyAI(offer, content, config.ai_instruction, Boolean(template))
       : content;
+    const publishedContent = !usesCtaToken && cta ? `${cta}\n\n${finalContent}` : finalContent;
     const media =
       destination.type === "telegram" && config.include_banner
         ? await buildPublicationMedia(
@@ -489,13 +562,13 @@ async function processMonitor(
             marketplaceName.get(offer.marketplace_id ?? "") ?? null,
           )
         : [];
-    const attempt = await publishToDestination(destination, offer, finalContent, media);
+    const attempt = await publishToDestination(destination, offer, publishedContent, media);
     const now = new Date().toISOString();
     await publicationsRepo.create({
       user_id: monitor.user_id,
       offer_id: offer.id,
       destination_id: destination.id,
-      content: finalContent,
+      content: publishedContent,
       status: attempt.ok ? "published" : "failed",
       published_at: attempt.ok ? now : null,
       error_message: attempt.ok ? null : (attempt.error ?? "Falha ao publicar"),
@@ -590,6 +663,13 @@ export async function runAutomation(automation: {
     ai_instruction?: string | null;
     include_banner?: boolean;
     banner_id?: string | null;
+    cta_enabled?: boolean;
+    cta_mode?: "manual" | "random" | null;
+    cta_manual?: string[];
+    cta_random?: string[];
+    post_days?: number[];
+    post_start?: string | null;
+    post_end?: string | null;
   };
 }): Promise<AutomationReport> {
   const userId = await requireUserId();
@@ -625,6 +705,13 @@ export async function runAutomation(automation: {
   }
   if (!source.identifier) {
     report.errors.push(`Fonte "${source.name}" sem URL para capturar.`);
+    return report;
+  }
+
+  if (!isWithinSchedule(automation.configuration ?? {})) {
+    report.errors.push(
+      `Automação fora da agenda de publicação (${scheduleLabel(automation.configuration ?? {}) || "sem janela"}). Nada será postado agora.`,
+    );
     return report;
   }
 
@@ -718,17 +805,34 @@ export async function runAutomation(automation: {
         continue;
       }
 
-      const content = template
-        ? renderTemplate(template.content, {
-            ...offer,
-            marketplace: marketplaceName.get(offer.marketplace_id ?? "") ?? "—",
-          })
-        : defaultContent(offer, marketplaceName);
       const automationConfig = automation.configuration ?? {};
+      const cta = automationConfig.cta_enabled
+        ? pickCta(
+            {
+              enabled: true,
+              mode: automationConfig.cta_mode ?? null,
+              manual: automationConfig.cta_manual ?? [],
+              random: automationConfig.cta_random ?? [],
+            },
+            offer.title,
+          )
+        : null;
+      const usesCtaToken = template ? /\{cta\}/i.test(template.content) : false;
+      const content = template
+        ? renderTemplate(
+            template.content,
+            {
+              ...offer,
+              marketplace: marketplaceName.get(offer.marketplace_id ?? "") ?? "—",
+            },
+            usesCtaToken ? cta : null,
+          )
+        : defaultContent(offer, marketplaceName);
       const finalContent =
         automationConfig.ai_enabled !== false
           ? await applyAI(offer, content, automationConfig.ai_instruction, Boolean(template))
           : content;
+      const publishedContent = !usesCtaToken && cta ? `${cta}\n\n${finalContent}` : finalContent;
       const media =
         destination.type === "telegram" && automationConfig.include_banner
           ? await buildPublicationMedia(
@@ -737,13 +841,13 @@ export async function runAutomation(automation: {
               marketplaceName.get(offer.marketplace_id ?? "") ?? null,
             )
           : [];
-      const attempt = await publishToDestination(destination, offer, finalContent, media);
+      const attempt = await publishToDestination(destination, offer, publishedContent, media);
       const now = new Date().toISOString();
       await publicationsRepo.create({
         user_id: userId,
         offer_id: offer.id,
         destination_id: destination.id,
-        content: finalContent,
+        content: publishedContent,
         status: attempt.ok ? "published" : "failed",
         published_at: attempt.ok ? now : null,
         error_message: attempt.ok ? null : (attempt.error ?? "Falha ao publicar"),

@@ -15,6 +15,7 @@ import {
   Send,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,6 +31,13 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   convertMercadoLivreMessage,
   getMercadoLivreSessionStatus,
   listMercadoLivreConversions,
@@ -41,7 +49,16 @@ import {
   type ConvertedMessageResult,
   type QueueRow,
 } from "@/lib/mercado-livre-converter.server";
+import {
+  createAffiliateUrl,
+  detectMarketplaceUrl,
+  type AffiliateConversionOptions,
+} from "@/lib/affiliate-converter";
+import { renderTemplate, templatesService } from "@/services/templates";
+import { affiliateAccountsService, listMarketplaces } from "@/services/affiliate";
+import { formatOfferWithAI, type AIFormatPayload } from "@/lib/ai.server";
 import { toUserMessage } from "@/services/base";
+import type { Json } from "@/types";
 
 export const Route = createFileRoute("/_authenticated/conversor")({
   head: () => ({
@@ -50,7 +67,7 @@ export const Route = createFileRoute("/_authenticated/conversor")({
       {
         name: "description",
         content:
-          "Converta links de ofertas do Mercado Livre de grupos externos para o seu link de afiliado.",
+          "Gere posts prontos com IA a partir de qualquer link e converta ofertas do Mercado Livre para o seu link de afiliado.",
       },
     ],
   }),
@@ -69,6 +86,33 @@ function copyText(value: string, label: string) {
     .catch(() => toast.error("Não foi possível copiar."));
 }
 
+/** Resolve os dados de afiliado (ID/tag, loja, SubID) da conta configurada. */
+function accountAffiliateData(
+  configuration: Json | null,
+  slug: string,
+): { trackingId: string | null; store: string | null; subid: string | null } {
+  if (!configuration || typeof configuration !== "object") {
+    return { trackingId: null, store: null, subid: null };
+  }
+  const record = configuration as Record<string, unknown>;
+  const read = (key: string) =>
+    typeof record[key] === "string" && (record[key] as string).trim()
+      ? (record[key] as string).trim()
+      : null;
+  const trackingId =
+    read("tracking_id") ??
+    read("tag") ??
+    read("partner_tag") ??
+    read("app_id") ??
+    read("client_id") ??
+    read("affiliate_id");
+  return {
+    trackingId,
+    store: read("store"),
+    subid: read("subid"),
+  };
+}
+
 export function ConversorPage() {
   const [tab, setTab] = useState<string>("convert");
   return (
@@ -76,10 +120,13 @@ export function ConversorPage() {
       <PageHeader
         eyebrow="Afiliados"
         title="Conversor de Ofertas"
-        description="Cole a mensagem ou URL capturada de grupos externos e gere seu link de afiliado do Mercado Livre com URL canônica limpa."
+        description="Cole o link e a IA monta o post com seu afiliado, ou converta mensagens capturadas do Mercado Livre com URL canônica limpa."
       />
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
+          <TabsTrigger value="post" className="gap-2">
+            <Sparkles className="size-4" /> Post IA
+          </TabsTrigger>
           <TabsTrigger value="convert" className="gap-2">
             <Wand2 className="size-4" /> Converter
           </TabsTrigger>
@@ -93,6 +140,9 @@ export function ConversorPage() {
             <History className="size-4" /> Histórico
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="post">
+          <PostIATab />
+        </TabsContent>
         <TabsContent value="convert">
           <ConvertTab />
         </TabsContent>
@@ -108,6 +158,334 @@ export function ConversorPage() {
       </Tabs>
     </div>
   );
+}
+
+function PostIATab() {
+  const accounts = useQuery({
+    queryKey: ["affiliate-accounts"],
+    queryFn: () => affiliateAccountsService.list(),
+  });
+  const templates = useQuery({
+    queryKey: ["templates"],
+    queryFn: () => templatesService.list(),
+  });
+  const marketplaces = useQuery({ queryKey: ["marketplaces"], queryFn: listMarketplaces });
+
+  const [url, setUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState("");
+  const [oldPrice, setOldPrice] = useState("");
+  const [coupon, setCoupon] = useState("");
+  const [cta, setCta] = useState("");
+  const [templateId, setTemplateId] = useState("none");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ link: string; text: string; note?: string } | null>(null);
+
+  const detected = url.trim() ? detectMarketplaceUrl(url.trim()) : null;
+  const marketplaceName = (marketplaces.data ?? []).find(
+    (item) => (item.slug ?? "").toLowerCase() === detected,
+  )?.name;
+
+  async function handleGenerate() {
+    if (!url.trim()) {
+      toast.error("Informe a URL do produto.");
+      return;
+    }
+    setLoading(true);
+    setResult(null);
+    try {
+      const slug = detectMarketplaceUrl(url.trim());
+      const matchedMarketplace = (marketplaces.data ?? []).find(
+        (item) => (item.slug ?? "").toLowerCase() === slug,
+      );
+      const account = (accounts.data ?? []).find(
+        (item) => item.marketplace_id === matchedMarketplace?.id && item.status === "connected",
+      );
+      const affiliate = accountAffiliateData(account?.configuration ?? null, slug ?? "");
+      const options: AffiliateConversionOptions = {
+        marketplaceSlug: slug,
+        trackingId: affiliate.trackingId,
+        subid: affiliate.subid,
+      };
+      if (slug === "magalu") options.store = affiliate.store || affiliate.trackingId;
+
+      const converted = createAffiliateUrl(url.trim(), options);
+      const note = converted.method === "original" ? converted.note : undefined;
+
+      const salePrice = parseBRL(price);
+      const originalPrice = parseBRL(oldPrice);
+      const discount =
+        salePrice !== null &&
+        originalPrice !== null &&
+        originalPrice > 0 &&
+        salePrice < originalPrice
+          ? Math.round((1 - salePrice / originalPrice) * 100)
+          : null;
+      const titleValue = title.trim() || "O produto anunciado";
+      const couponValue = coupon.trim() || null;
+
+      const selectedTemplate = (templates.data ?? []).find((item) => item.id === templateId);
+      const offerData = {
+        title: titleValue,
+        sale_price: salePrice,
+        original_price: originalPrice,
+        discount_percentage: discount,
+        coupon: couponValue,
+        original_url: url.trim(),
+        affiliate_url: converted.url,
+        marketplace: marketplaceName ?? slug ?? "—",
+      };
+      const baseContent = selectedTemplate
+        ? renderTemplate(selectedTemplate.content, offerData)
+        : defaultPostContent(titleValue, salePrice, discount, couponValue, converted.url);
+
+      const payload: AIFormatPayload = {
+        offer: {
+          title: titleValue,
+          sale_price: salePrice,
+          original_price: originalPrice,
+          discount_percentage: discount,
+          coupon: couponValue,
+          url: converted.url,
+        },
+        content: baseContent,
+        hasCustomTemplate: Boolean(selectedTemplate),
+      };
+      const marketplace = marketplaceName ?? slug ?? null;
+      if (marketplace) payload.offer.marketplace = marketplace;
+      let text = baseContent;
+      const ai = await formatOfferWithAI({ data: payload });
+      if (ai.ok && ai.text) {
+        text = ai.text;
+      } else if (note) {
+        toast.warning(note);
+      }
+      const finalText = cta.trim() ? `${cta.trim()}\n\n${text}` : text;
+      setResult(
+        note
+          ? { link: converted.url, text: finalText, note }
+          : { link: converted.url, text: finalText },
+      );
+    } catch (error) {
+      toast.error("Não foi possível gerar o post", { description: toUserMessage(error) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card className="animate-rise">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="size-4 text-chart-1" /> Você cola o link · a IA monta o post
+          </CardTitle>
+          <CardDescription>
+            Cole a URL do produto (Shopee, Amazon, Magalu, Mercado Livre...) e preencha as
+            informações que tiver. Geramos o link de afiliado e o post formatado com a sua conta.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="post-url">Link do produto</Label>
+            <Input
+              id="post-url"
+              placeholder="https://shopee.com.br/produto/..."
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+            />
+            {url.trim() ? (
+              <p className="text-xs text-muted-foreground">
+                {detected ? (
+                  <>
+                    Marketplace detectado:{" "}
+                    <Badge variant="outline" className="ml-1 font-normal">
+                      {marketplaceName ?? detected}
+                    </Badge>
+                  </>
+                ) : (
+                  "Marketplace não reconhecido — o link será mantido sem conversão."
+                )}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="post-title">Título (opcional)</Label>
+            <Input
+              id="post-title"
+              placeholder="Ex.: Fone Bluetooth XZ 5.3"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="post-price">Preço atual (opcional)</Label>
+              <Input
+                id="post-price"
+                inputMode="decimal"
+                placeholder="Ex.: 149,90"
+                value={price}
+                onChange={(event) => setPrice(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="post-old-price">Preço antigo (opcional)</Label>
+              <Input
+                id="post-old-price"
+                inputMode="decimal"
+                placeholder="Ex.: 249,90"
+                value={oldPrice}
+                onChange={(event) => setOldPrice(event.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="post-coupon">Cupom (opcional)</Label>
+            <Input
+              id="post-coupon"
+              placeholder="Ex.: HUB40"
+              value={coupon}
+              onChange={(event) => setCoupon(event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="post-cta">Chamada para ação (opcional)</Label>
+            <Input
+              id="post-cta"
+              placeholder="Ex.: Oferta relâmpago! 🔥"
+              value={cta}
+              onChange={(event) => setCta(event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="post-template">Formatação</Label>
+            <Select value={templateId} onValueChange={setTemplateId}>
+              <SelectTrigger id="post-template">
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Padrão da plataforma (IA)</SelectItem>
+                {templates.data?.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button className="w-full" onClick={handleGenerate} disabled={loading}>
+            {loading ? (
+              <Loader2 className="mr-1.5 size-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-1.5 size-4" />
+            )}
+            {loading ? "Montando título, foto e link..." : "Gerar post com IA"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="animate-rise" style={{ animationDelay: "80ms" }}>
+        <CardHeader>
+          <CardTitle className="text-base">Post pronto</CardTitle>
+          <CardDescription>
+            Copie o texto e envie no seu grupo, ou copie só o link de afiliado.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {result ? (
+            <>
+              {result.note ? (
+                <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600">
+                  {result.note}
+                </p>
+              ) : null}
+              <div className="space-y-1.5">
+                <Label>Link de afiliado</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={result.link} className="font-mono text-xs" />
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    aria-label="Copiar link"
+                    onClick={() => copyText(result.link, "Link de afiliado")}
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    aria-label="Abrir link"
+                    onClick={() => window.open(result.link, "_blank")}
+                  >
+                    <ExternalLink className="size-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Texto do post</Label>
+                <div className="relative">
+                  <Textarea
+                    readOnly
+                    value={result.text}
+                    rows={12}
+                    className="pr-10 font-mono text-xs"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute top-2 right-2"
+                    aria-label="Copiar post"
+                    onClick={() => copyText(result.text, "Post")}
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="grid h-56 place-items-center rounded-lg border border-dashed border-border text-center text-sm text-muted-foreground">
+              O post gerado aparecerá aqui.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function defaultPostContent(
+  title: string,
+  salePrice: number | null,
+  discount: number | null,
+  coupon: string | null,
+  affiliateUrl: string,
+): string {
+  const lines = [`➡️ ${title}`];
+  if (salePrice !== null) lines.push(`✅ ${formatBRL(salePrice)}`);
+  if (discount !== null) lines.push(`⚡ ${discount}% OFF`);
+  if (coupon) lines.push(`🏷️ Cupom: \`${coupon.replace(/[`]/g, "")}\``);
+  lines.push(`🛒 ${affiliateUrl}`);
+  return lines.join("\n");
+}
+
+/** Converte "149,90", "R$ 6.277" etc. em número. */
+function parseBRL(value: string): number | null {
+  if (!value.trim()) return null;
+  const cleaned = value.replace(/[R$\s.\u00a0]/g, "").replace(",", ".");
+  if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return null;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatBRL(value: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
 function ConvertTab() {
@@ -635,7 +1013,9 @@ function QueueRowCard({ row, onRefetch }: { row: QueueRow; onRefetch?: () => voi
     if (!productUrl) return;
     navigator.clipboard.writeText(productUrl);
     window.open(productUrl, "_blank", "noopener,noreferrer");
-    toast.success("Link do produto copiado e aberto! Gere o seu link meli.la no site do Mercado Livre e cole abaixo.");
+    toast.success(
+      "Link do produto copiado e aberto! Gere o seu link meli.la no site do Mercado Livre e cole abaixo.",
+    );
   }
 
   const badge = (() => {
@@ -669,7 +1049,9 @@ function QueueRowCard({ row, onRefetch }: { row: QueueRow; onRefetch?: () => voi
       <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-medium">{row.mode === "single" ? "URL única" : "Mensagem"}</span>
+            <span className="font-mono text-xs font-medium">
+              {row.mode === "single" ? "URL única" : "Mensagem"}
+            </span>
             {productUrl ? (
               <Button
                 variant="ghost"
@@ -725,11 +1107,7 @@ function QueueRowCard({ row, onRefetch }: { row: QueueRow; onRefetch?: () => voi
             onClick={handlePostCustomLink}
             disabled={posting || !customUrl.trim()}
           >
-            {posting ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Send className="size-3" />
-            )}
+            {posting ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
             Postar no Canal
           </Button>
         </div>

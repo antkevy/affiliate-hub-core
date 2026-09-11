@@ -8,7 +8,10 @@ const envLocal = fs.readFileSync(envLocalPath, "utf-8");
 let serviceRoleKey = "";
 for (const line of envLocal.split("\n")) {
   if (line.startsWith("SUPABASE_SERVICE_ROLE_KEY=")) {
-    serviceRoleKey = line.split("=")[1].trim().replace(/^["']|["']$/g, "");
+    serviceRoleKey = line
+      .split("=")[1]
+      .trim()
+      .replace(/^["']|["']$/g, "");
   }
 }
 
@@ -18,9 +21,10 @@ const db = createClient(SUPABASE_URL, serviceRoleKey);
 async function run() {
   console.log("=== CHECKING MARKETPLACES & ACCOUNTS ===");
   const { data: marketplaces } = await db.from("marketplaces").select("id, name, slug");
-  const mercadolivreMarketplaceId = marketplaces?.find(
-    (m: any) => (m.slug ?? "").toLowerCase() === "mercado-livre"
-  )?.id ?? null;
+  const mercadolivreMarketplaceId =
+    marketplaces?.find(
+      (m: { slug?: string | null }) => (m.slug ?? "").toLowerCase() === "mercado-livre",
+    )?.id ?? null;
   console.log("mercadolivreMarketplaceId:", mercadolivreMarketplaceId);
 
   const { data: accounts } = await db
@@ -44,7 +48,7 @@ async function run() {
       affiliate_url: o.affiliate_url,
       marketplace_id: o.marketplace_id,
       user_id: o.user_id,
-      status: o.status
+      status: o.status,
     });
   }
 }

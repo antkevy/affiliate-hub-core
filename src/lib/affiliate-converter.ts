@@ -24,6 +24,11 @@ export interface AffiliateConversionOptions {
   trackingId?: string | null;
   /** Slug da loja parceira para o padrão magazinevoce (default = trackingId). */
   store?: string | null;
+  /**
+   * SubID de rastreio de campanha. Injetado como parâmetro `subid` na
+   * URL convertida (ex.: aprovado/verde no relatório do seu programa).
+   */
+  subid?: string | null;
 }
 
 export const AFFILIATE_NOTE_NO_ID =
@@ -88,6 +93,9 @@ const DOMAIN_TO_SLUG: ReadonlyArray<readonly [string, string]> = [
   ["mercadolivre", "mercadolivre"],
   ["mercadolibre", "mercadolivre"],
   ["aliexpress", "aliexpress"],
+  ["kabum.", "kabum"],
+  ["terabyteshop", "terabyte"],
+  ["terabyte", "terabyte"],
 ];
 
 /**
@@ -104,19 +112,42 @@ export function createAffiliateUrl(
   const url = prepareUrl(originalUrl);
   if (!url) return { url: originalUrl, method: "original" };
 
-  switch (slug) {
-    case "amazon":
-      return convertAmazon(url, trackingId);
-    case "shopee":
-      return convertShopee(url, trackingId);
-    case "magalu":
-      return convertMagalu(url, options.store?.trim() || trackingId);
-    case "mercadolivre":
-      return convertMercadoLivre(url, trackingId);
-    case "aliexpress":
-      return { url: url.toString(), method: "original", note: AFFILIATE_NOTE_UNSUPPORTED };
-    default:
-      return { url: url.toString(), method: "original", note: "Marketplace não reconhecido." };
+  const result = ((): AffiliateConversion => {
+    switch (slug) {
+      case "amazon":
+        return convertAmazon(url, trackingId);
+      case "shopee":
+        return convertShopee(url, trackingId);
+      case "magalu":
+        return convertMagalu(url, options.store?.trim() || trackingId);
+      case "mercadolivre":
+        return convertMercadoLivre(url, trackingId);
+      case "aliexpress":
+        return { url: url.toString(), method: "original", note: AFFILIATE_NOTE_UNSUPPORTED };
+      case "kabum":
+      case "terabyte":
+        return { url: url.toString(), method: "original", note: AFFILIATE_NOTE_UNSUPPORTED };
+      default:
+        return { url: url.toString(), method: "original", note: "Marketplace não reconhecido." };
+    }
+  })();
+
+  const subid = options.subid?.trim();
+  if (subid && result.method !== "original") {
+    return { ...result, url: appendSubid(result.url, subid) };
+  }
+  return result;
+}
+
+/** Adiciona o parâmetro `subid` a uma URL convertida, preservando fragmentos. */
+function appendSubid(affiliateUrl: string, subid: string): string {
+  try {
+    const target = new URL(affiliateUrl);
+    target.searchParams.set("subid", subid);
+    return target.toString();
+  } catch {
+    const separator = affiliateUrl.includes("?") ? "&" : "?";
+    return `${affiliateUrl}${separator}subid=${encodeURIComponent(subid)}`;
   }
 }
 

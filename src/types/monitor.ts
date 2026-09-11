@@ -31,5 +31,25 @@ export interface MonitorConfiguration {
   include_banner?: boolean;
   /** Banner salvo usado como base visual. Vazio = template padrão. */
   banner_id?: string | null;
+  /** Adiciona uma chamada para ação (CTA) no início da publicação. */
+  cta_enabled?: boolean;
+  /**
+   * Modo do CTA: "manual" casa palavras-chave do título com frases;
+   * "random" sorteia uma frase da lista.
+   */
+  cta_mode?: "manual" | "random" | null;
+  /** Frases na forma "palavra => frase". Usado no modo manual. */
+  cta_manual?: string[];
+  /** Frases usadas no modo random. */
+  cta_random?: string[];
+  /**
+   * Dias da semana permitidos para publicar, usando JS Date.getDay()
+   * (0 = domingo ... 6 = sábado). Vazio = todos os dias.
+   */
+  post_days?: number[];
+  /** Início da janela de publicação no formato "HH:MM" (horário local). */
+  post_start?: string | null;
+  /** Fim da janela de publicação no formato "HH:MM". Integra madrugada ("22:00" → "06:00"). */
+  post_end?: string | null;
   notes?: string | null;
 }

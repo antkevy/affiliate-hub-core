@@ -500,7 +500,9 @@ export function BannerEditor({ config, onChange, onReset }: BannerEditorProps) {
             <div className="space-y-3 pt-3 border-t border-border/50">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="text-xs font-semibold">Ocultar Botão Inferior (Post de Grupo)</Label>
+                  <Label className="text-xs font-semibold">
+                    Ocultar Botão Inferior (Post de Grupo)
+                  </Label>
                   <p className="text-[11px] text-muted-foreground">
                     Mantém apenas imagem do produto, background e preços no banner
                   </p>

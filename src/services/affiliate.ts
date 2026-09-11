@@ -80,7 +80,11 @@ export const affiliateLinksService = {
     );
     const trackingId = readTrackingId(account?.configuration ?? null);
 
-    const options: AffiliateConversionOptions = { marketplaceSlug: slug, trackingId };
+    const options: AffiliateConversionOptions = {
+      marketplaceSlug: slug,
+      trackingId,
+      subid: readSubid(account?.configuration ?? null),
+    };
     if (trackingId) options.store = trackingId;
 
     const result = createAffiliateUrl(link.original_url, options);
@@ -125,4 +129,11 @@ function readTrackingId(configuration: Json | null): string | null {
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return null;
+}
+
+/** Extrai o SubID de campanha do JSON de configuração da conta. */
+function readSubid(configuration: Json | null): string | null {
+  if (!configuration || typeof configuration !== "object") return null;
+  const value = (configuration as Record<string, unknown>)["subid"];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }

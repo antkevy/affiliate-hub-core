@@ -73,6 +73,34 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
       { key: "app_secret", label: "App Secret", secret: true },
     ],
   },
+  {
+    slug: "magalu",
+    name: "Magalu",
+    kind: "marketplace",
+    description: "Conversão no padrão magazinevoce.com.br.",
+    fields: [
+      {
+        key: "store",
+        label: "Loja (magazinevoce)",
+        placeholder: "Ex.: suasuperloja",
+        helper: "Slug usado no padrão magazinevoce.com.br/{loja}/p/{codigo}/",
+      },
+    ],
+  },
+  {
+    slug: "kabum",
+    name: "KaBuM!",
+    kind: "marketplace",
+    description: "Conversão de links de afiliado.",
+    fields: [{ key: "tracking_id", label: "ID do afiliado", placeholder: "Ex.: seu-id" }],
+  },
+  {
+    slug: "terabyte",
+    name: "Terabyte",
+    kind: "marketplace",
+    description: "Conversão de links de afiliado.",
+    fields: [{ key: "tracking_id", label: "ID do afiliado", placeholder: "Ex.: seu-id" }],
+  },
 ];
 
 /** Campo que identifica a conta do afiliado em cada marketplace. */
@@ -81,6 +109,9 @@ const TAG_KEY_BY_SLUG: Record<string, string> = {
   shopee: "app_id",
   aliexpress: "app_key",
   "mercado-livre": "client_id",
+  magalu: "store",
+  kabum: "tracking_id",
+  terabyte: "tracking_id",
 };
 
 export const integrationsService = {

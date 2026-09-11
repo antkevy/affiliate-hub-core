@@ -15,7 +15,11 @@ export const monitorsService = {
 
   /** Total de ofertas capturadas por fonte, para exibir na lista de monitores. */
   async offerCounts(): Promise<Record<string, number>> {
-    const { data, error } = await supabase.from("offers").select("source_id");
+    const { data, error } = await supabase
+      .from("offers")
+      .select("source_id", { count: "exact" })
+      .not("source_id", "is", null)
+      .order("source_id");
     if (error) throw new Error(error.message);
     const counts: Record<string, number> = {};
     for (const offer of data ?? []) {

@@ -12,6 +12,7 @@ const MARKETPLACE_META: Record<string, MarketplaceMeta> = {
   aliexpress: { label: "AliExpress", bg: "bg-red-600", text: "text-white" },
   shein: { label: "Shein", bg: "bg-pink-600", text: "text-white" },
   kabum: { label: "KaBuM!", bg: "bg-red-600", text: "text-white" },
+  terabyte: { label: "Terabyte", bg: "bg-slate-700", text: "text-white" },
   none: { label: "Neutro", bg: "bg-secondary", text: "text-muted-foreground" },
 };
 
@@ -31,6 +32,7 @@ export function normalizeMarketplace(input?: string | null): string {
   if (raw.includes("magalu") || raw.includes("magazine")) return "magalu";
   if (raw.includes("shein")) return "shein";
   if (raw.includes("kabum")) return "kabum";
+  if (raw.includes("terabyte")) return "terabyte";
   return "none";
 }
 

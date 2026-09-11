@@ -181,7 +181,9 @@ export function findProductsInHtml(html: string): Array<{ mbid: string; url: str
     /(?:https?:)?(?:\/\/(?:www\.|produto\.|articulo\.|item\.|m\.)?mercadolivre(?:\.com\.br|\.com|\.com\.mx))?(\/(?:p\/|[\w-]+\/)?MLB[-]?\d{6,12}[-a-z0-9]*)/gi;
   for (const match of html.matchAll(pattern)) {
     const candidate = match[0];
-    const raw = candidate.startsWith("/") ? `https://www.mercadolivre.com.br${candidate}` : candidate;
+    const raw = candidate.startsWith("/")
+      ? `https://www.mercadolivre.com.br${candidate}`
+      : candidate;
     const clean = cleanMercadoLivreUrl(raw);
     if (!clean) continue;
     const mbid = extractMercadoLivreId(clean);

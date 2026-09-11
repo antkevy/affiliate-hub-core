@@ -61,18 +61,22 @@ export function cleanProductUrl(rawUrl: string | null | undefined): string {
   try {
     const fullUrl = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`;
     const parsed = new URL(fullUrl);
-    
+
     // ConverteSearchParams e deleta params de tracking
     const params = new URLSearchParams(parsed.search);
     for (const key of Array.from(params.keys())) {
-      if (TRACKING_QUERY_PARAMS.has(key.toLowerCase()) || key.startsWith("utm_") || key.startsWith("matt_")) {
+      if (
+        TRACKING_QUERY_PARAMS.has(key.toLowerCase()) ||
+        key.startsWith("utm_") ||
+        key.startsWith("matt_")
+      ) {
         params.delete(key);
       }
     }
 
     parsed.search = params.toString();
     parsed.hash = "";
-    
+
     // Normaliza trailing slash e caixa do hostname
     let cleaned = parsed.toString().toLowerCase();
     if (cleaned.endsWith("/")) {
@@ -118,7 +122,11 @@ export function extractProductIdFromUrl(rawUrl: string | null | undefined): stri
 export function normalizeProductTitle(title: string | null | undefined): string {
   if (!title) return "";
   const withoutEmojis = title
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}➡️🔥⚡🛒🏷️✅💥💡📌🎁🚀⭐]/gu, " ")
+    .replace(
+      /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu,
+      " ",
+    )
+    .replace(/\uFE0F/g, "")
     .replace(/\s+/g, " ");
 
   return normalizeText(withoutEmojis);
@@ -257,7 +265,10 @@ export async function isPublicationDuplicate(
       }
       // C) Mesmo Título Normalizado
       if (normalizedTitle && pubOffer.title) {
-        if (normalizeProductTitle(pubOffer.title) === normalizedTitle && normalizedTitle.length > 5) {
+        if (
+          normalizeProductTitle(pubOffer.title) === normalizedTitle &&
+          normalizedTitle.length > 5
+        ) {
           return true;
         }
       }

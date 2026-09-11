@@ -2,11 +2,13 @@ export interface TemplateOptionalValues {
   coupon?: string | null | undefined;
   discount_percentage?: number | null | undefined;
   coins?: string | null | undefined;
+  cta?: string | null | undefined;
 }
 
 const COUPON_TOKEN = /\{(?:cupom|coupon)\}/;
 const DISCOUNT_TOKEN = /\{(?:desconto|discount(?:_percentage)?)\}/;
 const COINS_TOKEN = /\{(?:moedas|bonus|bonus)\}/;
+const CTA_TOKEN = /\{cta\}/;
 
 /**
  * Remove linhas inteiras cujo token de cupom/desconto/moedas não tem valor na oferta.
@@ -17,6 +19,7 @@ export function removeOptionalLines(content: string, values: TemplateOptionalVal
   const hasDiscount =
     values.discount_percentage !== null && values.discount_percentage !== undefined;
   const hasCoins = Boolean(values.coins?.trim());
+  const hasCta = Boolean(values.cta?.trim() && values.cta !== "—");
 
   const lines = content.split(/\r?\n/);
   const kept: string[] = [];
@@ -24,10 +27,12 @@ export function removeOptionalLines(content: string, values: TemplateOptionalVal
     const needsCoupon = COUPON_TOKEN.test(line);
     const needsDiscount = DISCOUNT_TOKEN.test(line);
     const needsCoins = COINS_TOKEN.test(line);
+    const needsCta = CTA_TOKEN.test(line);
     if (
       (needsCoupon && !hasCoupon) ||
       (needsDiscount && !hasDiscount) ||
-      (needsCoins && !hasCoins)
+      (needsCoins && !hasCoins) ||
+      (needsCta && !hasCta)
     ) {
       continue;
     }

@@ -609,10 +609,7 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
         } catch {
           // best-effort
         }
-        await db
-          .from("offers")
-          .update({ status: "error" })
-          .eq("id", offer.id);
+        await db.from("offers").update({ status: "error" }).eq("id", offer.id);
         report.offersIgnored++;
         continue;
       }
@@ -765,10 +762,7 @@ async function publishForMonitor(
       } catch {
         // best-effort
       }
-      await db
-        .from("offers")
-        .update({ status: "error" })
-        .eq("id", offer.id);
+      await db.from("offers").update({ status: "error" }).eq("id", offer.id);
       report.offersIgnored++;
       continue;
     }
@@ -991,10 +985,35 @@ function renderTemplateServer(
 }
 
 const NON_CODE_WORDS = new Set([
-  "APP", "BRASIL", "BRL", "OFF", "COM", "OU", "SEM", "COMBO",
-  "FRETE", "LOJA", "MOEDAS", "GRATIS", "GRÁTIS", "MAIS", "PARA",
-  "PELO", "PELA", "TODOS", "ATE", "ATÉ", "TEM", "USAR", "BAIXO",
-  "PRIME", "ITEM", "DESCONTO", "CUPOM", "CUPONS", "MOEDA"
+  "APP",
+  "BRASIL",
+  "BRL",
+  "OFF",
+  "COM",
+  "OU",
+  "SEM",
+  "COMBO",
+  "FRETE",
+  "LOJA",
+  "MOEDAS",
+  "GRATIS",
+  "GRÁTIS",
+  "MAIS",
+  "PARA",
+  "PELO",
+  "PELA",
+  "TODOS",
+  "ATE",
+  "ATÉ",
+  "TEM",
+  "USAR",
+  "BAIXO",
+  "PRIME",
+  "ITEM",
+  "DESCONTO",
+  "CUPOM",
+  "CUPONS",
+  "MOEDA",
 ]);
 
 export function formatCouponCodeServer(coupon: string | null | undefined): string {

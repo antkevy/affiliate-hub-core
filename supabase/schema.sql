@@ -71,7 +71,8 @@ ALTER TABLE public.marketplaces ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "marketplaces_read" ON public.marketplaces FOR SELECT TO anon, authenticated USING (true);
 CREATE TRIGGER trg_marketplaces_updated BEFORE UPDATE ON public.marketplaces FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 INSERT INTO public.marketplaces (name, slug) VALUES
-  ('Mercado Livre','mercado-livre'),('Shopee','shopee'),('Amazon','amazon'),('AliExpress','aliexpress');
+  ('Mercado Livre','mercado-livre'),('Shopee','shopee'),('Amazon','amazon'),('AliExpress','aliexpress'),
+  ('Magalu','magalu'),('KaBuM!','kabum'),('Terabyte','terabyte'),('Rakuten','rakuten'),('Awin','awin');
 
 -- ---------- affiliate_accounts ----------
 CREATE TABLE public.affiliate_accounts (

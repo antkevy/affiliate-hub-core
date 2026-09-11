@@ -467,11 +467,21 @@ async function convertOne(
     }
   }
 
-  let urls = [...new Set(extractUrlsFromText(normalizedText).filter((url) => isMercadoLivreLink(url)))];
+  let urls = [
+    ...new Set(extractUrlsFromText(normalizedText).filter((url) => isMercadoLivreLink(url))),
+  ];
   if (urls.length === 0) {
-    const rawMatches = normalizedText.match(/\b(?:meli\.la|meli\.link|mercadolivre\.com|mercadolibre\.com)\/[^\s<>"]+/gi);
+    const rawMatches = normalizedText.match(
+      /\b(?:meli\.la|meli\.link|mercadolivre\.com|mercadolibre\.com)\/[^\s<>"]+/gi,
+    );
     if (rawMatches) {
-      urls = [...new Set(rawMatches.map((u) => u.startsWith("http") ? u : `https://${u}`).filter((url) => isMercadoLivreLink(url)))];
+      urls = [
+        ...new Set(
+          rawMatches
+            .map((u) => (u.startsWith("http") ? u : `https://${u}`))
+            .filter((url) => isMercadoLivreLink(url)),
+        ),
+      ];
     }
   }
 
@@ -732,7 +742,9 @@ export const publishQueuedOfferWithLink = createServerFn({ method: "POST" })
       .from("meli_queue")
       .update({
         status: "done",
-        result_links: [{ original: sourceLinks[0] ?? null, affiliate: affiliateUrl, status: "success" }],
+        result_links: [
+          { original: sourceLinks[0] ?? null, affiliate: affiliateUrl, status: "success" },
+        ],
         last_error: null,
         updated_at: new Date().toISOString(),
       })
