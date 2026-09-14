@@ -134,7 +134,6 @@ function AutomationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Principal"
         title="Automações"
         description="Monte fluxos em blocos e execute para capturar da fonte e publicar no destino."
         actions={

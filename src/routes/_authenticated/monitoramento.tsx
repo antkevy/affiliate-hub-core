@@ -116,7 +116,6 @@ function MonitoringPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Principal"
         title="Monitoramento"
         description="Monitores conectados às suas fontes. Use “Processar agora” para capturar e publicar."
         actions={

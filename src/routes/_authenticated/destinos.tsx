@@ -133,7 +133,6 @@ function DestinationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Canais"
         title="Destinos"
         description="Cadastre os canais de publicação das ofertas processadas."
         actions={

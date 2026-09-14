@@ -85,7 +85,6 @@ function IntegrationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Sistema"
         title="Integrações"
         description="Conecte marketplaces para converter links de afiliado e gerencie a publicação em destinos."
       />

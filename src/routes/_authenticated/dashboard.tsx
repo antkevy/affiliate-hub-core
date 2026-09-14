@@ -6,8 +6,10 @@ import {
   ArrowRight,
   Bot,
   HeartPulse,
+  Inbox,
   Link2,
   Megaphone,
+  Plug,
   Plus,
   RefreshCw,
   Send,
@@ -28,7 +30,7 @@ import {
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
-import { LiveBadge, StatCard, formatPrice, timeAgo } from "@/components/common/stat-card";
+import { LiveBadge, formatPrice, timeAgo } from "@/components/common/stat-card";
 import { AssistantChat } from "@/components/common/AssistantChat";
 import { Button } from "@/components/ui/button";
 import { offersService } from "@/services/offers";
@@ -56,6 +58,52 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   }),
   component: DashboardPage,
 });
+
+const SENDER_TONES = [
+  "border-chart-1/30 bg-chart-1/15 text-chart-1",
+  "border-chart-2/30 bg-chart-2/15 text-chart-2",
+  "border-chart-3/30 bg-chart-3/15 text-chart-3",
+  "border-chart-4/30 bg-chart-4/15 text-chart-4",
+  "border-chart-5/30 bg-chart-5/15 text-chart-5",
+];
+
+function senderTone(id: string) {
+  let hash = 0;
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash * 31 + id.charCodeAt(index)) % 997;
+  }
+  return SENDER_TONES[hash % SENDER_TONES.length];
+}
+
+function SenderAvatar({
+  id,
+  name,
+  icon: Icon,
+}: {
+  id: string;
+  name: string;
+  icon?: typeof ShoppingBag;
+}) {
+  const fallback = (name || "?").slice(0, 2).toUpperCase();
+  return (
+    <span
+      className={cn(
+        "grid size-9 shrink-0 place-items-center rounded-full border text-[11px] font-bold",
+        senderTone(id),
+      )}
+    >
+      {Icon ? <Icon className="size-4" /> : fallback}
+    </span>
+  );
+}
+
+function DayDivider({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="my-5 text-center text-[11px] font-semibold uppercase tracking-[0.1em] text-subtle-foreground">
+      {children}
+    </p>
+  );
+}
 
 function DashboardPage() {
   const offers = useQuery({
@@ -116,8 +164,6 @@ function DashboardPage() {
   const successRate = successBase > 0 ? Math.round((publishedCount / successBase) * 100) : null;
 
   const chartData = buildPublicationSeries(loadedPublications);
-  const offersSeries = buildCountSeries((offers.data ?? []).map((offer) => offer.created_at));
-  const publishedSeries = chartData.map((point) => point.published);
   const avgPublished =
     chartData.reduce((sum, point) => sum + point.published, 0) / Math.max(chartData.length, 1);
 
@@ -127,40 +173,32 @@ function DashboardPage() {
   const marketplaceName = new Map(
     (marketplaces.data ?? []).map((marketplace) => [marketplace.id, marketplace.name]),
   );
+  const destinationId = new Map(
+    (destinations.data ?? []).map((destination) => [destination.id, destination.id]),
+  );
+
+  const recentOffers = (offers.data ?? []).slice(0, 6);
+  const recentPublications = loadedPublications.slice(0, 5);
+
+  const pipeline = [
+    { label: "Capturadas", value: offers.data?.length ?? 0, icon: Inbox },
+    { label: "Na fila", value: pendingCount, icon: Workflow, live: pendingCount > 0 },
+    { label: "Enviadas", value: publishedCount, icon: Send },
+    { label: "Destinos", value: destinations.data?.length ?? 0, icon: Plug },
+  ];
 
   const quickActions = [
-    {
-      label: "Nova oferta",
-      icon: Plus,
-      to: "/ofertas",
-      color: "text-chart-3 bg-chart-3/10 border-chart-3/20",
-    },
-    {
-      label: "Criar automação",
-      icon: Bot,
-      to: "/automacoes",
-      color: "text-chart-2 bg-chart-2/10 border-chart-2/20",
-    },
-    {
-      label: "Gerar link",
-      icon: Link2,
-      to: "/links",
-      color: "text-primary bg-primary/10 border-primary/20",
-    },
-    {
-      label: "Ver publicações",
-      icon: Send,
-      to: "/publicacoes",
-      color: "text-chart-1 bg-chart-1/10 border-chart-1/20",
-    },
+    { label: "Nova oferta", icon: Plus, to: "/ofertas" },
+    { label: "Criar automação", icon: Bot, to: "/automacoes" },
+    { label: "Gerar link", icon: Link2, to: "/links" },
+    { label: "Ver publicações", icon: ArrowRight, to: "/publicacoes" },
   ] as const;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Principal"
-        title="Dashboard"
-        description="Panorama das capturas, automações e publicações da sua operação."
+        title="Hoje"
+        description="Seu dia como ele chega: o que as fontes trouxeram e o que já saiu publicado."
         actions={
           <>
             <LiveBadge
@@ -179,419 +217,367 @@ function DashboardPage() {
         }
       />
 
-      <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-
-      {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((item) => (
-            <div key={item} className="panel h-[132px] animate-pulse p-4" />
+      <section aria-label="Ciclo de automação" className="stream">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {pipeline.map((stage, index) => (
+            <div key={stage.label} className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "pipeline-step",
+                  stage.live && "pipeline-step-live",
+                  stage.live && "pipeline-surge",
+                )}
+              >
+                <stage.icon className="size-3.5" />
+                {stage.label} · <span className="font-mono tabular-nums">{stage.value}</span>
+              </span>
+              {index < pipeline.length - 1 ? (
+                <ArrowRight className="size-3 text-subtle-foreground" />
+              ) : null}
+            </div>
           ))}
         </div>
-      ) : (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard
-              icon={ShoppingBag}
-              label="Ofertas capturadas"
-              value={(offers.data ?? []).length}
-              hint="Últimas capturas registradas"
-              accent="text-chart-3 bg-chart-3/10 border-chart-3/20"
-              spark={offersSeries}
-              sparkColor="var(--color-chart-3)"
-              delta={splitTrend(offersSeries)}
-              delay={0}
-            />
-            <StatCard
-              icon={Workflow}
-              label="Automações ativas"
-              value={activeAutomations}
-              hint={`${automations.data?.length ?? 0} no total`}
-              accent="text-chart-2 bg-chart-2/10 border-chart-2/20"
-              delay={40}
-            />
-            <StatCard
-              icon={Megaphone}
-              label="Publicações enviadas"
-              value={publishedCount}
-              hint="Histórico recente"
-              accent="text-chart-1 bg-chart-1/10 border-chart-1/20"
-              spark={publishedSeries}
-              sparkColor="var(--color-chart-1)"
-              delta={splitTrend(publishedSeries)}
-              delay={80}
-            />
-            <StatCard
-              icon={Activity}
-              label="Na fila de envio"
-              value={pendingCount}
-              hint="Aguardando publicação"
-              accent="text-warning bg-warning/10 border-warning/20"
-              delay={120}
-            />
-          </div>
+      </section>
 
-          <div className="animate-rise" style={{ animationDelay: "130ms" }}>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-eyebrow">Ações rápidas</p>
-              <p className="text-xs text-subtle-foreground">Atalhos para as rotinas mais comuns</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {quickActions.map((action) => (
-                <Link
-                  key={action.label}
-                  to={action.to}
-                  className="group flex min-h-16 items-center justify-between gap-3 rounded-xl border border-border bg-secondary/70 p-3 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hover:-translate-y-0.5 lg:hover:border-primary/30 lg:hover:bg-secondary lg:hover:shadow-[0_10px_24px_-12px_var(--color-primary)]"
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <span
-                      className={cn(
-                        "grid size-9 shrink-0 place-items-center rounded-lg border transition-transform duration-300 lg:group-hover:scale-110",
-                        action.color,
-                      )}
-                    >
-                      <action.icon className="size-4" />
-                    </span>
-                    <span className="text-[13px] font-medium">{action.label}</span>
-                  </span>
-                  <ArrowRight className="size-4 shrink-0 text-subtle-foreground transition-transform lg:group-hover:translate-x-1 lg:group-hover:text-foreground" />
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-3">
-            <section
-              className="panel p-5 animate-rise xl:col-span-2"
-              style={{ animationDelay: "140ms" }}
+      <section aria-label="Ações rápidas" className="stream">
+        <div className="flex flex-wrap gap-2">
+          {quickActions.map((action) => (
+            <Link
+              key={action.label}
+              to={action.to}
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             >
-              <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-eyebrow">Fluxo de envio</p>
-                  <h2 className="mt-0.5 font-display text-base font-semibold tracking-tight">
-                    Publicações
-                  </h2>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="size-2 rounded-full bg-chart-1" /> Publicadas
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="size-2 rounded-full bg-chart-5" /> Falhas
-                  </span>
-                  <span className="hidden font-mono sm:inline">últimos 14 dias</span>
-                </div>
-              </header>
+              <action.icon className="size-3.5" />
+              {action.label}
+            </Link>
+          ))}
+        </div>
+      </section>
 
-              {chartData.every((point) => point.published === 0 && point.failed === 0) ? (
-                <div className="grid h-56 place-items-center">
-                  <EmptyState
-                    icon={Megaphone}
-                    title="Sem publicações ainda"
-                    description="Assim que as primeiras ofertas forem enviadas, o histórico aparece aqui."
-                  />
-                </div>
-              ) : (
-                <div className="h-56">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="pubGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.3} />
-                          <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="failGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--color-chart-5)" stopOpacity={0.18} />
-                          <stop offset="100%" stopColor="var(--color-chart-5)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        stroke="var(--color-border)"
-                        strokeOpacity={0.5}
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="label"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                        stroke="var(--color-subtle-foreground)"
-                        fontSize={11}
-                      />
-                      <YAxis
-                        tickLine={false}
-                        axisLine={false}
-                        width={28}
-                        stroke="var(--color-subtle-foreground)"
-                        fontSize={11}
-                        allowDecimals={false}
-                      />
-                      <Tooltip
-                        cursor={{ stroke: "var(--color-border)", strokeDasharray: "3 3" }}
-                        contentStyle={{
-                          background: "var(--color-popover)",
-                          border: "1px solid var(--color-border)",
-                          borderRadius: "var(--radius-lg)",
-                          fontSize: 12,
-                        }}
-                        labelStyle={{ color: "var(--color-subtle-foreground)", fontWeight: 600 }}
-                        itemStyle={{ padding: 0, paddingTop: 2 }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="published"
-                        name="Publicadas"
-                        stackId="1"
-                        stroke="var(--color-chart-1)"
-                        strokeWidth={2}
-                        fill="url(#pubGrad)"
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="failed"
-                        name="Falhas"
-                        stackId="1"
-                        stroke="var(--color-chart-5)"
-                        strokeWidth={1.5}
-                        fill="url(#failGrad)"
-                      />
-                      {avgPublished > 0 ? (
-                        <ReferenceLine
-                          y={avgPublished}
-                          stroke="var(--color-subtle-foreground)"
-                          strokeDasharray="4 5"
-                          strokeOpacity={0.6}
-                        />
-                      ) : null}
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </section>
-
-            <section className="panel p-5 animate-rise" style={{ animationDelay: "180ms" }}>
-              <header className="mb-4 flex items-center justify-between">
-                <h2 className="font-display text-base font-semibold tracking-tight">
-                  Saúde da operação
-                </h2>
-                <HeartPulse className="size-4 text-success" />
-              </header>
-
-              {successRate === null ? (
-                <div className="grid h-56 place-items-center">
-                  <EmptyState
-                    icon={Activity}
-                    title="Aguardando dados"
-                    description="Sem envios concluídos para calcular a taxa de sucesso."
-                  />
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <div className="flex items-end justify-between gap-3">
-                      <p className="font-mono text-[2rem] font-semibold leading-none tabular-nums">
-                        {successRate}%
-                      </p>
-                      <p className="mb-0.5 text-right text-xs text-muted-foreground">
-                        de envios concluídos com sucesso
-                      </p>
-                    </div>
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full rounded-full bg-success animate-grow-x"
-                        style={{ width: `${successRate}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2.5">
-                      <p className="text-[11px] text-muted-foreground">Na fila</p>
-                      <p className="font-mono text-lg font-semibold tabular-nums text-warning">
-                        {pendingCount}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2.5">
-                      <p className="text-[11px] text-muted-foreground">Falhas</p>
-                      <p className="font-mono text-lg font-semibold tabular-nums text-destructive">
-                        {failedList.length}
-                      </p>
-                    </div>
-                  </div>
-
-                  {failedList.length > 0 ? (
-                    <div className="mt-4 space-y-3 border-t border-border pt-4">
-                      <p className="text-xs font-medium text-muted-foreground">Falhas recentes</p>
-                      <ul className="space-y-2.5">
-                        {failedList.map((publication) => (
-                          <li
-                            key={publication.id}
-                            className="flex items-start justify-between gap-3"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-xs text-foreground">
-                                {publication.error_message ?? "Falha na publicação"}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">
-                                {timeAgo(publication.created_at)}
-                              </p>
-                            </div>
-                            <StatusPill tone="danger">Falhou</StatusPill>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <div className="mt-4 border-t border-border pt-4">
-                      <p className="text-xs text-muted-foreground">
-                        Nenhuma falha recente. Operação saudável.
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
+      <section aria-label="Corrente de mensagens" className="stream space-y-5">
+        {isLoading ? (
+          <div className="space-y-3">
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="bubble h-20 animate-pulse p-4" />
+            ))}
           </div>
-
-          <div className="grid gap-4 xl:grid-cols-3">
-            <section
-              className="panel p-5 animate-rise xl:col-span-2"
-              style={{ animationDelay: "220ms" }}
+        ) : recentOffers.length === 0 && recentPublications.length === 0 ? (
+          <div className="bubble-out mx-auto mt-4 max-w-sm p-4 text-center">
+            <p className="text-sm text-foreground">Nenhuma oferta por aqui ainda.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Configure uma fonte ou crie uma oferta manualmente para a conversa começar.
+            </p>
+            <Link
+              to="/fontes"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/40 px-3.5 py-1.5 text-xs font-medium text-primary"
             >
-              <header className="mb-3 flex items-center justify-between">
-                <h2 className="font-display text-base font-semibold tracking-tight">
-                  Últimas ofertas
-                </h2>
-                <Link
-                  to="/ofertas"
-                  className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
-                >
-                  Ver todas
-                </Link>
-              </header>
+              <Plus className="size-3.5" />
+              Adicionar fonte
+            </Link>
+          </div>
+        ) : (
+          <>
+            <DayDivider>Agora</DayDivider>
 
-              {(offers.data ?? []).length === 0 ? (
-                <EmptyState
-                  icon={Tags}
-                  title="Nenhuma oferta ainda"
-                  description="Assim que as capturas começarem, encontram espaço aqui."
-                />
-              ) : (
-                <ul className="divide-y divide-border">
-                  {(offers.data ?? []).slice(0, 6).map((offer) => (
-                    <li
-                      key={offer.id}
-                      className="flex flex-wrap items-center gap-3 rounded-lg py-2.5 transition-colors hover:bg-secondary/40"
-                    >
-                      <div className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-muted/30">
-                        {offer.image_url ? (
-                          <img
-                            src={offer.image_url}
-                            alt={offer.title}
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          <ShoppingBag className="size-4 text-muted-foreground/60" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {offer.title}
-                        </p>
-                        <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                          {offer.marketplace_id && marketplaceName.has(offer.marketplace_id) ? (
-                            <span className="truncate">
-                              {marketplaceName.get(offer.marketplace_id)}
-                            </span>
-                          ) : null}
-                          {offer.marketplace_id && marketplaceName.has(offer.marketplace_id) ? (
-                            <span className="text-subtle-foreground">·</span>
-                          ) : null}
-                          <span>{timeAgo(offer.created_at)}</span>
-                        </p>
-                      </div>
-                      <div
-                        className="flex shrink-0 flex-wrap items-center gap-2"
-                        style={{ marginInlineStart: "auto" }}
-                      >
-                        {offer.discount_percentage && offer.discount_percentage > 0 ? (
-                          <span className="rounded-md bg-chart-3/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-chart-3 border border-chart-3/20">
-                            -{Math.round(offer.discount_percentage)}%
-                          </span>
-                        ) : null}
-                        <div className="min-w-0 text-right">
-                          <p className="truncate font-mono text-sm font-semibold tabular-nums text-foreground">
-                            {formatPrice(offer.sale_price ?? offer.original_price, offer.currency)}
-                          </p>
-                          {offer.original_price &&
-                          offer.sale_price &&
-                          offer.original_price > offer.sale_price ? (
-                            <p className="text-[11px] text-subtle-foreground line-through">
-                              {formatPrice(offer.original_price, offer.currency)}
-                            </p>
-                          ) : null}
+            {recentOffers.map((offer) => {
+              const sender =
+                (offer.marketplace_id && marketplaceName.get(offer.marketplace_id)) || "Captura";
+              return (
+                <div key={offer.id} className="flex items-start gap-2.5">
+                  <SenderAvatar
+                    id={`${offer.marketplace_id ?? "capture"}-${sender}`}
+                    name={sender}
+                    icon={ShoppingBag}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-baseline justify-between gap-3 px-0.5">
+                      <p className="text-[11px] font-medium text-muted-foreground">{sender}</p>
+                      <p className="text-[11px] text-subtle-foreground">
+                        {timeAgo(offer.created_at)}
+                      </p>
+                    </div>
+                    <div className="bubble p-3">
+                      <div className="flex items-start gap-3">
+                        <div className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/40">
+                          {offer.image_url ? (
+                            <img
+                              src={offer.image_url}
+                              alt={offer.title}
+                              className="size-full object-cover"
+                            />
+                          ) : (
+                            <ShoppingBag className="size-4 text-muted-foreground/60" />
+                          )}
                         </div>
-                        <StatusPill tone={entityTone(offer.status)}>
-                          {OFFER_STATUS_LABEL[offer.status]}
-                        </StatusPill>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="panel p-5 animate-rise" style={{ animationDelay: "260ms" }}>
-              <header className="mb-3 flex items-center justify-between">
-                <h2 className="font-display text-base font-semibold tracking-tight">
-                  Últimas publicações
-                </h2>
-                <Link
-                  to="/publicacoes"
-                  className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
-                >
-                  Ver todas
-                </Link>
-              </header>
-
-              {loadedPublications.length === 0 ? (
-                <EmptyState
-                  icon={Megaphone}
-                  title="Nada publicado ainda"
-                  description="Os despachos realizados para os seus destinos aparecem aqui."
-                />
-              ) : (
-                <ul className="divide-y divide-border">
-                  {loadedPublications.slice(0, 5).map((publication) => (
-                    <li
-                      key={publication.id}
-                      className="flex flex-wrap items-start justify-between gap-3 py-2.5"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-xs text-foreground">
-                          {publicationPreview(publication)}
-                        </p>
-                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                          {publication.destination_id &&
-                          destinationName.has(publication.destination_id) ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              {destinationName.get(publication.destination_id) ?? "Destino"}
-                              <span className="text-subtle-foreground">·</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-sm font-medium text-foreground">
+                            {offer.title}
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                              {formatPrice(
+                                offer.sale_price ?? offer.original_price,
+                                offer.currency,
+                              )}
                             </span>
-                          ) : null}
-                          {timeAgo(publication.created_at)}
-                        </p>
+                            {offer.original_price &&
+                            offer.sale_price &&
+                            offer.original_price > offer.sale_price ? (
+                              <span className="text-xs text-subtle-foreground line-through">
+                                {formatPrice(offer.original_price, offer.currency)}
+                              </span>
+                            ) : null}
+                            {offer.discount_percentage && offer.discount_percentage > 0 ? (
+                              <span className="rounded-md bg-success/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-success border border-success/20">
+                                -{Math.round(offer.discount_percentage)}%
+                              </span>
+                            ) : null}
+                            <StatusPill tone={entityTone(offer.status)}>
+                              {OFFER_STATUS_LABEL[offer.status]}
+                            </StatusPill>
+                          </div>
+                        </div>
                       </div>
-                      <StatusPill tone={entityTone(publication.status)}>
-                        {PUBLICATION_STATUS_LABEL[publication.status]}
-                      </StatusPill>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {activeAutomations > 0 ? (
+              <p className="text-center text-xs text-muted-foreground">
+                {activeAutomations} automação{activeAutomations > 1 ? "ões" : ""} ativa
+                {activeAutomations > 1 ? "s" : ""} rodando em segundo plano
+              </p>
+            ) : null}
+
+            {recentPublications.length > 0 ? (
+              <>
+                <DayDivider>Saída</DayDivider>
+                {recentPublications.map((publication) => {
+                  const sender = publication.destination_id
+                    ? (destinationName.get(publication.destination_id) ?? "Destino")
+                    : "Destino";
+                  return (
+                    <div key={publication.id} className="flex justify-end gap-2.5">
+                      <div className="min-w-0 max-w-[34rem] text-right">
+                        <div className="mb-1 flex items-baseline justify-end gap-3 px-0.5">
+                          <p className="text-[11px] text-subtle-foreground">
+                            {timeAgo(publication.created_at)}
+                          </p>
+                          <p className="text-[11px] font-medium text-muted-foreground">{sender}</p>
+                        </div>
+                        <div className="bubble-out animate-send p-3 text-left">
+                          <p className="line-clamp-2 text-sm text-foreground">
+                            {publicationPreview(publication)}
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                            {publication.destination_id &&
+                            destinationId.has(publication.destination_id) ? (
+                              <span className="text-[11px] text-muted-foreground">
+                                {destinationName.get(publication.destination_id)}
+                              </span>
+                            ) : null}
+                            <StatusPill tone={entityTone(publication.status)}>
+                              {PUBLICATION_STATUS_LABEL[publication.status]}
+                            </StatusPill>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            ) : null}
+          </>
+        )}
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <section className="panel p-5 animate-rise xl:col-span-2">
+          <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-base font-semibold tracking-tight">
+                Fluxo de envio
+              </h2>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-chart-1" /> Publicadas
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-chart-5" /> Falhas
+              </span>
+              <span className="hidden font-mono sm:inline">últimos 14 dias</span>
+            </div>
+          </header>
+
+          {chartData.every((point) => point.published === 0 && point.failed === 0) ? (
+            <div className="grid h-56 place-items-center">
+              <EmptyState
+                icon={Megaphone}
+                title="Sem publicações ainda"
+                description="Assim que as primeiras ofertas forem enviadas, o histórico aparece aqui."
+              />
+            </div>
+          ) : (
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="pubGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="failGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-chart-5)" stopOpacity={0.18} />
+                      <stop offset="100%" stopColor="var(--color-chart-5)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    stroke="var(--color-border)"
+                    strokeOpacity={0.5}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="label"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    stroke="var(--color-subtle-foreground)"
+                    fontSize={11}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={28}
+                    stroke="var(--color-subtle-foreground)"
+                    fontSize={11}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    cursor={{ stroke: "var(--color-border)", strokeDasharray: "3 3" }}
+                    contentStyle={{
+                      background: "var(--color-popover)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "var(--radius-lg)",
+                      fontSize: 12,
+                    }}
+                    labelStyle={{ color: "var(--color-subtle-foreground)", fontWeight: 600 }}
+                    itemStyle={{ padding: 0, paddingTop: 2 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="published"
+                    name="Publicadas"
+                    stackId="1"
+                    stroke="var(--color-chart-1)"
+                    strokeWidth={2}
+                    fill="url(#pubGrad)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="failed"
+                    name="Falhas"
+                    stackId="1"
+                    stroke="var(--color-chart-5)"
+                    strokeWidth={1.5}
+                    fill="url(#failGrad)"
+                  />
+                  {avgPublished > 0 ? (
+                    <ReferenceLine
+                      y={avgPublished}
+                      stroke="var(--color-subtle-foreground)"
+                      strokeDasharray="4 5"
+                      strokeOpacity={0.6}
+                    />
+                  ) : null}
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </section>
+
+        <section className="panel p-5 animate-rise">
+          <header className="mb-4 flex items-center justify-between">
+            <h2 className="font-display text-base font-semibold tracking-tight">
+              Saúde da operação
+            </h2>
+            <HeartPulse className="size-4 text-success" />
+          </header>
+
+          {successRate === null ? (
+            <div className="grid h-56 place-items-center">
+              <EmptyState
+                icon={Activity}
+                title="Aguardando dados"
+                description="Sem envios concluídos para calcular a taxa de sucesso."
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <div className="flex items-end justify-between gap-3">
+                  <p className="font-mono text-[2rem] font-semibold leading-none tabular-nums">
+                    {successRate}%
+                  </p>
+                  <p className="mb-0.5 text-right text-xs text-muted-foreground">
+                    de envios concluídos com sucesso
+                  </p>
+                </div>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full bg-success animate-grow-x"
+                    style={{ width: `${successRate}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2.5">
+                  <p className="text-[11px] text-muted-foreground">Na fila</p>
+                  <p className="font-mono text-lg font-semibold tabular-nums text-warning">
+                    {pendingCount}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2.5">
+                  <p className="text-[11px] text-muted-foreground">Falhas</p>
+                  <p className="font-mono text-lg font-semibold tabular-nums text-destructive">
+                    {failedList.length}
+                  </p>
+                </div>
+              </div>
+
+              {failedList.length > 0 ? (
+                <div className="mt-4 space-y-3 border-t border-border pt-4">
+                  <p className="text-xs font-medium text-muted-foreground">Falhas recentes</p>
+                  <ul className="space-y-2.5">
+                    {failedList.map((publication) => (
+                      <li key={publication.id} className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs text-foreground">
+                            {publication.error_message ?? "Falha na publicação"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {timeAgo(publication.created_at)}
+                          </p>
+                        </div>
+                        <StatusPill tone="danger">Falhou</StatusPill>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="mt-4 border-t border-border pt-4">
+                  <p className="text-xs text-muted-foreground">
+                    Nenhuma falha recente. Operação saudável.
+                  </p>
+                </div>
               )}
-            </section>
-          </div>
-        </>
-      )}
+            </>
+          )}
+        </section>
+      </div>
 
       <AssistantChat
         context={buildContext(
@@ -621,41 +607,20 @@ function buildDayKeys() {
   return { keys, labels };
 }
 
-function buildCountSeries(dates: string[]): number[] {
-  const { keys } = buildDayKeys();
-  const counts = new Map(keys.map((key) => [key, 0]));
-  for (const value of dates) {
-    const key = value.slice(0, 10);
-    if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-  return keys.map((key) => counts.get(key) ?? 0);
-}
-
 function buildPublicationSeries(publications: Publication[]) {
   const { keys, labels } = buildDayKeys();
-  const aggregate = new Map<string, { published: number; failed: number; pending: number }>();
+  const aggregate = new Map<string, { published: number; failed: number }>();
   for (const publication of publications) {
     const key = publication.created_at.slice(0, 10);
-    const point = aggregate.get(key) ?? { published: 0, failed: 0, pending: 0 };
+    const point = aggregate.get(key) ?? { published: 0, failed: 0 };
     if (publication.status === "published") point.published += 1;
     else if (publication.status === "failed") point.failed += 1;
-    else point.pending += 1;
     aggregate.set(key, point);
   }
   return keys.map((key, index) => {
-    const point = aggregate.get(key) ?? { published: 0, failed: 0, pending: 0 };
+    const point = aggregate.get(key) ?? { published: 0, failed: 0 };
     return { label: labels[index], ...point };
   });
-}
-
-function splitTrend(series: number[]) {
-  const previous = series.slice(0, 7).reduce((sum, value) => sum + value, 0);
-  const current = series.slice(7).reduce((sum, value) => sum + value, 0);
-  return { current, previous };
-}
-
-function buildOperationContext() {
-  return "";
 }
 
 function buildContext(

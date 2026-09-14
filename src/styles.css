@@ -6,14 +6,14 @@
 
 /*
  * Affiliate Hub — design system
- * Dark, minimal, high information density. Blue primary.
- * All colors are oklch tokens. Never hardcode colors in components.
+ * World: Telegram Native. Deep chat navy, one saturated action color,
+ * entities as conversation bubbles. All colors are oklch tokens.
  */
 
 @theme inline {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: ui-sans-serif, system-ui, "DM Sans", sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -68,59 +68,59 @@
 }
 
 :root {
-  --radius: 0.6rem;
+  --radius: 0.875rem;
 
-  --background: oklch(0.168 0.008 254);
-  --foreground: oklch(0.975 0.003 250);
-  --surface: oklch(0.205 0.009 254);
-  --surface-foreground: oklch(0.975 0.003 250);
-  --card: oklch(0.212 0.009 254);
-  --card-foreground: oklch(0.975 0.003 250);
-  --popover: oklch(0.212 0.009 254);
-  --popover-foreground: oklch(0.975 0.003 250);
+  --background: oklch(0.15 0.012 246);
+  --foreground: oklch(0.965 0.006 240);
+  --surface: oklch(0.185 0.014 246);
+  --surface-foreground: oklch(0.965 0.006 240);
+  --card: oklch(0.212 0.016 246);
+  --card-foreground: oklch(0.965 0.006 240);
+  --popover: oklch(0.235 0.016 246);
+  --popover-foreground: oklch(0.965 0.006 240);
 
-  --primary: oklch(0.618 0.183 258);
-  --primary-foreground: oklch(0.99 0.005 250);
-  --secondary: oklch(0.262 0.01 254);
-  --secondary-foreground: oklch(0.95 0.003 250);
-  --muted: oklch(0.25 0.01 254);
-  --muted-foreground: oklch(0.706 0.017 253);
-  --subtle-foreground: oklch(0.58 0.014 253);
-  --accent: oklch(0.28 0.014 256);
-  --accent-foreground: oklch(0.975 0.003 250);
+  --primary: oklch(0.66 0.125 247);
+  --primary-foreground: oklch(0.99 0.004 240);
+  --secondary: oklch(0.26 0.017 246);
+  --secondary-foreground: oklch(0.94 0.008 240);
+  --muted: oklch(0.235 0.016 246);
+  --muted-foreground: oklch(0.72 0.018 244);
+  --subtle-foreground: oklch(0.62 0.016 244);
+  --accent: oklch(0.3 0.02 246);
+  --accent-foreground: oklch(0.965 0.006 240);
 
-  --destructive: oklch(0.598 0.208 22);
-  --destructive-foreground: oklch(0.99 0.005 250);
-  --success: oklch(0.66 0.153 156);
-  --success-foreground: oklch(0.16 0.02 156);
-  --warning: oklch(0.79 0.145 84);
-  --warning-foreground: oklch(0.19 0.03 84);
-  --info: oklch(0.66 0.14 250);
-  --info-foreground: oklch(0.16 0.02 250);
+  --destructive: oklch(0.6 0.2 22);
+  --destructive-foreground: oklch(0.98 0.005 240);
+  --success: oklch(0.72 0.14 150);
+  --success-foreground: oklch(0.16 0.03 150);
+  --warning: oklch(0.8 0.13 84);
+  --warning-foreground: oklch(0.18 0.03 84);
+  --info: oklch(0.66 0.125 247);
+  --info-foreground: oklch(0.16 0.03 247);
 
-  --border: oklch(0.283 0.011 254);
-  --input: oklch(0.283 0.011 254);
-  --ring: oklch(0.618 0.183 258);
+  --border: oklch(0.28 0.016 246);
+  --input: oklch(0.28 0.016 246);
+  --ring: oklch(0.66 0.125 247);
 
-  --chart-1: oklch(0.618 0.183 258);
-  --chart-2: oklch(0.66 0.153 156);
-  --chart-3: oklch(0.79 0.145 84);
-  --chart-4: oklch(0.62 0.16 300);
-  --chart-5: oklch(0.66 0.16 22);
+  --chart-1: oklch(0.66 0.125 247);
+  --chart-2: oklch(0.72 0.14 150);
+  --chart-3: oklch(0.8 0.13 84);
+  --chart-4: oklch(0.68 0.12 300);
+  --chart-5: oklch(0.6 0.2 22);
 
-  --sidebar: oklch(0.188 0.009 254);
-  --sidebar-foreground: oklch(0.9 0.005 250);
-  --sidebar-primary: oklch(0.618 0.183 258);
-  --sidebar-primary-foreground: oklch(0.99 0.005 250);
-  --sidebar-accent: oklch(0.25 0.01 254);
-  --sidebar-accent-foreground: oklch(0.975 0.003 250);
-  --sidebar-border: oklch(0.26 0.011 254);
-  --sidebar-ring: oklch(0.618 0.183 258);
+  --sidebar: oklch(0.168 0.014 246);
+  --sidebar-foreground: oklch(0.9 0.008 240);
+  --sidebar-primary: oklch(0.66 0.125 247);
+  --sidebar-primary-foreground: oklch(0.99 0.004 240);
+  --sidebar-accent: oklch(0.255 0.02 246);
+  --sidebar-accent-foreground: oklch(0.96 0.006 240);
+  --sidebar-border: oklch(0.25 0.016 246);
+  --sidebar-ring: oklch(0.66 0.125 247);
 }
 
 .dark {
-  --background: oklch(0.168 0.008 254);
-  --foreground: oklch(0.975 0.003 250);
+  --background: oklch(0.15 0.012 246);
+  --foreground: oklch(0.965 0.006 240);
 }
 
 @layer base {
@@ -146,7 +146,44 @@
   h3,
   h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
+  }
+
+  /* Browser surfaces belong to the design system. */
+  ::selection {
+    background-color: color-mix(in oklch, var(--color-primary) 38%, transparent);
+    color: var(--color-foreground);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-secondary);
+    border-radius: 999px;
+    border: 2px solid var(--color-background);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-muted-foreground);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-secondary) transparent;
+  }
+
+  input,
+  textarea,
+  select {
+    caret-color: var(--color-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in oklch, var(--color-ring) 80%, transparent);
+    outline-offset: 2px;
   }
 }
 
@@ -154,6 +191,61 @@
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.08);
+}
+
+/* Chat bubble: incoming (left) */
+@utility bubble {
+  position: relative;
+  border-radius: var(--radius-xl);
+  border-top-left-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-card);
+}
+
+/* Chat bubble: outgoing (right), carries the single action tint */
+@utility bubble-out {
+  position: relative;
+  border-radius: var(--radius-xl);
+  border-top-right-radius: 0.375rem;
+  border: 1px solid color-mix(in oklch, var(--color-primary) 34%, transparent);
+  background-color: color-mix(in oklch, var(--color-primary) 20%, var(--color-card));
+}
+
+/* Conversation rail row: the chat list entry */
+@utility chat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 0.625rem;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Reading column: a calm chat measure instead of a full-bleed grid */
+@utility stream {
+  max-width: 46rem;
+}
+
+/* Pipeline stages as connected chips */
+@utility pipeline-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+}
+
+@utility pipeline-step-live {
+  border-color: color-mix(in oklch, var(--color-primary) 45%, transparent);
+  color: var(--color-primary);
 }
 
 @utility text-eyebrow {
@@ -165,7 +257,7 @@
 }
 
 @utility animate-rise {
-  animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @utility animate-grow-x {
@@ -177,65 +269,29 @@
   animation: pulse-dot 1.8s ease-out infinite;
 }
 
-.panel-glow {
+/* The signature movement: a status sweep along the pipeline. Indeterminate,
+   driven by real pending/processing state. */
+@utility pipeline-surge {
   position: relative;
+  overflow: hidden;
 }
-.panel-glow::before {
+.pipeline-surge::after {
   content: "";
   position: absolute;
-  inset: -1px;
-  border-radius: inherit;
+  inset-block: 0;
+  width: 40%;
+  border-radius: 999px;
   background: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--color-primary) 22%, transparent),
-    transparent 55%
+    90deg,
+    transparent,
+    var(--color-primary),
+    transparent
   );
-  opacity: 0.45;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 0;
-}
-.panel-glow > * {
-  position: relative;
-  z-index: 1;
+  animation: surge 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-@media (hover: hover) {
-  .panel-glow:hover::before {
-    opacity: 1;
-  }
-  .panel-glow:hover::after {
-    opacity: 1;
-  }
-}
-.panel-glow::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--color-primary) 70%, transparent),
-    transparent 60%
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.panel-glow > * {
-  position: relative;
-  z-index: 1;
+@utility animate-send {
+  animation: send 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes rise {
@@ -265,6 +321,26 @@
   }
   70% {
     box-shadow: 0 0 0 5px transparent;
+  }
+}
+
+@keyframes surge {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@keyframes send {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 

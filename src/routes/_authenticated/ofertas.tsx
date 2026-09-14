@@ -18,7 +18,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { DataState } from "@/components/common/DataState";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
-import { StatCard, timeAgo } from "@/components/common/stat-card";
+import { timeAgo } from "@/components/common/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -105,7 +105,6 @@ function OffersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Principal"
         title="Ofertas"
         description="Todas as ofertas capturadas pelas suas fontes e automações."
         actions={
@@ -147,39 +146,23 @@ function OffersPage() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={ShoppingBag}
-          label="Ofertas totais"
-          value={offers.length}
-          hint="Na lista atual"
-          accent="text-chart-1 bg-chart-1/10 border-chart-1/20"
-          delay={0}
-        />
-        <StatCard
-          icon={Ticket}
-          label="Com cupom"
-          value={withCoupon}
-          hint="Possuem cupom aplicável"
-          accent="text-chart-3 bg-chart-3/10 border-chart-3/20"
-          delay={40}
-        />
-        <StatCard
-          icon={Percent}
-          label="Desconto médio"
-          value={avgDiscount}
-          hint="Percentual na lista"
-          accent="text-chart-4 bg-chart-4/10 border-chart-4/20"
-          delay={80}
-        />
-        <StatCard
-          icon={Tags}
-          label="Pendentes"
-          value={pending}
-          hint="Capturadas em processamento"
-          accent="text-warning bg-warning/10 border-warning/20"
-          delay={120}
-        />
+      <div className="stream flex flex-wrap items-center gap-1.5">
+        <span className="pipeline-step">
+          <ShoppingBag className="size-3.5" /> Todas ·{" "}
+          <span className="font-mono tabular-nums">{offers.length}</span>
+        </span>
+        <span className="pipeline-step">
+          <Ticket className="size-3.5" /> Com cupom ·{" "}
+          <span className="font-mono tabular-nums">{withCoupon}</span>
+        </span>
+        <span className="pipeline-step">
+          <Percent className="size-3.5" /> Desconto médio ·{" "}
+          <span className="font-mono tabular-nums">{avgDiscount}%</span>
+        </span>
+        <span className="pipeline-step pipeline-step-live">
+          <Tags className="size-3.5" /> Pendentes ·{" "}
+          <span className="font-mono tabular-nums">{pending}</span>
+        </span>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -396,7 +379,7 @@ function OffersPage() {
                   </div>
                 )}
                 {selectedOffer.discount_percentage ? (
-                  <Badge className="absolute top-2 right-2 bg-amber-500 text-slate-950 font-black text-xs">
+                  <Badge className="absolute top-2 right-2 border border-success/25 bg-success/10 font-mono text-xs font-bold text-success">
                     {selectedOffer.discount_percentage}% OFF
                   </Badge>
                 ) : null}

@@ -19,7 +19,9 @@ export default defineTool({
     const supabase = supabaseForUser(ctx);
     let query = supabase
       .from("offers")
-      .select("id,title,sale_price,original_price,currency,discount_percentage,coupon,status,captured_at,affiliate_url")
+      .select(
+        "id,title,sale_price,original_price,currency,discount_percentage,coupon,status,captured_at,affiliate_url",
+      )
       .order("captured_at", { ascending: false })
       .limit(limit);
     if (status) query = query.eq("status", status);

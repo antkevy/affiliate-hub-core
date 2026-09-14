@@ -49,7 +49,6 @@ function PublicationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Relatórios"
         title="Publicações"
         description="Registro de todas as publicações e seus resultados."
       />
@@ -66,44 +65,40 @@ function PublicationsPage() {
           />
         }
       >
-        <ul className="panel divide-y divide-border animate-rise" style={{ animationDelay: "0ms" }}>
+        <ul className="stream space-y-4 animate-rise" style={{ animationDelay: "0ms" }}>
           {(query.data ?? []).map((publication) => (
-            <li
-              key={publication.id}
-              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/40"
-            >
-              <span
-                className={cn(
-                  "grid size-8 shrink-0 place-items-center rounded-lg border",
-                  statusIconTone(publication.status),
-                )}
-              >
-                <Megaphone className="size-3.5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{firstLine(publication.content)}</p>
-                <p
-                  className="mt-0.5 text-xs text-muted-foreground"
-                  title={
-                    publication.published_at
-                      ? new Date(publication.published_at).toLocaleString("pt-BR")
-                      : new Date(publication.created_at).toLocaleString("pt-BR")
-                  }
-                >
-                  {publication.published_at
-                    ? `Publicada ${timeAgo(publication.published_at)}`
-                    : `Criada ${timeAgo(publication.created_at)}`}
-                </p>
-                {publication.status === "failed" && publication.error_message ? (
-                  <p className="mt-1 line-clamp-2 text-xs text-destructive">
-                    {publication.error_message}
+            <li key={publication.id} className="flex justify-end">
+              <div className="w-full min-w-0 max-w-[34rem]">
+                <div className="mb-1 flex items-baseline justify-end gap-3 px-0.5">
+                  <p className="truncate text-[11px] font-medium text-muted-foreground">
+                    {publication.published_at
+                      ? `Publicada ${timeAgo(publication.published_at)}`
+                      : `Criada ${timeAgo(publication.created_at)}`}
                   </p>
-                ) : null}
+                  <span
+                    className={cn(
+                      "grid size-5 shrink-0 place-items-center rounded-full border",
+                      statusIconTone(publication.status),
+                    )}
+                  >
+                    <Megaphone className="size-3" />
+                  </span>
+                </div>
+                <div className="bubble-out animate-send w-fit max-w-full p-3.5">
+                  <p className="line-clamp-3 text-sm text-foreground">
+                    {firstLine(publication.content)}
+                  </p>
+                  {publication.status === "failed" && publication.error_message ? (
+                    <p className="mt-1.5 text-xs text-destructive">{publication.error_message}</p>
+                  ) : null}
+                  <div className="mt-2.5 flex justify-end">
+                    <StatusPill tone={entityTone(publication.status)}>
+                      <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
+                      {PUBLICATION_STATUS_LABEL[publication.status]}
+                    </StatusPill>
+                  </div>
+                </div>
               </div>
-              <StatusPill tone={entityTone(publication.status)}>
-                <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
-                {PUBLICATION_STATUS_LABEL[publication.status]}
-              </StatusPill>
             </li>
           ))}
         </ul>

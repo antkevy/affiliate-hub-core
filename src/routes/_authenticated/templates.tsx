@@ -79,7 +79,6 @@ function TemplatesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Conteúdo"
         title="Templates"
         description="Crie modelos de mensagem usando variáveis dinâmicas."
         actions={

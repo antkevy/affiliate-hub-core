@@ -192,7 +192,6 @@ function BannersPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Conteúdo"
         title="Banners"
         description="Crie modelos de banner, personalize a oferta e gere a imagem em PNG."
         actions={

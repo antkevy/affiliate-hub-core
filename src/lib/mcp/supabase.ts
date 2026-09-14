@@ -27,10 +27,7 @@ function supabaseProjectUrl(): string {
 }
 
 function supabasePublishableKey(): string {
-  const direct = configuredEnv([
-    "SUPABASE_PUBLISHABLE_KEY",
-    "VITE_SUPABASE_PUBLISHABLE_KEY",
-  ]);
+  const direct = configuredEnv(["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]);
   if (direct) return direct;
 
   const keyset = runtimeEnv("SUPABASE_PUBLISHABLE_KEYS");

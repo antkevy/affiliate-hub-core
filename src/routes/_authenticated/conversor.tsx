@@ -118,7 +118,6 @@ export function ConversorPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Afiliados"
         title="Conversor de Ofertas"
         description="Cole o link e a IA monta o post com seu afiliado, ou converta mensagens capturadas do Mercado Livre com URL canônica limpa."
       />

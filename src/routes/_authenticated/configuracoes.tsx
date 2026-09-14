@@ -47,11 +47,7 @@ function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Sistema"
-        title="Configurações"
-        description="Gerencie os dados da sua conta."
-      />
+      <PageHeader title="Configurações" description="Gerencie os dados da sua conta." />
 
       <div className="panel max-w-xl space-y-4 p-5 animate-rise">
         <div className="flex items-center gap-2.5">

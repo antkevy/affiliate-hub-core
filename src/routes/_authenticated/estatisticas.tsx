@@ -68,7 +68,6 @@ function StatsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Relatórios"
         title="Estatísticas"
         description="Visão consolidada das ofertas capturadas e publicações realizadas."
       />

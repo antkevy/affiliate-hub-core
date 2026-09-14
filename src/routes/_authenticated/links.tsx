@@ -60,7 +60,6 @@ function LinksPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Afiliados"
         title="Links de Afiliado"
         description="Converta URLs originais em links de afiliado automaticamente."
         actions={

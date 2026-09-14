@@ -121,7 +121,6 @@ function SourcesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Canais"
         title="Fontes"
         description="Cadastre os canais, grupos e feeds de onde as ofertas serão capturadas."
         actions={
