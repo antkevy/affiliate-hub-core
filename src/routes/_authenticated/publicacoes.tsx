@@ -31,6 +31,21 @@ function statusIconTone(status: PublicationStatus) {
   return "border-border bg-secondary/60 text-muted-foreground";
 }
 
+function statusMarker(status: PublicationStatus): string {
+  switch (status) {
+    case "published":
+      return "ENVIADA";
+    case "failed":
+      return "FALHOU";
+    case "processing":
+      return "PROCESSANDO";
+    case "pending":
+      return "NA FILA";
+    default:
+      return status.toUpperCase();
+  }
+}
+
 function firstLine(content: string | null): string {
   if (!content) return "Publicação sem conteúdo";
   const line = content
@@ -70,21 +85,22 @@ function PublicationsPage() {
             <li key={publication.id} className="flex justify-end">
               <div className="w-full min-w-0 max-w-[34rem]">
                 <div className="mb-1 flex items-baseline justify-end gap-3 px-0.5">
-                  <p className="truncate text-[11px] font-medium text-muted-foreground">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                    [{statusMarker(publication.status)}]{" "}
                     {publication.published_at
-                      ? `Publicada ${timeAgo(publication.published_at)}`
-                      : `Criada ${timeAgo(publication.created_at)}`}
+                      ? `· ${timeAgo(publication.published_at)}`
+                      : `· ${timeAgo(publication.created_at)}`}
                   </p>
                   <span
                     className={cn(
-                      "grid size-5 shrink-0 place-items-center rounded-full border",
+                      "grid size-5 shrink-0 place-items-center rounded-md border",
                       statusIconTone(publication.status),
                     )}
                   >
                     <Megaphone className="size-3" />
                   </span>
                 </div>
-                <div className="bubble-out animate-send w-fit max-w-full p-3.5">
+                <div className="ticket-out animate-send w-fit max-w-full p-3.5">
                   <p className="line-clamp-3 text-sm text-foreground">
                     {firstLine(publication.content)}
                   </p>

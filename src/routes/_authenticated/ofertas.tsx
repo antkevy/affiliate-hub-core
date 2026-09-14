@@ -251,7 +251,7 @@ function OffersPage() {
                             <button
                               type="button"
                               onClick={(e) => copyCoupon(offer.coupon, e)}
-                              className="inline-flex items-center gap-1 rounded border border-chart-3/30 bg-chart-3/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-chart-3 transition-colors hover:bg-chart-3/20"
+                              className="inline-flex items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary transition-colors hover:bg-primary/20"
                               title="Clique para copiar o cupom"
                             >
                               <span>Cupom: {offer.coupon}</span>
@@ -274,7 +274,7 @@ function OffersPage() {
                     {offer.discount_percentage ? (
                       <Badge
                         variant="secondary"
-                        className="border border-chart-3/30 bg-chart-3/10 text-xs font-bold text-chart-3"
+                        className="border border-success/25 bg-success/10 text-xs font-bold text-success"
                       >
                         {offer.discount_percentage}% OFF
                       </Badge>
@@ -408,7 +408,7 @@ function OffersPage() {
                     <button
                       type="button"
                       onClick={() => copyCoupon(selectedOffer.coupon)}
-                      className="inline-flex items-center gap-1.5 font-mono text-xs uppercase font-bold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded border border-amber-500/30 transition-colors"
+                      className="inline-flex items-center gap-1.5 font-mono text-xs uppercase font-bold text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded border border-primary/30 transition-colors"
                       title="Clique para copiar o cupom"
                     >
                       <span>{selectedOffer.coupon}</span>

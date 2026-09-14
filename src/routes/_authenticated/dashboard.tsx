@@ -75,7 +75,7 @@ function senderTone(id: string) {
   return SENDER_TONES[hash % SENDER_TONES.length];
 }
 
-function SenderAvatar({
+function SenderPlaque({
   id,
   name,
   icon: Icon,
@@ -84,23 +84,27 @@ function SenderAvatar({
   name: string;
   icon?: typeof ShoppingBag;
 }) {
-  const fallback = (name || "?").slice(0, 2).toUpperCase();
+  const symbol =
+    (name || "")
+      .replace(/[^A-Za-z0-9]/g, "")
+      .slice(0, 2)
+      .toUpperCase() || "?";
   return (
     <span
       className={cn(
-        "grid size-9 shrink-0 place-items-center rounded-full border text-[11px] font-bold",
+        "grid size-8 shrink-0 place-items-center rounded-md border font-mono text-[10px] font-bold",
         senderTone(id),
       )}
     >
-      {Icon ? <Icon className="size-4" /> : fallback}
+      {Icon && !name ? <Icon className="size-4" /> : symbol}
     </span>
   );
 }
 
 function DayDivider({ children }: { children: React.ReactNode }) {
   return (
-    <p className="my-5 text-center text-[11px] font-semibold uppercase tracking-[0.1em] text-subtle-foreground">
-      {children}
+    <p className="my-5 text-center font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-subtle-foreground">
+      — {children} —
     </p>
   );
 }
@@ -197,8 +201,8 @@ function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Hoje"
-        description="Seu dia como ele chega: o que as fontes trouxeram e o que já saiu publicado."
+        title="Mesa"
+        description="O dia no tape: o que as fontes trouxeram e o que já saiu publicado."
         actions={
           <>
             <LiveBadge
@@ -254,22 +258,25 @@ function DashboardPage() {
         </div>
       </section>
 
-      <section aria-label="Corrente de mensagens" className="stream space-y-5">
+      <section aria-label="Tape do dia" className="stream space-y-5">
         {isLoading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((item) => (
-              <div key={item} className="bubble h-20 animate-pulse p-4" />
+              <div key={item} className="ticket h-20 animate-pulse p-4" />
             ))}
           </div>
         ) : recentOffers.length === 0 && recentPublications.length === 0 ? (
-          <div className="bubble-out mx-auto mt-4 max-w-sm p-4 text-center">
-            <p className="text-sm text-foreground">Nenhuma oferta por aqui ainda.</p>
+          <div className="ticket-out mx-auto mt-4 max-w-sm p-4 text-center">
+            <p className="font-mono text-xs uppercase tracking-[0.14em] text-subtle-foreground">
+              Sem leituras
+            </p>
+            <p className="mt-1 text-sm text-foreground">Nenhuma oferta por aqui ainda.</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Configure uma fonte ou crie uma oferta manualmente para a conversa começar.
+              Configure uma fonte ou crie uma oferta manualmente para o tape começar.
             </p>
             <Link
               to="/fontes"
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/40 px-3.5 py-1.5 text-xs font-medium text-primary"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-primary/40 px-3.5 py-1.5 text-xs font-medium text-primary"
             >
               <Plus className="size-3.5" />
               Adicionar fonte
@@ -284,19 +291,21 @@ function DashboardPage() {
                 (offer.marketplace_id && marketplaceName.get(offer.marketplace_id)) || "Captura";
               return (
                 <div key={offer.id} className="flex items-start gap-2.5">
-                  <SenderAvatar
+                  <SenderPlaque
                     id={`${offer.marketplace_id ?? "capture"}-${sender}`}
                     name={sender}
                     icon={ShoppingBag}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-baseline justify-between gap-3 px-0.5">
-                      <p className="text-[11px] font-medium text-muted-foreground">{sender}</p>
-                      <p className="text-[11px] text-subtle-foreground">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                        {sender}
+                      </p>
+                      <p className="font-mono text-[11px] text-subtle-foreground">
                         {timeAgo(offer.created_at)}
                       </p>
                     </div>
-                    <div className="bubble p-3">
+                    <div className="ticket p-3">
                       <div className="flex items-start gap-3">
                         <div className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/40">
                           {offer.image_url ? (
@@ -362,12 +371,14 @@ function DashboardPage() {
                     <div key={publication.id} className="flex justify-end gap-2.5">
                       <div className="min-w-0 max-w-[34rem] text-right">
                         <div className="mb-1 flex items-baseline justify-end gap-3 px-0.5">
-                          <p className="text-[11px] text-subtle-foreground">
+                          <p className="font-mono text-[11px] text-subtle-foreground">
                             {timeAgo(publication.created_at)}
                           </p>
-                          <p className="text-[11px] font-medium text-muted-foreground">{sender}</p>
+                          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                            {sender}
+                          </p>
                         </div>
-                        <div className="bubble-out animate-send p-3 text-left">
+                        <div className="ticket-out animate-send p-3 text-left">
                           <p className="line-clamp-2 text-sm text-foreground">
                             {publicationPreview(publication)}
                           </p>

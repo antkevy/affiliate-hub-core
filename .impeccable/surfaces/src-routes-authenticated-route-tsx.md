@@ -1,5 +1,5 @@
 ---
-version: 1
+version: 2
 slug: "src-routes-authenticated-route-tsx"
 primary_target: "src/routes/_authenticated/route.tsx"
 related_targets: ["src/routes/_authenticated/dashboard.tsx","src/routes/_authenticated/ofertas.tsx","src/routes/_authenticated/publicacoes.tsx","src/routes/_authenticated/conversor.tsx","src/routes/_authenticated/monitoramento.tsx"]
@@ -13,37 +13,39 @@ Mode: operate.
 
 Redesenho do mundo visual de todo o app autenticado (AppShell + 16 rotas),
 mantendo 100% das funcionalidades. Usuário solo, desktop + celular, tema escuro
-obrigatório.
+obrigatório. Substitui o mundo anterior (Telegram Native, seed 906585ae,
+descartado pelo usuário).
 
 ## Direction contract
 
-THESIS: O hub vira um feed de Telegram sério para quem vive no Telegram: o app é
-uma conversa longa e calma com o mercado — sala de leitura, não console admin.
-Ele recusa o grid padrão de cards shadcn + métricas em azulejos e o corredor de
+THESIS: O hub vira a mesa de operação de um afiliado solo: um terminal escuro
+onde cada número é uma verdade ao vivo, o "piloto automático" aparece como um
+algo rodando em segundo plano, e o feed do dia é um tape (fita) de movimentos.
+Recusa o grid padrão de cards shadcn + métricas em azulejos e o corredor de
 dashboard genérico.
 
-OWN-WORLD: fundo chat-navy profundo (escuro, levemente frio); coluna de mensagem;
-entidades como bolhas de conversa — publicações/saídas à direita (outgoing),
-ofertas capturadas/fontes à esquerda (incoming) com remetente e hora; única cor
-saturada (azul de envio) reservada a controles acionáveis; preços e percentuais
-em numerais tabulares; toda entidade tem identidade de conversa mínima (chip
-inicial, nome, timestamp).
+OWN-WORLD: fundo quase-preto neutro ("watch bowl", leve frio); uma única cor
+saturada — fósforo âmbar — reservada a ações e ao estado vivo; verde/vermelho
+só em deltas reais e estados; entidades como instrumentos (placa de símbolo
+mono + código + hora); preços e percentuais sempre em numerais tabulares mono;
+labels de seção em mono maiúsculo.
 
-STORY: O operador abre e vê o dia: o que os canais trouxeram, o que foi
-publicado, onde falhou — como ver o próprio canal de fora. Cada etapa se dobra
-em uma conversa (thread de fonte, offer, publicação). "Publicar agora" e
-"Executar automação" são os únicos gestos sonoros.
+STORY: O operador abre a mesa e vê o tape do dia: o que as fontes trouxeram
+(capturadas → fila → enviadas), o que foi publicado e onde falhou — como ler o
+próprio algoritmo. Cada etapa do ciclo aparece como ticket de status; cada
+entrada é um instrumento. "Publicar agora" e "Executar automação" são os únicos
+gestos sonoros.
 
-FIRST VIEWPORT: trilho de conversas à esquerda (drawer no desktop; barra inferior
-no celular); à direita a corrente "Hoje" — bolhas de ofertas entrando (par de
-preço, chip %OFF, tag marketplace) e bolhas de publicações saindo, entrelaçadas,
-com faixa de pipeline (fonte→filtro→post→envio) em chips de status no topo.
-Ação primária "Executar captura" fixa no rodapé da corrente.
+FIRST VIEWPORT: trilho de instrumentos à esquerda (drawer no desktop; barra
+inferior no celular, 5 guias + safe-area); à direita a fita "Mesa" — tickets
+de ofertas entrando (placa de símbolo, par de preço, `%OFF` no verde) e
+tickets de transmissão saindo, entrelaçados, com a faixa de pipeline
+(fonte→filtro→post→envio) em chips mono no topo. Ação primária "Executar
+captura" na cabeça da fita.
 
-FORM: forma escolhida = Telegram Native (meu top-ranked; carta PICK), seed
-906585ae. Assinatura: o surto do pipeline — ao Publicar, um varrimento
-amortecido percorre fonte→filtro→post→envio; falha inflama um slip vermelho na
-etapa.
+FORM: forma escolhida = Terminal de Trading (carta PICK do autônomo), seed
+876772dd. Assinatura: o surto do tape — ao Publicar, um varrimento amortecido
+percorre fonte→filtro→post→envio; falha inflama um slip vermelho na etapa.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the
 finish review, the verdict, DESIGN.md, and every shipping raster carrying its

@@ -38,12 +38,15 @@ const MOBILE_TAB_ITEMS: Array<{ item: NavItem; extra?: boolean }> = [
 function Brand() {
   return (
     <div className="flex items-center gap-2.5 px-4 py-4">
-      <div className="grid size-8 place-items-center rounded-xl border border-primary/25 bg-primary/15 text-primary">
+      <div className="relative grid size-8 place-items-center rounded-md border border-primary/30 bg-primary/15 text-primary">
         <Zap className="size-4" />
+        <span className="absolute -right-1 -top-1 size-1.5 rounded-full bg-primary" />
       </div>
       <div className="leading-tight">
         <p className="font-display text-sm font-semibold">Affiliate Hub</p>
-        <p className="text-[11px] text-muted-foreground">Automação para afiliados</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+          Automação para afiliados
+        </p>
       </div>
     </div>
   );
@@ -70,15 +73,15 @@ function NavItemRow({
       to={item.to}
       onClick={onNavigate}
       className={cn(
-        "chat-row w-full text-sm",
+        "inst-row w-full text-sm",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          ? "bg-sidebar-accent text-sidebar-primary"
           : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground",
       )}
     >
       <span
         className={cn(
-          "grid size-9 shrink-0 place-items-center rounded-full border",
+          "grid size-8 shrink-0 place-items-center rounded-md border",
           active
             ? "border-primary/30 bg-primary/15 text-primary"
             : "border-border bg-secondary/60 text-muted-foreground group-hover:text-foreground",
@@ -104,7 +107,7 @@ function NavLinks({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
     <nav className="flex-1 space-y-4 overflow-y-auto px-2.5 pb-4 pt-1">
       {NAV_GROUPS.map((group) => (
         <div key={group.title}>
-          <p className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-subtle-foreground">
+          <p className="px-2.5 pb-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-subtle-foreground">
             {group.title}
           </p>
           <ul className="space-y-0.5">
@@ -143,8 +146,8 @@ function UserMenu() {
     <div className="border-t border-sidebar-border p-2.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="chat-row w-full rounded-lg text-left hover:bg-sidebar-accent">
-            <Avatar className="size-9">
+          <button className="inst-row w-full rounded-lg text-left hover:bg-sidebar-accent">
+            <Avatar className="size-8">
               <AvatarFallback className="border border-border bg-secondary text-xs">
                 {initials}
               </AvatarFallback>
