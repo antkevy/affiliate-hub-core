@@ -18,7 +18,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
   }),
   validateSearch: (search: Record<string, unknown>) => ({
     authorization_id:
-      typeof search.authorization_id === "string" ? search.authorization_id : "",
+      typeof search["authorization_id"] === "string" ? search["authorization_id"] : "",
   }),
   beforeLoad: async ({ search, location }) => {
     if (!search.authorization_id) throw new Error("Solicitação de autorização ausente.");
@@ -28,9 +28,10 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
       throw redirect({ to: "/auth", search: { next } });
     }
   },
-  loader: async ({ search }) => {
+  loaderDeps: ({ search }) => ({ authorizationId: search.authorization_id }),
+  loader: async ({ deps }) => {
     const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(
-      search.authorization_id,
+      deps.authorizationId,
     );
     if (error) throw error;
     if (data && "redirect_url" in data) throw redirect({ href: data.redirect_url });

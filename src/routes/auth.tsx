@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Zap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +15,12 @@ function safeNext(value: unknown): string {
 }
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>) => ({ next: safeNext(search.next) }),
+  validateSearch: (search: Record<string, unknown>): { next?: string } => ({
+    next:
+      typeof search["next"] === "string" && search["next"].startsWith("/")
+        ? safeNext(search["next"])
+        : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Entrar — Affiliate Hub" },
@@ -36,8 +41,8 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const navigate = useNavigate();
-  const { next } = Route.useSearch();
+  const search = Route.useSearch();
+  const next = safeNext(search.next);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
