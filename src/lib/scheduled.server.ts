@@ -8,6 +8,7 @@ import {
 } from "@/lib/mercado-livre-affiliate.server";
 import { captureTelegramChannel } from "@/lib/telegram.server";
 import { captureAmazonOffers } from "@/lib/amazon-creators.server";
+import { fetchProductImage, looksLikeTelegramThumbnail } from "@/lib/telegram";
 import {
   downloadImageBase64,
   postTelegram,
@@ -20,6 +21,12 @@ import {
   generateAliExpressAffiliateLink,
 } from "@/lib/aliexpress-affiliate.server";
 import { isPublicationDuplicate } from "@/lib/duplicate-prevention";
+import {
+  buildOfferBannerConfigServer,
+  buildOfferSvg,
+  renderBannerSvgToBase64,
+  resolveSavedBannerServer,
+} from "@/lib/banner-render.server";
 import type { Destination, Monitor, Offer, Source } from "@/types";
 
 // Cliente Supabase sem tipagem estática — mesmas colunas validadas no schema
@@ -631,6 +638,7 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
         offer,
         config,
         finalContent,
+        marketplaceName,
       );
       await recordPublication(db, offer, destination, finalContent, attempt, report, publishedKeys);
       if (attempt.ok) published++;
@@ -778,7 +786,14 @@ async function publishForMonitor(
             Boolean(template),
           )
         : content;
-    const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
+    const attempt = await publishToDestinationServer(
+      db,
+      destination,
+      offer,
+      config,
+      finalContent,
+      marketplaceName,
+    );
     await recordPublication(db, offer, destination, finalContent, attempt, report, publishedKeys);
     if (attempt.ok) {
       published++;
@@ -838,15 +853,28 @@ async function publishToDestinationServer(
   db: Db,
   destination: Destination,
   offer: Offer,
-  config: { include_banner?: boolean },
+  config: { include_banner?: boolean; banner_id?: string | null },
   content: string,
+  marketplaceName: Map<string, string>,
 ): Promise<{ ok: boolean; error?: string; chat_id?: number; message_id?: number }> {
   const dc = destinationConfiguration(destination);
   if (destination.type === "telegram") {
     if (!dc.token || !dc.chat_id) {
       return { ok: false, error: "Destino sem token ou canal configurado." };
     }
-    const imageUrl = await firstOfferImage(db, offer.id);
+    if (config.include_banner) {
+      const bannerImage = await buildBannerImageServer(db, offer, config, marketplaceName);
+      if (bannerImage) {
+        return postTelegram({
+          token: dc.token,
+          method: "sendPhoto",
+          chat_id: dc.chat_id,
+          text: content,
+          files: [{ name: "banner.png", base64: bannerImage }],
+        });
+      }
+    }
+    const imageUrl = await upgradeTinyOfferImageServer(db, offer);
     const imageBase64 = imageUrl ? await downloadImageBase64(imageUrl) : null;
     if (imageBase64) {
       return postTelegram({
@@ -871,6 +899,37 @@ async function publishToDestinationServer(
   return { ok: false, error: `Publicação via ${destination.type} ainda requer integração.` };
 }
 
+/**
+ * Gera o banner renderizado no servidor (resvg + fontes embutidas). Retorna
+ * null em qualquer falha — o post segue com a foto do produto como fallback.
+ */
+async function buildBannerImageServer(
+  db: Db,
+  offer: Offer,
+  config: { banner_id?: string | null },
+  marketplaceName: Map<string, string>,
+): Promise<string | null> {
+  try {
+    const saved = await withSoftTimeout(
+      resolveSavedBannerServer(db, offer.user_id, config.banner_id),
+      3000,
+      null,
+    );
+    const bannerConfig = buildOfferBannerConfigServer(
+      offer,
+      marketplaceName.get(offer.marketplace_id ?? "") ?? null,
+      saved,
+    );
+    const imageUrl = await upgradeTinyOfferImageServer(db, offer);
+    const imageBase64 = imageUrl ? await downloadImageBase64(imageUrl) : null;
+    const svg = buildOfferSvg(bannerConfig, { base64: imageBase64, url: imageUrl });
+    return await withSoftTimeout(renderBannerSvgToBase64(svg), 8000, null);
+  } catch (error) {
+    console.error("buildBannerImageServer failed:", error);
+    return null;
+  }
+}
+
 /** Primeira imagem do produto cadastrada (offer_media) para posts agendados. */
 async function firstOfferImage(db: Db, offerId: string): Promise<string | null> {
   const { data, error } = await db
@@ -881,6 +940,22 @@ async function firstOfferImage(db: Db, offerId: string): Promise<string | null> 
     .limit(1);
   if (error) return null;
   return data?.[0]?.url ?? null;
+}
+
+/**
+ * Igual ao upgrade do navegador (capture.ts): se a imagem for miniatura pequena
+ * do Telegram, busca a foto em alta resolução (página do produto) e persiste em
+ * `offer_media`. Nunca bloqueia o ciclo de publicação.
+ */
+async function upgradeTinyOfferImageServer(db: Db, offer: Offer): Promise<string | null> {
+  const current = await firstOfferImage(db, offer.id);
+  if (!current || !offer.original_url || !looksLikeTelegramThumbnail(current)) return current;
+  const better = await withSoftTimeout(fetchProductImage(offer.original_url, 8000), 5000, null);
+  if (better && better !== current) {
+    await db.from("offer_media").update({ url: better }).eq("offer_id", offer.id).eq("position", 0);
+    return better;
+  }
+  return current;
 }
 
 async function sendWebhookServer(
@@ -1416,7 +1491,14 @@ export async function publishOfferForSource(
             Boolean(template),
           )
         : content;
-    const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
+    const attempt = await publishToDestinationServer(
+      db,
+      destination,
+      offer,
+      config,
+      finalContent,
+      marketplaceName,
+    );
     await recordPublication(
       db,
       offer,
@@ -1460,7 +1542,14 @@ export async function publishOfferForSource(
             Boolean(template),
           )
         : content;
-    const attempt = await publishToDestinationServer(db, destination, offer, config, finalContent);
+    const attempt = await publishToDestinationServer(
+      db,
+      destination,
+      offer,
+      config,
+      finalContent,
+      marketplaceName,
+    );
     await recordPublication(
       db,
       offer,

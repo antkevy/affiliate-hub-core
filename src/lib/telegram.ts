@@ -126,12 +126,22 @@ export function extractImage(rawInner: string): string | null {
   return null;
 }
 
+/**
+ * Detecta miniaturas pequenas do CDN do Telegram (ex.: ".../file/xxx_120.jpg"),
+ * que ficam pixeladas quando ampliadas dentro do banner. Nesses casos o ideal é
+ * buscar a imagem em alta resolução na página do produto.
+ */
+export function looksLikeTelegramThumbnail(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return /[_-]\d{2,4}\.(?:jpe?g|png|webp)(?:[?#]|$)/i.test(url);
+}
+
 /** Busca a página do produto e tenta extrair a imagem principal (og:image / link / JSON-LD). */
-export async function fetchProductImage(url: string): Promise<string | null> {
+export async function fetchProductImage(url: string, timeoutMs = 10000): Promise<string | null> {
   try {
     const cleanUrl = url.replace(/&amp;/g, "&");
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;
     try {
       response = await fetch(cleanUrl, {

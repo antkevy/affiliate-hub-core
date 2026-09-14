@@ -72,6 +72,18 @@ export const captureTelegramSource = createServerFn({ method: "POST" })
     return captureTelegramChannel(client, data);
   });
 
+/**
+ * Busca a imagem do produto em alta resolução (página do produto) no servidor.
+ * Usado para substituir miniaturas pequenas do Telegram ("..._120.jpg") antes
+ * de montar o banner, evitando que o produto apareça minúsculo/pixelado.
+ */
+export const fetchPrimaryProductImage = createServerFn({ method: "POST" })
+  .validator((payload: { url: string; timeoutMs?: number }) => payload)
+  .handler(async ({ data }): Promise<string | null> => {
+    if (!data.url) return null;
+    return fetchProductImage(data.url, data.timeoutMs ?? 8000);
+  });
+
 // Cliente Supabase sem tipagem estática — as colunas foram conferidas contra o
 // schema gerado em src/integrations/supabase/types.ts. Mesmo padrão de base.ts.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

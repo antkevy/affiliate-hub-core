@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   Tags,
   Ticket,
+  Trash2,
   UploadCloud,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +22,16 @@ import { StatCard, timeAgo } from "@/components/common/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
@@ -31,6 +42,7 @@ import {
 } from "@/components/ui/select";
 import { useCapture } from "@/hooks/useCapture";
 import { offersService } from "@/services/offers";
+import { toUserMessage } from "@/services/base";
 import { OFFER_STATUSES, OFFER_STATUS_LABEL, type Offer } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +68,8 @@ function OffersPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [clearOpen, setClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const queryClient = useQueryClient();
   const { running, run } = useCapture();
 
@@ -95,26 +109,41 @@ function OffersPage() {
         title="Ofertas"
         description="Todas as ofertas capturadas pelas suas fontes e automações."
         actions={
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={running}
-            onClick={async () => {
-              const report = await run();
-              if (report) {
-                queryClient.invalidateQueries({ queryKey: ["offers"] });
-                queryClient.invalidateQueries({ queryKey: ["monitors"] });
-                queryClient.invalidateQueries({ queryKey: ["offer-counts"] });
-              }
-            }}
-          >
-            {running ? (
-              <Loader2 className="mr-1.5 size-4 animate-spin" />
-            ) : (
-              <UploadCloud className="mr-1.5 size-4" />
-            )}
-            {running ? "Capturando..." : "Capturar agora"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={clearing || offers.length === 0}
+              onClick={() => setClearOpen(true)}
+            >
+              {clearing ? (
+                <Loader2 className="mr-1.5 size-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-1.5 size-4" />
+              )}
+              Limpar lista
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={running}
+              onClick={async () => {
+                const report = await run();
+                if (report) {
+                  queryClient.invalidateQueries({ queryKey: ["offers"] });
+                  queryClient.invalidateQueries({ queryKey: ["monitors"] });
+                  queryClient.invalidateQueries({ queryKey: ["offer-counts"] });
+                }
+              }}
+            >
+              {running ? (
+                <Loader2 className="mr-1.5 size-4 animate-spin" />
+              ) : (
+                <UploadCloud className="mr-1.5 size-4" />
+              )}
+              {running ? "Capturando..." : "Capturar agora"}
+            </Button>
+          </div>
         }
       />
 
@@ -288,6 +317,56 @@ function OffersPage() {
           </table>
         </div>
       </DataState>
+
+      {/* Confirmação para limpar a lista de ofertas */}
+      <AlertDialog open={clearOpen} onOpenChange={(open) => !open && setClearOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar lista de ofertas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todas as ofertas capturadas serão removidas definitivamente. Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setClearOpen(false)} disabled={clearing}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={clearing}
+              onClick={async (event) => {
+                event.preventDefault();
+                setClearing(true);
+                try {
+                  const removed = await offersService.clearAll();
+                  queryClient.invalidateQueries({ queryKey: ["offers"] });
+                  queryClient.invalidateQueries({ queryKey: ["monitors"] });
+                  queryClient.invalidateQueries({ queryKey: ["offer-counts"] });
+                  toast.success(
+                    removed > 0
+                      ? `${removed} ${removed === 1 ? "oferta removida" : "ofertas removidas"}.`
+                      : "A lista já estava vazia.",
+                  );
+                } catch (error) {
+                  toast.error("Não foi possível limpar a lista", {
+                    description: toUserMessage(error),
+                  });
+                } finally {
+                  setClearing(false);
+                  setClearOpen(false);
+                }
+              }}
+            >
+              {clearing ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 size-4" />
+              )}
+              Limpar tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Modal de Detalhes e Pré-visualização da Oferta com Imagem Ampliada */}
       <Dialog

@@ -48,6 +48,13 @@ export const offersService = {
     return data ?? [];
   },
 
+  /** Remove todas as ofertas capturadas do usuário atual e retorna quantas foram removidas. */
+  async clearAll(): Promise<number> {
+    const { data, error } = await supabase.from("offers").delete().select("id");
+    if (error) throw new Error(error.message);
+    return (data ?? []).length;
+  },
+
   /** Captura automática a partir de fontes monitoradas. */
   captureFromSource(): Promise<CaptureReport> {
     return runCapture();

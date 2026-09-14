@@ -6,7 +6,8 @@ import { automationConfigOf } from "@/lib/automation-config";
 import { destinationConfiguration } from "@/lib/destination-config";
 import { normalizeText } from "@/lib/affiliate-converter";
 import { pickCta, type CtaValues } from "@/lib/cta";
-import { captureTelegramSource } from "@/lib/telegram.server";
+import { captureTelegramSource, fetchPrimaryProductImage } from "@/lib/telegram.server";
+import { looksLikeTelegramThumbnail } from "@/lib/telegram";
 import { captureAmazonSourceRpc } from "@/lib/amazon-creators.server";
 import { formatOfferWithAI } from "@/lib/ai.server";
 import {
@@ -953,7 +954,7 @@ async function buildPublicationMedia(
 ): Promise<TelegramUploadItem[]> {
   const items: TelegramUploadItem[] = [];
   try {
-    const imageUrl = await getOfferImageUrl(offer.id);
+    const imageUrl = await upgradeTinyOfferImage(offer);
     const imageDataUrl = await loadImageAsDataUrl(imageUrl);
 
     let saved: BannerConfig | null = null;
@@ -1008,6 +1009,33 @@ async function getOfferImageUrl(offerId: string): Promise<string | null> {
     .limit(1);
   if (error) return null;
   return data?.[0]?.url ?? null;
+}
+
+/**
+ * Se a imagem da oferta for uma miniatura pequena do Telegram ("..._120.jpg"),
+ * tenta obter a foto em alta resolução na página do produto e persiste a melhoria
+ * em `offer_media` para usos futuros (banner e posts agendados). Nunca bloqueia:
+ * em falha mantém a imagem original.
+ */
+async function upgradeTinyOfferImage(offer: Offer): Promise<string | null> {
+  const current = await getOfferImageUrl(offer.id);
+  if (!current || !offer.original_url || !looksLikeTelegramThumbnail(current)) return current;
+  try {
+    const better = await fetchPrimaryProductImage({
+      data: { url: offer.original_url, timeoutMs: 8000 },
+    });
+    if (better && better !== current) {
+      const { error } = await supabase
+        .from("offer_media")
+        .update({ url: better })
+        .eq("offer_id", offer.id)
+        .eq("position", 0);
+      if (!error) return better;
+    }
+  } catch {
+    // best-effort
+  }
+  return current;
 }
 
 async function sendWebhook(url: string, offer: Offer): Promise<{ ok: boolean; error?: string }> {
