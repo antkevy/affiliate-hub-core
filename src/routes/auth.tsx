@@ -15,12 +15,10 @@ function safeNext(value: unknown): string {
 }
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>): { next?: string } => ({
-    next:
-      typeof search["next"] === "string" && search["next"].startsWith("/")
-        ? safeNext(search["next"])
-        : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { next?: string } =>
+    typeof search["next"] === "string" && search["next"].startsWith("/")
+      ? { next: safeNext(search["next"]) }
+      : {},
   head: () => ({
     meta: [
       { title: "Entrar — Affiliate Hub" },
