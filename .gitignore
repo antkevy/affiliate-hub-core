@@ -16,8 +16,7 @@ dist-ssr
 .nitro
 *.local
 
-# Environment variables
-.env
+# Environment variables — .env committed (only VITE_ public values)
 .env.local
 .env.*.local
 
