@@ -6,10 +6,8 @@ import {
   ExternalLink,
   ImageIcon,
   Loader2,
-  Percent,
   ShoppingBag,
   Tags,
-  Ticket,
   Trash2,
   UploadCloud,
 } from "lucide-react";
@@ -146,24 +144,26 @@ function OffersPage() {
         }
       />
 
-      <div className="stream flex flex-wrap items-center gap-1.5">
-        <span className="pipeline-step">
-          <ShoppingBag className="size-3.5" /> Todas ·{" "}
-          <span className="font-mono tabular-nums">{offers.length}</span>
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="text-foreground">Posição do tape</span>
+        <span className="flex items-center gap-1.5">
+          todas
+          <span className="text-foreground tabular-nums">{offers.length}</span>
         </span>
-        <span className="pipeline-step">
-          <Ticket className="size-3.5" /> Com cupom ·{" "}
-          <span className="font-mono tabular-nums">{withCoupon}</span>
+        <span className="flex items-center gap-1.5">
+          com cupom
+          <span className="text-foreground tabular-nums">{withCoupon}</span>
         </span>
-        <span className="pipeline-step">
-          <Percent className="size-3.5" /> Desconto médio ·{" "}
-          <span className="font-mono tabular-nums">{avgDiscount}%</span>
+        <span className="flex items-center gap-1.5">
+          desconto médio
+          <span className="text-foreground tabular-nums">{avgDiscount}%</span>
         </span>
-        <span className="pipeline-step pipeline-step-live">
-          <Tags className="size-3.5" /> Pendentes ·{" "}
-          <span className="font-mono tabular-nums">{pending}</span>
+        <span className="flex items-center gap-1.5 text-warning">
+          <span className="size-1.5 rounded-full bg-warning" />
+          pendentes
+          <span className="text-foreground tabular-nums">{pending}</span>
         </span>
-      </div>
+      </p>
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input

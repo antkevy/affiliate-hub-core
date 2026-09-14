@@ -1,22 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Activity,
-  ArrowRight,
-  Bot,
-  HeartPulse,
-  Inbox,
-  Link2,
-  Megaphone,
-  Plug,
-  Plus,
-  RefreshCw,
-  Send,
-  ShoppingBag,
-  Tags,
-  Workflow,
-} from "lucide-react";
+import { Activity, HeartPulse, Link2, Megaphone, Plus, RefreshCw, ShoppingBag } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -101,11 +86,28 @@ function SenderPlaque({
   );
 }
 
-function DayDivider({ children }: { children: React.ReactNode }) {
+function PanelHeading({
+  label,
+  meta,
+  active,
+  children,
+}: {
+  label: string;
+  meta?: React.ReactNode;
+  active?: boolean;
+  children?: React.ReactNode;
+}) {
   return (
-    <p className="my-5 text-center font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-subtle-foreground">
-      — {children} —
-    </p>
+    <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
+      <h2 className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.16em]">
+        {active ? <span className="size-1.5 rounded-full bg-primary" aria-hidden /> : null}
+        {label}
+      </h2>
+      <div className="flex items-center gap-2">
+        {meta ?? null}
+        {children}
+      </div>
+    </header>
   );
 }
 
@@ -177,32 +179,15 @@ function DashboardPage() {
   const marketplaceName = new Map(
     (marketplaces.data ?? []).map((marketplace) => [marketplace.id, marketplace.name]),
   );
-  const destinationId = new Map(
-    (destinations.data ?? []).map((destination) => [destination.id, destination.id]),
-  );
 
-  const recentOffers = (offers.data ?? []).slice(0, 6);
-  const recentPublications = loadedPublications.slice(0, 5);
-
-  const pipeline = [
-    { label: "Capturadas", value: offers.data?.length ?? 0, icon: Inbox },
-    { label: "Na fila", value: pendingCount, icon: Workflow, live: pendingCount > 0 },
-    { label: "Enviadas", value: publishedCount, icon: Send },
-    { label: "Destinos", value: destinations.data?.length ?? 0, icon: Plug },
-  ];
-
-  const quickActions = [
-    { label: "Nova oferta", icon: Plus, to: "/ofertas" },
-    { label: "Criar automação", icon: Bot, to: "/automacoes" },
-    { label: "Gerar link", icon: Link2, to: "/links" },
-    { label: "Ver publicações", icon: ArrowRight, to: "/publicacoes" },
-  ] as const;
+  const recentOffers = (offers.data ?? []).slice(0, 10);
+  const recentPublications = loadedPublications.slice(0, 8);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Mesa"
-        description="O dia no tape: o que as fontes trouxeram e o que já saiu publicado."
+        description="O ciclo do dia: entradas no tape e transmissões registradas."
         actions={
           <>
             <LiveBadge
@@ -214,6 +199,12 @@ function DashboardPage() {
               <RefreshCw className={cn("size-4", refetching && "animate-spin")} />
               {refetching ? "Atualizando..." : "Atualizar"}
             </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/links">
+                <Link2 className="size-4" />
+                Gerar link
+              </Link>
+            </Button>
             <Button size="sm" asChild>
               <Link to="/estatisticas">Ver estatísticas</Link>
             </Button>
@@ -221,188 +212,185 @@ function DashboardPage() {
         }
       />
 
-      <section aria-label="Ciclo de automação" className="stream">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {pipeline.map((stage, index) => (
-            <div key={stage.label} className="flex items-center gap-1.5">
-              <span
-                className={cn(
-                  "pipeline-step",
-                  stage.live && "pipeline-step-live",
-                  stage.live && "pipeline-surge",
-                )}
-              >
-                <stage.icon className="size-3.5" />
-                {stage.label} · <span className="font-mono tabular-nums">{stage.value}</span>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
+        <section aria-label="Entradas — tape do dia" className="panel overflow-hidden">
+          <PanelHeading
+            label="Entradas"
+            meta={
+              <span className="font-mono text-[11px] tabular-nums text-subtle-foreground">
+                {recentOffers.length} itens
               </span>
-              {index < pipeline.length - 1 ? (
-                <ArrowRight className="size-3 text-subtle-foreground" />
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </section>
+            }
+            children={
+              <Link
+                to="/ofertas"
+                className="font-mono text-[11px] uppercase tracking-[0.12em] text-primary hover:underline"
+              >
+                ver todas
+              </Link>
+            }
+          />
 
-      <section aria-label="Ações rápidas" className="stream">
-        <div className="flex flex-wrap gap-2">
-          {quickActions.map((action) => (
-            <Link
-              key={action.label}
-              to={action.to}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              <action.icon className="size-3.5" />
-              {action.label}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section aria-label="Tape do dia" className="stream space-y-5">
-        {isLoading ? (
-          <div className="space-y-3">
-            {[0, 1, 2].map((item) => (
-              <div key={item} className="ticket h-20 animate-pulse p-4" />
-            ))}
-          </div>
-        ) : recentOffers.length === 0 && recentPublications.length === 0 ? (
-          <div className="ticket-out mx-auto mt-4 max-w-sm p-4 text-center">
-            <p className="font-mono text-xs uppercase tracking-[0.14em] text-subtle-foreground">
-              Sem leituras
-            </p>
-            <p className="mt-1 text-sm text-foreground">Nenhuma oferta por aqui ainda.</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Configure uma fonte ou crie uma oferta manualmente para o tape começar.
-            </p>
-            <Link
-              to="/fontes"
-              className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-primary/40 px-3.5 py-1.5 text-xs font-medium text-primary"
-            >
-              <Plus className="size-3.5" />
-              Adicionar fonte
-            </Link>
-          </div>
-        ) : (
-          <>
-            <DayDivider>Agora</DayDivider>
-
-            {recentOffers.map((offer) => {
-              const sender =
-                (offer.marketplace_id && marketplaceName.get(offer.marketplace_id)) || "Captura";
-              return (
-                <div key={offer.id} className="flex items-start gap-2.5">
-                  <SenderPlaque
-                    id={`${offer.marketplace_id ?? "capture"}-${sender}`}
-                    name={sender}
-                    icon={ShoppingBag}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-baseline justify-between gap-3 px-0.5">
-                      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                        {sender}
-                      </p>
-                      <p className="font-mono text-[11px] text-subtle-foreground">
-                        {timeAgo(offer.created_at)}
-                      </p>
-                    </div>
-                    <div className="ticket p-3">
-                      <div className="flex items-start gap-3">
-                        <div className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-muted/40">
-                          {offer.image_url ? (
-                            <img
-                              src={offer.image_url}
-                              alt={offer.title}
-                              className="size-full object-cover"
-                            />
-                          ) : (
-                            <ShoppingBag className="size-4 text-muted-foreground/60" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 text-sm font-medium text-foreground">
-                            {offer.title}
-                          </p>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                              {formatPrice(
-                                offer.sale_price ?? offer.original_price,
-                                offer.currency,
-                              )}
-                            </span>
-                            {offer.original_price &&
-                            offer.sale_price &&
-                            offer.original_price > offer.sale_price ? (
-                              <span className="text-xs text-subtle-foreground line-through">
-                                {formatPrice(offer.original_price, offer.currency)}
-                              </span>
-                            ) : null}
-                            {offer.discount_percentage && offer.discount_percentage > 0 ? (
-                              <span className="rounded-md bg-success/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-success border border-success/20">
-                                -{Math.round(offer.discount_percentage)}%
-                              </span>
-                            ) : null}
-                            <StatusPill tone={entityTone(offer.status)}>
-                              {OFFER_STATUS_LABEL[offer.status]}
-                            </StatusPill>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+          {isLoading ? (
+            <ul className="divide-y divide-border">
+              {[0, 1, 2, 3].map((item) => (
+                <li key={item} className="flex items-center gap-3 px-4 py-3">
+                  <div className="size-8 shrink-0 animate-pulse rounded-md bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 w-3/4 animate-pulse rounded bg-muted" />
+                    <div className="h-2.5 w-1/3 animate-pulse rounded bg-muted" />
                   </div>
-                </div>
-              );
-            })}
-
-            {activeAutomations > 0 ? (
-              <p className="text-center text-xs text-muted-foreground">
-                {activeAutomations} automação{activeAutomations > 1 ? "ões" : ""} ativa
-                {activeAutomations > 1 ? "s" : ""} rodando em segundo plano
-              </p>
-            ) : null}
-
-            {recentPublications.length > 0 ? (
-              <>
-                <DayDivider>Saída</DayDivider>
-                {recentPublications.map((publication) => {
-                  const sender = publication.destination_id
-                    ? (destinationName.get(publication.destination_id) ?? "Destino")
-                    : "Destino";
-                  return (
-                    <div key={publication.id} className="flex justify-end gap-2.5">
-                      <div className="min-w-0 max-w-[34rem] text-right">
-                        <div className="mb-1 flex items-baseline justify-end gap-3 px-0.5">
-                          <p className="font-mono text-[11px] text-subtle-foreground">
-                            {timeAgo(publication.created_at)}
-                          </p>
-                          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                            {sender}
-                          </p>
-                        </div>
-                        <div className="ticket-out animate-send p-3 text-left">
-                          <p className="line-clamp-2 text-sm text-foreground">
-                            {publicationPreview(publication)}
-                          </p>
-                          <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
-                            {publication.destination_id &&
-                            destinationId.has(publication.destination_id) ? (
-                              <span className="text-[11px] text-muted-foreground">
-                                {destinationName.get(publication.destination_id)}
-                              </span>
-                            ) : null}
-                            <StatusPill tone={entityTone(publication.status)}>
-                              {PUBLICATION_STATUS_LABEL[publication.status]}
-                            </StatusPill>
-                          </div>
-                        </div>
-                      </div>
+                </li>
+              ))}
+            </ul>
+          ) : recentOffers.length === 0 ? (
+            <div className="grid h-44 place-items-center px-6 text-center">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.14em] text-subtle-foreground">
+                  Sem leituras
+                </p>
+                <p className="mt-1 text-sm text-foreground">Nenhuma oferta no tape ainda.</p>
+                <Link
+                  to="/fontes"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-primary/40 px-3.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
+                >
+                  <Plus className="size-3.5" />
+                  Adicionar fonte
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {recentOffers.map((offer) => {
+                const sender =
+                  (offer.marketplace_id && marketplaceName.get(offer.marketplace_id)) || "Captura";
+                const price = formatPrice(offer.sale_price ?? offer.original_price, offer.currency);
+                const discount =
+                  offer.discount_percentage && offer.discount_percentage > 0
+                    ? Math.round(offer.discount_percentage)
+                    : null;
+                return (
+                  <li
+                    key={offer.id}
+                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/40"
+                  >
+                    <SenderPlaque
+                      id={`${offer.marketplace_id ?? "capture"}-${sender}`}
+                      name={sender}
+                      icon={ShoppingBag}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{offer.title}</p>
+                      <p className="mt-0.5 flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
+                        <span>{sender}</span>
+                        <span className="text-subtle-foreground">·</span>
+                        <span>{timeAgo(offer.created_at)}</span>
+                        <span className="hidden sm:inline-flex">
+                          <StatusPill tone={entityTone(offer.status)}>
+                            {OFFER_STATUS_LABEL[offer.status]}
+                          </StatusPill>
+                        </span>
+                      </p>
                     </div>
-                  );
-                })}
-              </>
-            ) : null}
-          </>
-        )}
-      </section>
+                    <div className="flex shrink-0 flex-col items-end gap-0.5">
+                      <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                        {price}
+                      </span>
+                      {discount ? (
+                        <span className="rounded border border-success/25 bg-success/10 px-1.5 font-mono text-[11px] font-semibold text-success">
+                          -{discount}%
+                        </span>
+                      ) : (
+                        <span className="font-mono text-[11px] text-subtle-foreground sm:hidden">
+                          {OFFER_STATUS_LABEL[offer.status]}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section aria-label="Saídas — transmissões" className="panel overflow-hidden">
+          <PanelHeading
+            label="Saídas"
+            meta={
+              <span className="font-mono text-[11px] tabular-nums text-subtle-foreground">
+                {recentPublications.length} trans.
+              </span>
+            }
+            children={
+              <Link
+                to="/publicacoes"
+                className="font-mono text-[11px] uppercase tracking-[0.12em] text-primary hover:underline"
+              >
+                ver log
+              </Link>
+            }
+          />
+
+          {isLoading ? (
+            <ul className="divide-y divide-border">
+              {[0, 1, 2].map((item) => (
+                <li key={item} className="space-y-2 px-4 py-3">
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+                  <div className="h-3.5 w-4/5 animate-pulse rounded bg-muted" />
+                </li>
+              ))}
+            </ul>
+          ) : recentPublications.length === 0 ? (
+            <div className="grid h-44 place-items-center px-6 text-center">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.14em] text-subtle-foreground">
+                  Sem transmissões
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  As publicações nos destinos aparecem aqui.
+                </p>
+                <Link
+                  to="/publicacoes"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-primary/40 px-3.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
+                >
+                  Abrir publicações
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {recentPublications.map((publication) => {
+                const sender = publication.destination_id
+                  ? (destinationName.get(publication.destination_id) ?? "Destino")
+                  : "Destino";
+                return (
+                  <li
+                    key={publication.id}
+                    className="px-4 py-3 transition-colors hover:bg-secondary/40"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="truncate font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+                        {sender}
+                      </span>
+                      <span className="shrink-0 font-mono text-[11px] text-subtle-foreground">
+                        {timeAgo(publication.created_at)}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-sm text-foreground">
+                      {publicationPreview(publication)}
+                    </p>
+                    <div className="mt-1.5">
+                      <StatusPill tone={entityTone(publication.status)}>
+                        {PUBLICATION_STATUS_LABEL[publication.status]}
+                      </StatusPill>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <section className="panel p-5 animate-rise xl:col-span-2">

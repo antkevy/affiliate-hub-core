@@ -34,10 +34,17 @@ Registro do depoimento de design do redesenho de interface. Complementa
   e o ticket de saída (`ticket-out`) carrega a única tinta de ação. Labels de
   seção em mono maiúsculo espaçado (`text-eyebrow`), nunca kicker sobre
   heading.
-- **Navegação:** trilho de instrumentos no desktop (placa de símbolo quadrada
-  por entrada; grupo ativo em âmbar); no celular, barra inferior fixa com 5
-   guias (Dashboard, Ofertas, Conversor, Publicações, Mais) + bottom sheet com
-  a navegação completa; `pb` reservado para a barra + `safe-area-inset-bottom`.
+- **Navegação:** **barra de menus no topo** (modelo de estação de trabalho,
+  sem rail lateral): chaves mono maiúsculas — Painel e Ofertas são rotas
+  diretas; Canais, Conteúdo, Afiliados, Relatórios e Sistema são menus
+  discretos com as rotas agrupadas; chave ativa = texto âmbar + filete âmbar
+  inferior de 1px. No celular, barra inferior fixa com 5 guias (Dashboard,
+  Ofertas, Conversor, Publicações, Mais) + bottom sheet com a navegação
+  completa; `pb` reservado para a barra + `safe-area-inset-bottom`.
+- **Telemetria ao vivo:** ticker global no topo (todas as telas) com contagens
+  do pipeline (`cap · fila · env`), estado da operação (`operando`/`parado`
+  com ponto) e a **hora da última leitura** — rótulo "live" só quando a fonte
+  de dados confirma; sem autoplay, atualiza por evento/refetch.
 - **Movimento:** um momento autoral — o **surto do tape** (faixa indeterminada
   percorrendo `fonte→filtro→post→envio`) dirigido por estado real
   (fila/processamento > 0); saídas entram como linha de fita (`animate-send`,
@@ -48,18 +55,21 @@ Registro do depoimento de design do redesenho de interface. Complementa
 
 ## Superfícies construídas
 
-- **AppShell** — trilho de instrumentos (desktop) + barra inferior (mobile),
-  menu completo em bottom sheet; marca com placa de sinal âmbar e tagline
-  mono; grupo ativo = rota em âmbar.
-- **Dashboard → "Mesa"** — a fita do dia: ofertas capturadas entram como
-  tickets com placa de símbolo (código do marketplace, mono), preço em mono
-  com original riscado e `%OFF` verde, status pill; publicações saem à direita
-  como tickets de transmissão; faixa de ciclo em chips de pipeline mono com o
-  surto; ações rápidas como chips; estatísticas de fluxo e saúde da operação
-  preservadas abaixo.
-- **Ofertas** — gestão tabular preservada (superfície densa legítima), com
-  carrossel de chips de status; `%OFF` tokenizado em verde; cupom copiável
-  como affordance âmbar; desconto em numerais mono.
+- **AppShell** — barra de menus no topo (desktop) + barra inferior (mobile)
+  com sheet; marca com placa de sinal âmbar e tagline mono; ticker global de
+  pipeline com hora da última leitura; conteúdo em coluna central larga
+  (`max-w-7xl`), sem trilho lateral.
+- **Dashboard → "Mesa"** — o **blotter** do dia em dois painéis lado a lado
+  (empilham no mobile), header mono com contagem: **Entradas** = tape de
+  ofertas em **linhas densas** (placa de símbolo, título truncado, preço mono
+  tabular, `%OFF` verde, status pill), divididas por hairline; **Saídas** =
+  log mono de transmissões (destino · hora, preview em 2 linhas, status).
+  Abaixo, fluxo de envio (14 dias) e saúde da operação preservados; chaves
+  ações no PageHeader (Atualizar, Gerar link, Ver estatísticas).
+- **Ofertas** — gestão tabular preservada (superfície densa legítima), com **linha
+  textual de posição** em mono (`posição do tape: todas · com cupom · desconto
+  médio · pendentes`) no lugar de chips; `%OFF` tokenizado em verde; cupom
+  copiável como affordance âmbar; desconto em numerais mono.
 - **Publicações —> "Saída"** — log de transmissões: linha de cabeçalho mono
   `[ENVIADA|FALHOU|NA FILA] · tempo`, ticket de saída com preview e status;
   falhas com mensagem no próprio corpo.
@@ -76,9 +86,8 @@ Registro do depoimento de design do redesenho de interface. Complementa
   sobre os alvos (incl. passada `--viewport 390x844`) — limpo.
 - Build servido (`NITRO_PRESET=node-server`) responde 200 nas rotas
   autenticadas; artefatos compilados confirmam as fontes self-hosted (woff2 de
-  Space Grotesk/JetBrains Mono emitidos + `@font-face` relativos), os tokens
-  (`--primary:oklch(80% .16 80)`) e os utilitários `ticket`, `ticket-out`,
-  `inst-row`, `pipeline-step-live`.
+  Space Grotesk/JetBrains Mono emitidos + `@font-face` relativos) e os tokens
+  (`--primary:oklch(80% .16 80)`).
 - **Proveniência de rasters:** indisponível **neste host** (Android/bionic, sem
   navegador executável — o `chrome-headless-shell` glibc não roda sem o loader
   dinâmico). A checagem mobile foi feita por auditoria estática responsiva
