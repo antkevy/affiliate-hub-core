@@ -231,7 +231,7 @@ function DashboardPage() {
           </div>
 
           <div className="animate-rise" style={{ animationDelay: "130ms" }}>
-            <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <p className="text-eyebrow">Ações rápidas</p>
               <p className="text-xs text-subtle-foreground">Atalhos para as rotinas mais comuns</p>
             </div>
@@ -480,7 +480,7 @@ function DashboardPage() {
                   {(offers.data ?? []).slice(0, 6).map((offer) => (
                     <li
                       key={offer.id}
-                      className="flex items-center gap-3 rounded-lg py-2.5 transition-colors hover:bg-secondary/40"
+                      className="flex flex-wrap items-center gap-3 rounded-lg py-2.5 transition-colors hover:bg-secondary/40"
                     >
                       <div className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-muted/30">
                         {offer.image_url ? (
@@ -509,13 +509,16 @@ function DashboardPage() {
                           <span>{timeAgo(offer.created_at)}</span>
                         </p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div
+                        className="flex shrink-0 flex-wrap items-center gap-2"
+                        style={{ marginInlineStart: "auto" }}
+                      >
                         {offer.discount_percentage && offer.discount_percentage > 0 ? (
                           <span className="rounded-md bg-chart-3/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-chart-3 border border-chart-3/20">
                             -{Math.round(offer.discount_percentage)}%
                           </span>
                         ) : null}
-                        <div className="w-24 text-right">
+                        <div className="min-w-0 text-right">
                           <p className="truncate font-mono text-sm font-semibold tabular-nums text-foreground">
                             {formatPrice(offer.sale_price ?? offer.original_price, offer.currency)}
                           </p>
@@ -561,13 +564,13 @@ function DashboardPage() {
                   {loadedPublications.slice(0, 5).map((publication) => (
                     <li
                       key={publication.id}
-                      className="flex items-start justify-between gap-3 py-2.5"
+                      className="flex flex-wrap items-start justify-between gap-3 py-2.5"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-2 text-xs text-foreground">
                           {publicationPreview(publication)}
                         </p>
-                        <p className="mt-1 text-[11px] text-muted-foreground">
+                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                           {publication.destination_id &&
                           destinationName.has(publication.destination_id) ? (
                             <span className="inline-flex items-center gap-1.5">
