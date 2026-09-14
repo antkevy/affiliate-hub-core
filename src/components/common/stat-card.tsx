@@ -29,7 +29,7 @@ export function StatCard({
 
   return (
     <div
-      className="panel panel-glow group relative overflow-hidden p-4 animate-rise transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 active:scale-[0.99]"
+      className="panel panel-glow group relative overflow-hidden p-4 animate-rise transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hover:-translate-y-1 active:scale-[0.99]"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-primary via-chart-3 to-transparent opacity-70 transition-opacity group-hover:opacity-100" />
@@ -37,7 +37,7 @@ export function StatCard({
         <div className="flex min-w-0 items-center gap-2.5">
           <span
             className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-lg border transition-transform duration-300 group-hover:scale-110",
+              "grid size-9 shrink-0 place-items-center rounded-lg border transition-transform duration-300 lg:group-hover:scale-110",
               accent,
             )}
           >

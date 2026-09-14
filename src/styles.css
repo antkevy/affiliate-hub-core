@@ -137,6 +137,8 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+    overscroll-behavior-x: none;
   }
 
   h1,
@@ -193,8 +195,18 @@
   pointer-events: none;
   z-index: 0;
 }
-.panel-glow:hover::before {
-  opacity: 1;
+.panel-glow > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) {
+  .panel-glow:hover::before {
+    opacity: 1;
+  }
+  .panel-glow:hover::after {
+    opacity: 1;
+  }
 }
 .panel-glow::after {
   content: "";
@@ -220,9 +232,7 @@
   pointer-events: none;
   z-index: 0;
 }
-.panel-glow:hover::after {
-  opacity: 1;
-}
+
 .panel-glow > * {
   position: relative;
   z-index: 1;

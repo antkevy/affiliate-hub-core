@@ -240,12 +240,12 @@ function DashboardPage() {
                 <Link
                   key={action.label}
                   to={action.to}
-                  className="group flex min-h-16 items-center justify-between gap-3 rounded-xl border border-border bg-secondary/50 p-3 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-primary/30 hover:bg-secondary hover:shadow-[0_10px_24px_-12px_var(--color-primary)]"
+                  className="group flex min-h-16 items-center justify-between gap-3 rounded-xl border border-border bg-secondary/70 p-3 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hover:-translate-y-0.5 lg:hover:border-primary/30 lg:hover:bg-secondary lg:hover:shadow-[0_10px_24px_-12px_var(--color-primary)]"
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <span
                       className={cn(
-                        "grid size-9 shrink-0 place-items-center rounded-lg border transition-transform duration-300 group-hover:scale-110",
+                        "grid size-9 shrink-0 place-items-center rounded-lg border transition-transform duration-300 lg:group-hover:scale-110",
                         action.color,
                       )}
                     >
@@ -253,7 +253,7 @@ function DashboardPage() {
                     </span>
                     <span className="text-[13px] font-medium">{action.label}</span>
                   </span>
-                  <ArrowRight className="size-4 shrink-0 text-subtle-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+                  <ArrowRight className="size-4 shrink-0 text-subtle-foreground transition-transform lg:group-hover:translate-x-1 lg:group-hover:text-foreground" />
                 </Link>
               ))}
             </div>
