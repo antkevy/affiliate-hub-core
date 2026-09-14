@@ -1008,10 +1008,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      clear_all_user_offers: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      clear_all_user_offers: { Args: never; Returns: number }
     }
     Enums: {
       account_status: "disconnected" | "connected" | "error"
@@ -1196,7 +1193,15 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
-      source_type: ["telegram", "whatsapp", "api", "feed", "manual", "amazon", "shopee"],
+      source_type: [
+        "telegram",
+        "whatsapp",
+        "api",
+        "feed",
+        "manual",
+        "amazon",
+        "shopee",
+      ],
     },
   },
 } as const
