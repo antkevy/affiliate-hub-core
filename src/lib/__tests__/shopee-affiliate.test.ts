@@ -25,7 +25,7 @@ function mockFetch(body: unknown, status = 200) {
 }
 
 describe("signShopeeRequest", () => {
-  it("builds the SHA256 Credential header with a deterministic signature", () => {
+  it("builds the SHA256 Credential header with a deterministic signature", async () => {
     const appId = "1001";
     const secret = "my-secret";
     const timestamp = "1700000000";
@@ -33,14 +33,14 @@ describe("signShopeeRequest", () => {
     const expected = createHash("sha256")
       .update(`${appId}${timestamp}${payload}${secret}`, "utf8")
       .digest("hex");
-    expect(signShopeeRequest(appId, secret, timestamp, payload)).toBe(
+    await expect(signShopeeRequest(appId, secret, timestamp, payload)).resolves.toBe(
       `SHA256 Credential=${appId}, Timestamp=${timestamp}, Signature=${expected}`,
     );
   });
 
-  it("changes when the payload changes", () => {
-    const base = signShopeeRequest("1", "s", "1700000000", '{"a":1}');
-    const other = signShopeeRequest("1", "s", "1700000000", '{"a":2}');
+  it("changes when the payload changes", async () => {
+    const base = await signShopeeRequest("1", "s", "1700000000", '{"a":1}');
+    const other = await signShopeeRequest("1", "s", "1700000000", '{"a":2}');
     expect(base).not.toBe(other);
   });
 });

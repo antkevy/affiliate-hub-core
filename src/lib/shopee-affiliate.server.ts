@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -109,15 +108,17 @@ function parseErrorCode(message: string): string {
  * Monta o cabeçalho de autenticação da Open API.
  * Assinatura = hex(sha256(AppId + Timestamp + Payload + Secret)).
  */
-export function signShopeeRequest(
+export async function signShopeeRequest(
   appId: string,
   appSecret: string,
   timestamp: string,
   payload: string,
-): string {
-  const signature = createHash("sha256")
-    .update(`${appId}${timestamp}${payload}${appSecret}`, "utf8")
-    .digest("hex");
+): Promise<string> {
+  const bytes = new TextEncoder().encode(`${appId}${timestamp}${payload}${appSecret}`);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  const signature = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
   return `SHA256 Credential=${appId}, Timestamp=${timestamp}, Signature=${signature}`;
 }
 
@@ -140,7 +141,7 @@ export async function shopeeGraphql(
 ): Promise<ShopeeGraphqlBody> {
   const body = JSON.stringify(payload);
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const authorization = signShopeeRequest(appId, appSecret, timestamp, body);
+  const authorization = await signShopeeRequest(appId, appSecret, timestamp, body);
 
   let response: Response;
   try {
