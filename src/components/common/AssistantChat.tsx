@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, Sparkles, X, Loader2 } from "lucide-react";
-import { chatWithAssistant, type AIChatMessage } from "@/lib/ai.server";
+import type { AIChatMessage } from "@/lib/ai.server";
 import { cn } from "@/lib/utils";
 
 const SUGGESTIONS = [
@@ -29,6 +29,7 @@ export function AssistantChat({ context }: { context?: string }) {
     setLoading(true);
     try {
       const payload = context ? { messages: next, context } : { messages: next };
+      const { chatWithAssistant } = await import("@/lib/ai.server");
       const result = await chatWithAssistant({ data: payload });
       setMessages([
         ...next,
