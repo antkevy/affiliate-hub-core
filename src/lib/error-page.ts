@@ -1,5 +1,4 @@
-export function renderErrorPage(error?: unknown): string {
-  const errorHtml = describeForPage(error);
+export function renderErrorPage(): string {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -26,21 +25,6 @@ export function renderErrorPage(error?: unknown): string {
         <a class="secondary" href="/">Go home</a>
       </div>
     </div>
-    ${errorHtml}
   </body>
 </html>`;
-}
-
-function describeForPage(error: unknown): string {
-  if (error === undefined || error === null) return "";
-  const text =
-    error instanceof Error
-      ? `${error.stack ?? `${error.name}: ${error.message}`}`
-      : String(error);
-  if (!text.trim()) return "";
-  const escaped = text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-  return `<pre style="display:none" data-role="ssr-error" aria-hidden="true">${escaped}</pre>`;
 }
