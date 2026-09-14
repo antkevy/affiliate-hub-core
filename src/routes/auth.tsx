@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
-  ssr: false,
   head: () => ({
     meta: [
       { title: "Entrar — Affiliate Hub" },
@@ -22,6 +21,8 @@ export const Route = createFileRoute("/auth")({
         property: "og:description",
         content: "Acesse o Affiliate Hub para gerenciar ofertas, automações e publicações.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,
