@@ -50,35 +50,16 @@ export const offersService = {
 
   /**
    * Remove todas as ofertas capturadas do usuário atual e retorna quantas
-   * foram removidas. Remove primeiro as linhas filhas (offer_media e
-   * publications) para não violar as chaves estrangeiras do Supabase.
+   * foram removidas. Delega a limpeza ao RPC `clear_all_user_offers`, que
+   * apaga children (offer_media e publications) e ofertas em uma única
+   * transação no servidor — evita listas IN gigantes (erro "Bad Request"
+   * quando a URL do DELETE REST fica longa demais com muitas ofertas).
    */
   async clearAll(): Promise<number> {
-    const userId = await requireUserId();
-    const { data: rows, error: listError } = await supabase
-      .from("offers")
-      .select("id")
-      .eq("user_id", userId);
-    if (listError) throw new Error(listError.message);
-    const ids = (rows ?? []).map((row) => row.id);
-    if (ids.length === 0) return 0;
-
-    const { error: mediaError } = await supabase.from("offer_media").delete().in("offer_id", ids);
-    if (mediaError) throw new Error(mediaError.message);
-
-    const { error: publicationsError } = await supabase
-      .from("publications")
-      .delete()
-      .in("offer_id", ids);
-    if (publicationsError) throw new Error(publicationsError.message);
-
-    const { data: deleted, error } = await supabase
-      .from("offers")
-      .delete()
-      .eq("user_id", userId)
-      .select("id");
-    if (error) throw new Error(error.message);
-    return (deleted ?? []).length;
+    await requireUserId();
+    const { data, error } = await supabase.rpc("clear_all_user_offers");
+    if (error) throw new Error(detailedMessage(error));
+    return data ?? 0;
   },
 
   /** Captura automática a partir de fontes monitoradas. */
@@ -99,4 +80,17 @@ function firstOfferImage(media: unknown): string | null {
       .find((item) => typeof item.url === "string" && item.url.trim().length > 0)
       ?.url?.trim() ?? null
   );
+}
+
+/** Monta uma mensagem de erro com código/detalhes/hint do Supabase (curta p/ toast). */
+function detailedMessage(error: {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}): string {
+  const parts = [error.code, error.message, error.details, error.hint].filter(
+    (value): value is string => Boolean(value && value.trim()),
+  );
+  return parts.join(" — ") || "Falha ao limpar a lista.";
 }

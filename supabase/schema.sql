@@ -459,3 +459,35 @@ CREATE POLICY "Allow service_role full access to platform_sessions"
   TO service_role
   USING (true)
   WITH CHECK (true);
+-- ---------- clear_all_user_offers ----------
+CREATE OR REPLACE FUNCTION public.clear_all_user_offers()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_count integer;
+BEGIN
+  DELETE FROM public.offer_media om
+  WHERE EXISTS (
+    SELECT 1 FROM public.offers o
+    WHERE o.id = om.offer_id AND o.user_id = auth.uid()
+  );
+
+  DELETE FROM public.publications p
+  WHERE p.offer_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM public.offers o
+      WHERE o.id = p.offer_id AND o.user_id = auth.uid()
+    );
+
+  DELETE FROM public.offers o
+  WHERE o.user_id = auth.uid();
+
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.clear_all_user_offers() TO authenticated;

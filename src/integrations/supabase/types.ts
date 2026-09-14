@@ -1008,7 +1008,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      clear_all_user_offers: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
     }
     Enums: {
       account_status: "disconnected" | "connected" | "error"
