@@ -185,15 +185,42 @@
   border-radius: inherit;
   background: linear-gradient(
     135deg,
-    color-mix(in oklch, var(--color-primary) 15%, transparent),
+    color-mix(in oklch, var(--color-primary) 22%, transparent),
     transparent 55%
   );
-  opacity: 0;
-  transition: opacity 0.35s ease;
+  opacity: 0.45;
+  transition: opacity 0.3s ease;
   pointer-events: none;
   z-index: 0;
 }
 .panel-glow:hover::before {
+  opacity: 1;
+}
+.panel-glow::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--color-primary) 70%, transparent),
+    transparent 60%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.panel-glow:hover::after {
   opacity: 1;
 }
 .panel-glow > * {

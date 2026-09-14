@@ -29,12 +29,18 @@ export function StatCard({
 
   return (
     <div
-      className="panel panel-glow relative overflow-hidden p-4 animate-rise transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:scale-[0.99]"
+      className="panel panel-glow group relative overflow-hidden p-4 animate-rise transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 active:scale-[0.99]"
       style={{ animationDelay: `${delay}ms` }}
     >
+      <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-primary via-chart-3 to-transparent opacity-70 transition-opacity group-hover:opacity-100" />
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg border", accent)}>
+          <span
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-lg border transition-transform duration-300 group-hover:scale-110",
+              accent,
+            )}
+          >
             <Icon className="size-4" />
           </span>
           <p className="truncate text-xs font-medium tracking-wide text-muted-foreground">
@@ -44,9 +50,7 @@ export function StatCard({
         {spark && sparkColor ? <Sparkline data={spark} color={sparkColor} /> : null}
       </div>
 
-      <p className="mt-3 font-mono text-[1.75rem] font-semibold leading-none tabular-nums">
-        {count}
-      </p>
+      <p className="mt-3 font-mono text-[2rem] font-semibold leading-none tabular-nums">{count}</p>
 
       <div className="mt-2 flex items-center justify-between gap-2">
         <p className="truncate text-xs text-subtle-foreground">{hint}</p>

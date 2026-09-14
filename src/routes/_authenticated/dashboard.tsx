@@ -240,12 +240,12 @@ function DashboardPage() {
                 <Link
                   key={action.label}
                   to={action.to}
-                  className="group flex min-h-16 items-center justify-between gap-3 rounded-xl border border-border bg-secondary/50 p-3 transition-colors hover:border-primary/25 hover:bg-secondary"
+                  className="group flex min-h-16 items-center justify-between gap-3 rounded-xl border border-border bg-secondary/50 p-3 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-primary/30 hover:bg-secondary hover:shadow-[0_10px_24px_-12px_var(--color-primary)]"
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <span
                       className={cn(
-                        "grid size-9 shrink-0 place-items-center rounded-lg border",
+                        "grid size-9 shrink-0 place-items-center rounded-lg border transition-transform duration-300 group-hover:scale-110",
                         action.color,
                       )}
                     >
@@ -253,7 +253,7 @@ function DashboardPage() {
                     </span>
                     <span className="text-[13px] font-medium">{action.label}</span>
                   </span>
-                  <ArrowRight className="size-4 shrink-0 text-subtle-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                  <ArrowRight className="size-4 shrink-0 text-subtle-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
                 </Link>
               ))}
             </div>
