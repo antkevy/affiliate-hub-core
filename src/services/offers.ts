@@ -1,4 +1,4 @@
-import { createCrud } from "./base";
+import { createCrud, requireUserId } from "./base";
 import { supabase } from "@/integrations/supabase/client";
 import { runCapture, type CaptureReport } from "@/lib/capture";
 import type { Offer, OfferMedia } from "@/types";
@@ -48,11 +48,37 @@ export const offersService = {
     return data ?? [];
   },
 
-  /** Remove todas as ofertas capturadas do usuário atual e retorna quantas foram removidas. */
+  /**
+   * Remove todas as ofertas capturadas do usuário atual e retorna quantas
+   * foram removidas. Remove primeiro as linhas filhas (offer_media e
+   * publications) para não violar as chaves estrangeiras do Supabase.
+   */
   async clearAll(): Promise<number> {
-    const { data, error } = await supabase.from("offers").delete().select("id");
+    const userId = await requireUserId();
+    const { data: rows, error: listError } = await supabase
+      .from("offers")
+      .select("id")
+      .eq("user_id", userId);
+    if (listError) throw new Error(listError.message);
+    const ids = (rows ?? []).map((row) => row.id);
+    if (ids.length === 0) return 0;
+
+    const { error: mediaError } = await supabase.from("offer_media").delete().in("offer_id", ids);
+    if (mediaError) throw new Error(mediaError.message);
+
+    const { error: publicationsError } = await supabase
+      .from("publications")
+      .delete()
+      .in("offer_id", ids);
+    if (publicationsError) throw new Error(publicationsError.message);
+
+    const { data: deleted, error } = await supabase
+      .from("offers")
+      .delete()
+      .eq("user_id", userId)
+      .select("id");
     if (error) throw new Error(error.message);
-    return (data ?? []).length;
+    return (deleted ?? []).length;
   },
 
   /** Captura automática a partir de fontes monitoradas. */
