@@ -22,7 +22,7 @@ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
 -- ---------- enums ----------
 CREATE TYPE public.offer_status AS ENUM ('captured','processing','processed','approved','rejected','published','error');
 CREATE TYPE public.entity_status AS ENUM ('active','paused','error');
-CREATE TYPE public.source_type AS ENUM ('telegram','whatsapp','api','feed','manual');
+CREATE TYPE public.source_type AS ENUM ('telegram','whatsapp','api','feed','manual','amazon','shopee');
 CREATE TYPE public.destination_type AS ENUM ('telegram','whatsapp','other');
 CREATE TYPE public.publication_status AS ENUM ('pending','processing','published','failed','cancelled');
 CREATE TYPE public.job_status AS ENUM ('pending','processing','completed','failed','cancelled');

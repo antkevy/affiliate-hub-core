@@ -210,7 +210,27 @@ function PostIATab() {
       if (slug === "magalu") options.store = affiliate.store || affiliate.trackingId;
 
       const converted = createAffiliateUrl(url.trim(), options);
-      const note = converted.method === "original" ? converted.note : undefined;
+      let effectiveUrl = converted.url;
+      let note = converted.method === "original" ? converted.note : undefined;
+
+      if (slug === "shopee" && account) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token ?? "";
+        const { convertShopeeLinkRpc } = await import("@/lib/shopee-affiliate.server");
+        const result = await convertShopeeLinkRpc({
+          data: {
+            token,
+            userId: sessionData.session?.user?.id ?? "",
+            url: url.trim(),
+            subId: options.subid ?? null,
+          },
+        });
+        if (result.ok && result.url) {
+          effectiveUrl = result.url;
+        } else if (converted.method === "original") {
+          note = result.error;
+        }
+      }
 
       const salePrice = parseBRL(price);
       const originalPrice = parseBRL(oldPrice);
@@ -232,12 +252,12 @@ function PostIATab() {
         discount_percentage: discount,
         coupon: couponValue,
         original_url: url.trim(),
-        affiliate_url: converted.url,
+        affiliate_url: effectiveUrl,
         marketplace: marketplaceName ?? slug ?? "—",
       };
       const baseContent = selectedTemplate
         ? renderTemplate(selectedTemplate.content, offerData)
-        : defaultPostContent(titleValue, salePrice, discount, couponValue, converted.url);
+        : defaultPostContent(titleValue, salePrice, discount, couponValue, effectiveUrl);
 
       const payload: AIFormatPayload = {
         offer: {
@@ -246,7 +266,7 @@ function PostIATab() {
           original_price: originalPrice,
           discount_percentage: discount,
           coupon: couponValue,
-          url: converted.url,
+          url: effectiveUrl,
         },
         content: baseContent,
         hasCustomTemplate: Boolean(selectedTemplate),
@@ -263,8 +283,8 @@ function PostIATab() {
       const finalText = cta.trim() ? `${cta.trim()}\n\n${text}` : text;
       setResult(
         note
-          ? { link: converted.url, text: finalText, note }
-          : { link: converted.url, text: finalText },
+          ? { link: effectiveUrl, text: finalText, note }
+          : { link: effectiveUrl, text: finalText },
       );
     } catch (error) {
       toast.error("Não foi possível gerar o post", { description: toUserMessage(error) });

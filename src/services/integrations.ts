@@ -1,4 +1,5 @@
 import { listMarketplaces, affiliateAccountsService } from "./affiliate";
+import { supabase } from "@/integrations/supabase/client";
 import type { IntegrationDefinition } from "@/types";
 
 export const INTEGRATIONS: IntegrationDefinition[] = [
@@ -114,6 +115,20 @@ const TAG_KEY_BY_SLUG: Record<string, string> = {
   terabyte: "tracking_id",
 };
 
+/** Valida as credenciais da Shopee na Open API antes de salvar a integração. */
+async function validateShopeeCredentials(appId?: string, appSecret?: string): Promise<void> {
+  if (!appId?.trim() || !appSecret?.trim()) {
+    throw new Error("Para conectar a Shopee, informe o App ID e o App Secret.");
+  }
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token ?? "";
+  const { validateShopeeCredsRpc } = await import("@/lib/shopee-affiliate.server");
+  const result = await validateShopeeCredsRpc({ data: { token, appId, appSecret } });
+  if (!result.ok) {
+    throw new Error(result.error ?? "Falha ao validar as credenciais da Shopee.");
+  }
+}
+
 export const integrationsService = {
   definitions: INTEGRATIONS,
 
@@ -155,6 +170,10 @@ export const integrationsService = {
     }
     const tagKey = TAG_KEY_BY_SLUG[slug];
     if (tagKey && configuration[tagKey]) configuration["tag"] = configuration[tagKey];
+
+    if (slug === "shopee") {
+      await validateShopeeCredentials(configuration["app_id"], configuration["app_secret"]);
+    }
 
     if (account) {
       await affiliateAccountsService.update(account.id, {

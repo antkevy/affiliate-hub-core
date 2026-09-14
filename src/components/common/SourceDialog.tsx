@@ -5,6 +5,7 @@ import {
   Package,
   Rss,
   Send,
+  ShoppingBag,
   Webhook,
   type LucideIcon,
 } from "lucide-react";
@@ -36,6 +37,7 @@ const TYPE_ICONS: Record<SourceType, LucideIcon> = {
   telegram: Send,
   whatsapp: MessageCircle,
   amazon: Package,
+  shopee: ShoppingBag,
   feed: Rss,
   api: Webhook,
   manual: ClipboardList,

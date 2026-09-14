@@ -1046,6 +1046,7 @@ export type Database = {
         | "feed"
         | "manual"
         | "amazon"
+        | "shopee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1195,7 +1196,7 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
-      source_type: ["telegram", "whatsapp", "api", "feed", "manual", "amazon"],
+      source_type: ["telegram", "whatsapp", "api", "feed", "manual", "amazon", "shopee"],
     },
   },
 } as const

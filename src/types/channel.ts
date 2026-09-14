@@ -14,6 +14,7 @@ export const SOURCE_TYPES: { value: SourceType; label: string }[] = [
   { value: "telegram", label: "Telegram" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "amazon", label: "Amazon" },
+  { value: "shopee", label: "Shopee" },
   { value: "api", label: "API" },
   { value: "feed", label: "Feed" },
   { value: "manual", label: "Manual" },

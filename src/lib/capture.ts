@@ -9,6 +9,7 @@ import { pickCta, type CtaValues } from "@/lib/cta";
 import { captureTelegramSource, fetchPrimaryProductImage } from "@/lib/telegram.server";
 import { looksLikeTelegramThumbnail } from "@/lib/telegram";
 import { captureAmazonSourceRpc } from "@/lib/amazon-creators.server";
+import { captureShopeeSourceRpc, convertShopeeLinkRpc } from "@/lib/shopee-affiliate.server";
 import { formatOfferWithAI } from "@/lib/ai.server";
 import {
   buildOfferBannerConfig,
@@ -143,6 +144,21 @@ export async function runCapture(): Promise<CaptureReport> {
       report.errors.push(...result.errors);
       continue;
     }
+    if (source.type === "shopee") {
+      const result = await captureShopeeSourceRpc({
+        data: {
+          token: await accessToken(),
+          identifier: source.identifier,
+          sourceId: source.id,
+          userId,
+        },
+      });
+      report.offersCaptured += result.offersCaptured;
+      report.offersIgnored += result.offersIgnored;
+      report.offersFailed += result.offersFailed;
+      report.errors.push(...result.errors);
+      continue;
+    }
     const found = await captureFromSource(source);
     for (const candidate of found) {
       const cleaned = cleanProductUrl(candidate.original_url);
@@ -209,7 +225,8 @@ function isScrapable(source: Source): boolean {
     source.type === "feed" ||
     source.type === "api" ||
     source.type === "telegram" ||
-    source.type === "amazon"
+    source.type === "amazon" ||
+    source.type === "shopee"
   );
 }
 
@@ -371,12 +388,15 @@ async function ensureOfferAffiliateUrlClient(offer: Offer): Promise<void> {
   if (offer.affiliate_url && offer.affiliate_url.includes("meli.la")) return;
 
   const isMlUrl = /mercadolivr|mercadolibr|meli\.la/i.test(offer.original_url);
-  if (!isMlUrl) return;
+  const isShopeeUrl = /shopee\.com\.br|shopee\.com\//i.test(offer.original_url);
 
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
-    if (token) {
+    const userId = sessionData.session?.user?.id;
+    if (!token) return;
+
+    if (isMlUrl) {
       const { convertMercadoLivreMessage } = await import("@/lib/mercado-livre-converter.server");
       const outcome = await convertMercadoLivreMessage({
         data: { token, text: offer.original_url, single: true },
@@ -387,6 +407,17 @@ async function ensureOfferAffiliateUrlClient(offer: Offer): Promise<void> {
       if (convertedLink) {
         offer.affiliate_url = convertedLink;
         await offersRepo.update(offer.id, { affiliate_url: convertedLink });
+      }
+      return;
+    }
+
+    if (isShopeeUrl) {
+      const result = await convertShopeeLinkRpc({
+        data: { token, userId: userId ?? "", url: offer.original_url },
+      });
+      if (result.ok && result.url) {
+        offer.affiliate_url = result.url;
+        await offersRepo.update(offer.id, { affiliate_url: result.url });
       }
     }
   } catch {
@@ -739,6 +770,19 @@ export async function runAutomation(automation: {
   } else if (source.type === "amazon") {
     const result = await captureAmazonSourceRpc({
       data: {
+        identifier: source.identifier,
+        sourceId: source.id,
+        userId,
+      },
+    });
+    report.offersCaptured += result.offersCaptured;
+    report.offersIgnored += result.offersIgnored;
+    report.offersFailed += result.offersFailed;
+    report.errors.push(...result.errors);
+  } else if (source.type === "shopee") {
+    const result = await captureShopeeSourceRpc({
+      data: {
+        token: await accessToken(),
         identifier: source.identifier,
         sourceId: source.id,
         userId,
