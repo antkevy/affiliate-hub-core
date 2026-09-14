@@ -175,6 +175,32 @@
   animation: pulse-dot 1.8s ease-out infinite;
 }
 
+.panel-glow {
+  position: relative;
+}
+.panel-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--color-primary) 15%, transparent),
+    transparent 55%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.panel-glow:hover::before {
+  opacity: 1;
+}
+.panel-glow > * {
+  position: relative;
+  z-index: 1;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

@@ -29,6 +29,22 @@ export interface AIFormatResult {
   error?: string;
 }
 
+export interface AIChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AIChatPayload {
+  messages: AIChatMessage[];
+  context?: string;
+}
+
+export interface AIChatResult {
+  ok: boolean;
+  text?: string;
+  error?: string;
+}
+
 const DEFAULT_MODEL = "llama-3.3-70b-versatile";
 
 /**
@@ -171,6 +187,64 @@ export async function rewriteOfferWithAI(data: AIFormatPayload): Promise<AIForma
             "Gere a mensagem final:",
           ].join("\n\n"),
         },
+      ],
+    });
+    const text = completion.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!text) return { ok: false, error: "A IA retornou uma resposta vazia." };
+    return { ok: true, text };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Falha ao chamar a IA.",
+    };
+  }
+}
+
+const ASSISTANT_SYSTEM_PROMPT =
+  "Você é o assistente de operação do Affiliate Hub, um sistema de afiliados que captura ofertas, " +
+  "gera textos com copy de afiliado e publica em canais (Telegram). " +
+  "Ajude o usuário de forma prática e direta em PT-BR. Você domina: " +
+  "1) Copy de ofertas afiliadas (estrutura ➡️ titulo / ✅ preço / ⚡ desconto / 🏷️ cupom / 🛒 link, " +
+  "cada cupom entre crases individuais); " +
+  "2) Estratégias de captura e análise de concorrentes; " +
+  "3) Boas práticas de publish em canais; " +
+  "4) Leitura dos KPIs da operação fornecidos no contexto. " +
+  "Se o contexto for passado, use os dados reais da operação nas respostas. " +
+  "Responda em markdown leve, conciso. Não invente números que não estejam no contexto; " +
+  "se não souber, diga que não tem essa informação.";
+
+/**
+ * Chat assistente livre para o usuário (dashboard).
+ * Roda no servidor para proteger a API key do Groq.
+ */
+export const chatWithAssistant = createServerFn({ method: "POST" })
+  .validator((payload: AIChatPayload) => payload)
+  .handler(async ({ data }): Promise<AIChatResult> => assistantChat(data));
+
+export async function assistantChat(data: AIChatPayload): Promise<AIChatResult> {
+  const apiKey = process.env["GROQ_API_KEY"];
+  if (!apiKey) {
+    return { ok: false, error: "GROQ_API_KEY não configurada." };
+  }
+
+  const model = process.env["GROQ_MODEL"] ?? DEFAULT_MODEL;
+  const history = (data.messages ?? []).slice(-10).map((message) => ({
+    role: message.role,
+    content: message.content,
+  }));
+
+  try {
+    const client = new Groq({ apiKey });
+    const completion = await client.chat.completions.create({
+      model,
+      temperature: 0.6,
+      max_tokens: 700,
+      messages: [
+        { role: "system", content: ASSISTANT_SYSTEM_PROMPT },
+        ...(data.context
+          ? [{ role: "system" as const, content: `Contexto atual da operação:\n${data.context}` }]
+          : []),
+        ...history,
       ],
     });
     const text = completion.choices?.[0]?.message?.content?.trim() ?? "";

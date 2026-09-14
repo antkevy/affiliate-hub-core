@@ -29,7 +29,7 @@ export function StatCard({
 
   return (
     <div
-      className="panel relative overflow-hidden p-4 animate-rise transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:scale-[0.99]"
+      className="panel panel-glow relative overflow-hidden p-4 animate-rise transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:scale-[0.99]"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -37,7 +37,9 @@ export function StatCard({
           <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg border", accent)}>
             <Icon className="size-4" />
           </span>
-          <p className="truncate text-[13px] font-medium text-muted-foreground">{label}</p>
+          <p className="truncate text-xs font-medium tracking-wide text-muted-foreground">
+            {label}
+          </p>
         </div>
         {spark && sparkColor ? <Sparkline data={spark} color={sparkColor} /> : null}
       </div>

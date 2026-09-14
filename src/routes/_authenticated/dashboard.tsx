@@ -29,6 +29,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusPill, entityTone } from "@/components/common/StatusPill";
 import { LiveBadge, StatCard, formatPrice, timeAgo } from "@/components/common/stat-card";
+import { AssistantChat } from "@/components/common/AssistantChat";
 import { Button } from "@/components/ui/button";
 import { offersService } from "@/services/offers";
 import { automationsService } from "@/services/automations";
@@ -128,10 +129,30 @@ function DashboardPage() {
   );
 
   const quickActions = [
-    { label: "Nova oferta", icon: Plus, to: "/ofertas" },
-    { label: "Criar automação", icon: Bot, to: "/automacoes" },
-    { label: "Gerar link", icon: Link2, to: "/links" },
-    { label: "Ver publicações", icon: Send, to: "/publicacoes" },
+    {
+      label: "Nova oferta",
+      icon: Plus,
+      to: "/ofertas",
+      color: "text-chart-3 bg-chart-3/10 border-chart-3/20",
+    },
+    {
+      label: "Criar automação",
+      icon: Bot,
+      to: "/automacoes",
+      color: "text-chart-2 bg-chart-2/10 border-chart-2/20",
+    },
+    {
+      label: "Gerar link",
+      icon: Link2,
+      to: "/links",
+      color: "text-primary bg-primary/10 border-primary/20",
+    },
+    {
+      label: "Ver publicações",
+      icon: Send,
+      to: "/publicacoes",
+      color: "text-chart-1 bg-chart-1/10 border-chart-1/20",
+    },
   ] as const;
 
   return (
@@ -157,6 +178,8 @@ function DashboardPage() {
           </>
         }
       />
+
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -220,7 +243,12 @@ function DashboardPage() {
                   className="group flex min-h-16 items-center justify-between gap-3 rounded-xl border border-border bg-secondary/50 p-3 transition-colors hover:border-primary/25 hover:bg-secondary"
                 >
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-background text-muted-foreground">
+                    <span
+                      className={cn(
+                        "grid size-9 shrink-0 place-items-center rounded-lg border",
+                        action.color,
+                      )}
+                    >
                       <action.icon className="size-4" />
                     </span>
                     <span className="text-[13px] font-medium">{action.label}</span>
@@ -239,7 +267,9 @@ function DashboardPage() {
               <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-eyebrow">Fluxo de envio</p>
-                  <h2 className="mt-0.5 text-sm font-semibold">Publicações</h2>
+                  <h2 className="mt-0.5 font-display text-base font-semibold tracking-tight">
+                    Publicações
+                  </h2>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
@@ -340,7 +370,9 @@ function DashboardPage() {
 
             <section className="panel p-5 animate-rise" style={{ animationDelay: "180ms" }}>
               <header className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Saúde da operação</h2>
+                <h2 className="font-display text-base font-semibold tracking-tight">
+                  Saúde da operação
+                </h2>
                 <HeartPulse className="size-4 text-success" />
               </header>
 
@@ -426,7 +458,9 @@ function DashboardPage() {
               style={{ animationDelay: "220ms" }}
             >
               <header className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Últimas ofertas</h2>
+                <h2 className="font-display text-base font-semibold tracking-tight">
+                  Últimas ofertas
+                </h2>
                 <Link
                   to="/ofertas"
                   className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
@@ -505,7 +539,9 @@ function DashboardPage() {
 
             <section className="panel p-5 animate-rise" style={{ animationDelay: "260ms" }}>
               <header className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Últimas publicações</h2>
+                <h2 className="font-display text-base font-semibold tracking-tight">
+                  Últimas publicações
+                </h2>
                 <Link
                   to="/publicacoes"
                   className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
@@ -553,6 +589,16 @@ function DashboardPage() {
           </div>
         </>
       )}
+
+      <AssistantChat
+        context={buildContext(
+          (offers.data ?? []).length,
+          activeAutomations,
+          publishedCount,
+          pendingCount,
+          successRate,
+        )}
+      />
     </div>
   );
 }
@@ -603,6 +649,27 @@ function splitTrend(series: number[]) {
   const previous = series.slice(0, 7).reduce((sum, value) => sum + value, 0);
   const current = series.slice(7).reduce((sum, value) => sum + value, 0);
   return { current, previous };
+}
+
+function buildOperationContext() {
+  return "";
+}
+
+function buildContext(
+  offersCount: number,
+  activeAutomations: number,
+  publishedCount: number,
+  pendingCount: number,
+  successRate: number | null,
+) {
+  const rate = successRate === null ? "sem dados" : `${successRate}%`;
+  return [
+    `Ofertas capturadas: ${offersCount}`,
+    `Automações ativas: ${activeAutomations}`,
+    `Publicações enviadas: ${publishedCount}`,
+    `Na fila de envio: ${pendingCount}`,
+    `Taxa de sucesso: ${rate}`,
+  ].join("\n");
 }
 
 function publicationPreview(publication: Publication): string {
