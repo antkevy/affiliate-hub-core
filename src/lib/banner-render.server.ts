@@ -645,29 +645,32 @@ interface BannerRow {
   [key: string]: unknown;
 }
 
-interface BannerDbChain {
-  eq(column: string, value: string): { maybeSingle(): Promise<{ data: BannerRow | null }> };
-}
-
-interface BannerDbOrder {
-  order(column: string, options: { ascending: boolean }): Promise<{ data: BannerRow[] | null }>;
+interface BannerDb {
+  from(table: string): {
+    select(columns: string): {
+      eq(column: string, value: string): { maybeSingle(): Promise<{ data: BannerRow | null }> };
+      order(column: string, options: { ascending: boolean }): Promise<{ data: BannerRow[] | null }>;
+    };
+  };
 }
 
 export async function resolveSavedBannerServer(
-  db: { from: (table: string) => unknown },
+  db: BannerDb,
   userId: string | undefined,
   bannerId: string | null | undefined,
 ): Promise<BannerConfig | null> {
   let saved: BannerConfig | null = null;
   try {
     if (bannerId) {
-      const chain = db.from("banners") as BannerDbChain;
+      const chain = db.from("banners").select("*");
       const { data } = await chain.eq("id", bannerId).maybeSingle();
       if (data) saved = bannerConfigOf(data as never);
     }
     if (!saved) {
-      const chain = db.from("banners") as BannerDbOrder;
-      const { data } = await chain.order("created_at", { ascending: true });
+      const { data } = await db
+        .from("banners")
+        .select("*")
+        .order("created_at", { ascending: true });
       const rows = (data ?? []) as BannerRow[];
       const parsed = rows
         .map((row) => bannerConfigOf(row as never))
