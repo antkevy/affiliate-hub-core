@@ -8,7 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+function safeNext(value: unknown): string {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
+    ? value
+    : "/dashboard";
+}
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({ next: safeNext(search.next) }),
   head: () => ({
     meta: [
       { title: "Entrar — Affiliate Hub" },
@@ -30,6 +37,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
@@ -40,12 +48,12 @@ function AuthPage() {
     supabase.auth
       .getSession()
       .then(({ data }) => {
-        if (data.session) navigate({ to: "/dashboard", replace: true });
+        if (data.session) window.location.replace(next);
       })
       .catch(() => {
         // Session check failed — stay on auth page
       });
-  }, [navigate]);
+  }, [next]);
 
   async function handleSignIn(event: React.FormEvent) {
     event.preventDefault();
@@ -56,7 +64,7 @@ function AuthPage() {
       toast.error("Não foi possível entrar", { description: "Verifique e-mail e senha." });
       return;
     }
-    navigate({ to: "/dashboard", replace: true });
+    window.location.assign(next);
   }
 
   async function handleSignUp(event: React.FormEvent) {
@@ -66,7 +74,7 @@ function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}${next}`,
         data: { name },
       },
     });
@@ -96,14 +104,14 @@ function AuthPage() {
   async function handleGoogle() {
     const { lovable } = await import("@/integrations/lovable/index");
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/auth?next=${encodeURIComponent(next)}`,
     });
     if (result.error) {
       toast.error("Não foi possível entrar com Google");
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard", replace: true });
+    window.location.assign(next);
   }
 
   return (

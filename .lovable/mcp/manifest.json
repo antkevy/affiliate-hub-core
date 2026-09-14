@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "sdk_version": "2.0.4",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://ojyhxpyiborimrpytntt.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "affiliate-hub-core",
+      "version": "0.1.0",
+      "title": "Affiliate Hub Core"
+    },
+    "tools": [
+      {
+        "name": "get_dashboard_summary",
+        "title": "Resumo do painel",
+        "description": "Resume ofertas, automações, links e publicações do usuário conectado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": null,
+        "outputSchema": null
+      },
+      {
+        "name": "list_offers",
+        "title": "Listar ofertas",
+        "description": "Lista as ofertas mais recentes do usuário conectado, com preços e estado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Quantidade máxima de ofertas.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "status": {
+              "description": "Filtra pelo estado da oferta.",
+              "type": "string",
+              "enum": [
+                "captured",
+                "processing",
+                "processed",
+                "approved",
+                "rejected",
+                "published",
+                "error"
+              ]
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_affiliate_links",
+        "title": "Listar links de afiliado",
+        "description": "Lista os links de afiliado mais recentes do usuário conectado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Quantidade máxima de links.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_automations",
+        "title": "Listar automações",
+        "description": "Lista as automações do usuário conectado e seus últimos estados de execução.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Quantidade máxima de automações.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
