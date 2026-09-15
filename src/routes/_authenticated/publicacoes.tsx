@@ -80,11 +80,15 @@ function PublicationsPage() {
           />
         }
       >
-        <ul className="stream space-y-4 animate-rise" style={{ animationDelay: "0ms" }}>
-          {(query.data ?? []).map((publication) => (
-            <li key={publication.id} className="flex justify-end">
+        <ul className="space-y-4 animate-rise" style={{ animationDelay: "0ms" }}>
+          {(query.data ?? []).map((publication, index) => (
+            <li
+              key={publication.id}
+              className="flex justify-end"
+              style={{ animationDelay: `${index * 30}ms` }}
+            >
               <div className="w-full min-w-0 max-w-[34rem]">
-                <div className="mb-1 flex items-baseline justify-end gap-3 px-0.5">
+                <div className="mb-1 flex items-center justify-end gap-3 px-0.5">
                   <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     [{statusMarker(publication.status)}]{" "}
                     {publication.published_at
@@ -100,7 +104,14 @@ function PublicationsPage() {
                     <Megaphone className="size-3" />
                   </span>
                 </div>
-                <div className="ticket-out animate-send w-fit max-w-full p-3.5">
+                <div
+                  className={cn(
+                    "w-fit max-w-full rounded-2xl rounded-br-md border p-3.5",
+                    publication.status === "failed"
+                      ? "border-destructive/30 bg-destructive/5"
+                      : "border-border bg-card shadow-card",
+                  )}
+                >
                   <p className="line-clamp-3 text-sm text-foreground">
                     {firstLine(publication.content)}
                   </p>
