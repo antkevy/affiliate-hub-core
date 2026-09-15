@@ -425,6 +425,15 @@ async function ensureOfferAffiliateUrlClient(offer: Offer): Promise<void> {
   }
 }
 
+function needsAffiliateClientBlock(offer: Offer): boolean {
+  const url = offer.original_url ?? "";
+  const isMl = /mercadolivr|mercadolibr|meli\.la/i.test(url);
+  const isAli = /aliexpress|alicdn\.com|a\.aliexpress|s\.click\.aliexpress/i.test(url);
+  const isShopee = /shopee\.com\.br|shopee\.com\//i.test(url);
+  if (isMl) return !(offer.affiliate_url && offer.affiliate_url.includes("meli.la"));
+  return (isAli || isShopee) && !offer.affiliate_url;
+}
+
 interface MonitorRun {
   published: number;
   failed: number;
@@ -568,6 +577,13 @@ async function processMonitor(
     }
 
     await ensureOfferAffiliateUrlClient(offer);
+
+    if (needsAffiliateClientBlock(offer)) {
+      result.errors.push(
+        `${offer.title}: sem link de afiliado (ML/AliExpress/Shopee). Conversão pendente; será retomada no próximo ciclo.`,
+      );
+      continue;
+    }
 
     const cta = config.cta_enabled ? pickCta(ctaFromConfig(config), offer.title) : null;
     const usesCtaToken = template ? /\{cta\}/i.test(template.content) : false;
@@ -847,6 +863,14 @@ export async function runAutomation(automation: {
           processed_at: new Date().toISOString(),
         });
         report.offersIgnored++;
+        continue;
+      }
+
+      await ensureOfferAffiliateUrlClient(offer);
+      if (needsAffiliateClientBlock(offer)) {
+        report.errors.push(
+          `${offer.title}: sem link de afiliado (ML/AliExpress/Shopee). Conversão pendente; será retomada no próximo ciclo.`,
+        );
         continue;
       }
 

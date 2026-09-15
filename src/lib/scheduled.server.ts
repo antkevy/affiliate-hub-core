@@ -54,6 +54,7 @@ export interface ScheduledRunReport {
   offersIgnored: number;
   offersPublished: number;
   offersFailed: number;
+  offersWithoutAffiliate: number;
   errors: string[];
 }
 
@@ -292,6 +293,54 @@ async function ensureAliExpressAffiliateUrl(
   await db.from("offers").update({ affiliate_url: link }).eq("id", offer.id);
 }
 
+type AffiliateKind = "mercadolivre" | "aliexpress";
+
+function affiliateKindOf(
+  offer: Offer,
+  mercadolivreMarketplaceId: string | null,
+): AffiliateKind | null {
+  const url = offer.original_url ?? "";
+  if (
+    /mercadolivr|mercadolibr|meli\.la/i.test(url) ||
+    (Boolean(mercadolivreMarketplaceId) && offer.marketplace_id === mercadolivreMarketplaceId)
+  ) {
+    return "mercadolivre";
+  }
+  if (/aliexpress|alicdn\.com|a\.aliexpress|s\.click\.aliexpress/i.test(url)) {
+    return "aliexpress";
+  }
+  return null;
+}
+
+function hasValidAffiliateLink(offer: Offer, kind: AffiliateKind): boolean {
+  const link = offer.affiliate_url ?? "";
+  return kind === "mercadolivre" ? link.includes("meli.la") : link.length > 0;
+}
+
+async function pushToMercadoLivreQueue(db: Db, offer: Offer): Promise<void> {
+  const existing = await db
+    .from("meli_queue")
+    .select("id")
+    .eq("user_id", offer.user_id ?? "")
+    .eq("mode", "single")
+    .contains("source_links", [offer.original_url])
+    .limit(1);
+  if ((existing.data?.length ?? 0) > 0 || existing.error) return;
+  try {
+    await db.from("meli_queue").insert({
+      user_id: offer.user_id,
+      mode: "single",
+      source_text: offer.title ?? "Oferta do Mercado Livre",
+      source_links: [offer.original_url],
+      status: "waiting",
+      last_error:
+        "Sem link meli.la ativo. Reconversão automática a cada ciclo ou gere o link na Fila de Ofertas.",
+    });
+  } catch {
+    // best-effort
+  }
+}
+
 /**
  * Pipeline completo de captura → filtro → IA → publicação, executado no
  * SERVIDOR (sem navegador aberto) com o cliente de service role.
@@ -307,7 +356,7 @@ async function ensureAliExpressAffiliateUrl(
  */
 export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   const startTime = Date.now();
-  const MAX_EXECUTION_MS = 18000; // 18s deadline for 30s cron HTTP timeout limit
+  const MAX_EXECUTION_MS = 45000; // 45s: o job externo aguarda até 90s (curl --max-time)
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db: Db = supabaseAdmin;
   const report: ScheduledRunReport = {
@@ -315,6 +364,7 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
     offersIgnored: 0,
     offersPublished: 0,
     offersFailed: 0,
+    offersWithoutAffiliate: 0,
     errors: [],
   };
 
@@ -477,12 +527,27 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
     }
   }
 
+  // Reabilita ofertas de ML/AliExpress que foram excluídas por falta de
+  // conversão de afiliado (status "error" sem affiliate_url). Com a nova
+  // política elas voltam a ser candidatas e tentam conversão a cada ciclo.
+  const staleRes = await db
+    .from("offers")
+    .update({ status: "captured" })
+    .eq("status", "error")
+    .is("affiliate_url", null)
+    .or(
+      "original_url.ilike.*mercadolivr*,original_url.ilike.*mercadolibr*,original_url.ilike.*meli.la*,original_url.ilike.*aliexpress*",
+    );
+  if (staleRes.error) {
+    report.errors.push(`Banco de dados (reabilitação): ${staleRes.error.message}`);
+  }
+
   const freshRes = await db
     .from("offers")
     .select("*")
     .in("status", ["captured", "processing", "approved"])
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(80);
   if (freshRes.error) {
     report.errors.push(`Banco de dados: ${freshRes.error.message}`);
     return report;
@@ -515,7 +580,7 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
   for (const monitor of monitorList) {
     if (Date.now() - startTime > MAX_EXECUTION_MS) {
       report.errors.push(
-        "Tempo limite de 18s atingido antes dos monitores. Finalizando ciclo rápido.",
+        `Tempo limite de ${Math.round(MAX_EXECUTION_MS / 1000)}s atingido antes dos monitores. Finalizando ciclo rápido.`,
       );
       break;
     }
@@ -546,7 +611,9 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
 
   for (const automation of automationList) {
     if (Date.now() - startTime > MAX_EXECUTION_MS) {
-      report.errors.push("Tempo limite de 18s atingido nas automações. Finalizando ciclo rápido.");
+      report.errors.push(
+        `Tempo limite de ${Math.round(MAX_EXECUTION_MS / 1000)}s atingido nas automações. Finalizando ciclo rápido.`,
+      );
       break;
     }
     const config = automationConfigOf(automation);
@@ -599,25 +666,12 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
         undefined,
       );
 
-      const isMlOffer =
-        /mercadolivr|mercadolibr|meli\.la/i.test(offer.original_url ?? "") ||
-        (Boolean(mercadolivreMarketplaceId) && offer.marketplace_id === mercadolivreMarketplaceId);
-
-      if (isMlOffer && (!offer.affiliate_url || !offer.affiliate_url.includes("meli.la"))) {
-        try {
-          await db.from("meli_queue").insert({
-            user_id: offer.user_id,
-            mode: "single",
-            source_text: offer.title ?? "Oferta do Mercado Livre",
-            source_links: [offer.original_url],
-            status: "waiting",
-            last_error: "Sessão sem cookie meli.la ativo. Cole o link gerado na Fila de Ofertas.",
-          });
-        } catch {
-          // best-effort
+      const affiliateKind = affiliateKindOf(offer, mercadolivreMarketplaceId);
+      if (affiliateKind && !hasValidAffiliateLink(offer, affiliateKind)) {
+        if (affiliateKind === "mercadolivre") {
+          await pushToMercadoLivreQueue(db, offer);
         }
-        await db.from("offers").update({ status: "error" }).eq("id", offer.id);
-        report.offersIgnored++;
+        report.offersWithoutAffiliate++;
         continue;
       }
 
@@ -650,6 +704,12 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
         .update({ last_activity_at: new Date().toISOString() })
         .eq("id", automation.id);
     }
+  }
+
+  if (report.offersWithoutAffiliate > 0) {
+    report.errors.push(
+      `${report.offersWithoutAffiliate} oferta(s) sem link de afiliado (ML ou AliExpress). Publicação aguardando conversão; retomada automática no próximo ciclo.`,
+    );
   }
 
   return report;
@@ -720,7 +780,7 @@ async function publishForMonitor(
   let failed = 0;
   for (const offer of candidates) {
     if (startTime && maxMs && Date.now() - startTime > maxMs) {
-      report.errors.push(`Tempo limite de 18s atingido no monitor "${monitor.name}".`);
+      report.errors.push(`Tempo limite atingido no monitor "${monitor.name}". Finalizando ciclo rápido.`);
       break;
     }
     if (publishedKeys.has(`${offer.id}::${destination.id}`)) continue;
@@ -753,25 +813,12 @@ async function publishForMonitor(
       undefined,
     );
 
-    const isMlOfferMonitor =
-      /mercadolivr|mercadolibr|meli\.la/i.test(offer.original_url ?? "") ||
-      (Boolean(mercadolivreMarketplaceId) && offer.marketplace_id === mercadolivreMarketplaceId);
-
-    if (isMlOfferMonitor && (!offer.affiliate_url || !offer.affiliate_url.includes("meli.la"))) {
-      try {
-        await db.from("meli_queue").insert({
-          user_id: offer.user_id,
-          mode: "single",
-          source_text: offer.title ?? "Oferta do Mercado Livre",
-          source_links: [offer.original_url],
-          status: "waiting",
-          last_error: "Sessão sem cookie meli.la ativo. Cole o link gerado na Fila de Ofertas.",
-        });
-      } catch {
-        // best-effort
+    const affiliateKind = affiliateKindOf(offer, mercadolivreMarketplaceId);
+    if (affiliateKind && !hasValidAffiliateLink(offer, affiliateKind)) {
+      if (affiliateKind === "mercadolivre") {
+        await pushToMercadoLivreQueue(db, offer);
       }
-      await db.from("offers").update({ status: "error" }).eq("id", offer.id);
-      report.offersIgnored++;
+      report.offersWithoutAffiliate++;
       continue;
     }
 
@@ -1390,6 +1437,7 @@ export async function publishOfferForSource(
     offersIgnored: 0,
     offersPublished: 0,
     offersFailed: 0,
+    offersWithoutAffiliate: 0,
     errors: [],
   };
 
