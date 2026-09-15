@@ -1,10 +1,17 @@
-name: Publicação Automática (manual)
+name: Publicação Automática
 
 on:
+  schedule:
+    # A cada 10 minutos (UTC). Roda no branch padrão (main).
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: scheduled-publish
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -22,6 +29,12 @@ jobs:
             echo "::error::Configure o segredo PUBLISH_CRON_SECRET nas settings do repositório."
             exit 1
           fi
-          curl -fsS --max-time 90 -X POST "$URL" \
+          RESULT=$(curl -fsS --max-time 90 -X POST "$URL" \
             -H "Authorization: Bearer $PUBLISH_SECRET" \
-            -H "Content-Type: application/json"
+            -H "Content-Type: application/json")
+          echo "$RESULT"
+          OFFERS=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('offersPublished', 0))")
+          FAILURES=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('errors', []) or []))")
+          if [[ "$OFFERS" -eq 0 && "$FAILURES" -gt 0 ]]; then
+            echo "::warning::Execução concluída sem publicações e com erros."
+          fi
