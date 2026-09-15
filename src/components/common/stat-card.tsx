@@ -10,6 +10,7 @@ export function StatCard({
   value,
   hint,
   accent,
+  bar = "from-primary to-transparent",
   spark,
   sparkColor,
   delta,
@@ -20,6 +21,7 @@ export function StatCard({
   value: number;
   hint: string;
   accent: string;
+  bar?: string;
   spark?: number[];
   sparkColor?: string;
   delta?: { current: number; previous: number };
@@ -29,36 +31,47 @@ export function StatCard({
 
   return (
     <div
-      className="panel panel-glow group relative overflow-hidden p-4 animate-rise transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hover:-translate-y-1 active:scale-[0.99]"
+      className="panel relative overflow-hidden p-4 animate-rise transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hover:-translate-y-1 lg:hover:shadow-[var(--shadow-lift)]"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-primary via-chart-3 to-transparent opacity-70 transition-opacity group-hover:opacity-100" />
+      <div
+        className={cn("absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r opacity-80", bar)}
+        aria-hidden="true"
+      />
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
             className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-lg border transition-transform duration-300 lg:group-hover:scale-110",
+              "grid size-9 shrink-0 place-items-center rounded-lg border transition-opacity",
               accent,
             )}
           >
-            <Icon className="size-4" />
+            <Icon className="size-4" aria-hidden="true" />
           </span>
           <p className="truncate text-xs font-medium tracking-wide text-muted-foreground">
             {label}
           </p>
         </div>
-        {spark && sparkColor ? <Sparkline data={spark} color={sparkColor} /> : null}
+        {spark && sparkColor ? (
+          <div className="hidden sm:block">
+            <Sparkline data={spark} color={sparkColor} />
+          </div>
+        ) : null}
       </div>
 
-      <p className="mt-3 font-mono text-[2rem] font-semibold leading-none tabular-nums">{count}</p>
-
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <p className="truncate text-xs text-subtle-foreground">{hint}</p>
+      <div className="mt-3 flex items-baseline gap-2">
+        <p className="font-mono text-3xl font-semibold leading-none tabular-nums tracking-tight">
+          {count}
+        </p>
         {delta ? (
           <Delta current={delta.current} previous={delta.previous} />
         ) : (
           <span className="shrink-0 text-[11px] text-subtle-foreground">—</span>
         )}
+      </div>
+
+      <div className="mt-2">
+        <p className="truncate text-xs text-subtle-foreground">{hint}</p>
       </div>
     </div>
   );

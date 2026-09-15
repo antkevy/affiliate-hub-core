@@ -2,34 +2,27 @@
 @source "../src";
 @import "tw-animate-css";
 
-@import "@fontsource/space-grotesk/500.css";
-@import "@fontsource/space-grotesk/600.css";
-@import "@fontsource/space-grotesk/700.css";
-@import "@fontsource/jetbrains-mono/400.css";
-@import "@fontsource/jetbrains-mono/500.css";
-@import "@fontsource/jetbrains-mono/700.css";
-
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Affiliate Hub — design system
- * World: Trading Terminal. The dark watch-bowl of an operator's desk,
- * amber-phosphor actions, and every number set in tabular mono as a
- * live truth. All colors are oklch tokens.
+ * Affiliate Hub — "Ops Console"
+ * Dark, data-dense, glass command surface for affiliate automation.
+ * Deep navy base, vivid blue primary, semantic status colors, mono figures.
+ * All colors are oklch tokens. Never hardcode colors in components.
  */
 
 @theme inline {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-2xl: calc(var(--radius) + 9px);
+  --radius-3xl: calc(var(--radius) + 13px);
+  --radius-4xl: calc(var(--radius) + 17px);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -76,59 +69,63 @@
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 0.6rem;
 
-  --background: oklch(0.135 0.007 264);
-  --foreground: oklch(0.955 0.005 264);
-  --surface: oklch(0.165 0.008 264);
-  --surface-foreground: oklch(0.955 0.005 264);
-  --card: oklch(0.19 0.009 264);
-  --card-foreground: oklch(0.955 0.005 264);
-  --popover: oklch(0.22 0.01 264);
-  --popover-foreground: oklch(0.955 0.005 264);
+  --background: oklch(0.14 0.014 262);
+  --foreground: oklch(0.975 0.004 255);
+  --surface: oklch(0.215 0.016 262);
+  --surface-foreground: oklch(0.975 0.004 255);
+  --card: oklch(0.187 0.016 262);
+  --card-foreground: oklch(0.975 0.004 255);
+  --popover: oklch(0.2 0.016 262);
+  --popover-foreground: oklch(0.975 0.004 255);
 
-  --primary: oklch(0.8 0.16 80);
-  --primary-foreground: oklch(0.17 0.03 80);
-  --secondary: oklch(0.235 0.011 264);
-  --secondary-foreground: oklch(0.93 0.008 264);
-  --muted: oklch(0.215 0.01 264);
-  --muted-foreground: oklch(0.7 0.016 264);
-  --subtle-foreground: oklch(0.6 0.014 264);
-  --accent: oklch(0.26 0.014 264);
-  --accent-foreground: oklch(0.955 0.005 264);
+  --primary: oklch(0.63 0.19 258);
+  --primary-foreground: oklch(0.99 0.005 255);
+  --secondary: oklch(0.255 0.017 262);
+  --secondary-foreground: oklch(0.95 0.004 255);
+  --muted: oklch(0.235 0.016 262);
+  --muted-foreground: oklch(0.72 0.02 256);
+  --subtle-foreground: oklch(0.6 0.02 256);
+  --accent: oklch(0.27 0.02 262);
+  --accent-foreground: oklch(0.975 0.004 255);
 
-  --destructive: oklch(0.62 0.19 26);
-  --destructive-foreground: oklch(0.98 0.005 264);
-  --success: oklch(0.74 0.15 152);
-  --success-foreground: oklch(0.17 0.03 152);
-  --warning: oklch(0.79 0.14 92);
-  --warning-foreground: oklch(0.18 0.03 92);
-  --info: oklch(0.8 0.16 80);
-  --info-foreground: oklch(0.17 0.03 80);
+  --destructive: oklch(0.6 0.2 24);
+  --destructive-foreground: oklch(0.99 0.005 255);
+  --success: oklch(0.68 0.15 155);
+  --success-foreground: oklch(0.17 0.03 155);
+  --warning: oklch(0.79 0.14 88);
+  --warning-foreground: oklch(0.2 0.04 88);
+  --info: oklch(0.68 0.14 250);
+  --info-foreground: oklch(0.17 0.03 250);
 
-  --border: oklch(0.27 0.012 264);
-  --input: oklch(0.27 0.012 264);
-  --ring: oklch(0.8 0.16 80);
+  --border: oklch(0.28 0.016 262);
+  --input: oklch(0.32 0.018 262);
+  --ring: oklch(0.66 0.19 258);
 
-  --chart-1: oklch(0.8 0.16 80);
-  --chart-2: oklch(0.74 0.15 152);
-  --chart-3: oklch(0.79 0.14 92);
-  --chart-4: oklch(0.68 0.13 264);
-  --chart-5: oklch(0.62 0.19 26);
+  --chart-1: oklch(0.63 0.19 258);
+  --chart-2: oklch(0.68 0.15 155);
+  --chart-3: oklch(0.79 0.14 88);
+  --chart-4: oklch(0.62 0.16 300);
+  --chart-5: oklch(0.63 0.19 24);
 
-  --sidebar: oklch(0.15 0.007 264);
-  --sidebar-foreground: oklch(0.9 0.01 264);
-  --sidebar-primary: oklch(0.8 0.16 80);
-  --sidebar-primary-foreground: oklch(0.17 0.03 80);
-  --sidebar-accent: oklch(0.225 0.013 264);
-  --sidebar-accent-foreground: oklch(0.96 0.008 264);
-  --sidebar-border: oklch(0.24 0.011 264);
-  --sidebar-ring: oklch(0.8 0.16 80);
+  --sidebar: oklch(0.16 0.015 262);
+  --sidebar-foreground: oklch(0.9 0.006 255);
+  --sidebar-primary: oklch(0.63 0.19 258);
+  --sidebar-primary-foreground: oklch(0.99 0.005 255);
+  --sidebar-accent: oklch(0.235 0.018 262);
+  --sidebar-accent-foreground: oklch(0.975 0.004 255);
+  --sidebar-border: oklch(0.24 0.017 262);
+  --sidebar-ring: oklch(0.66 0.19 258);
+
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.4), 0 10px 28px -22px oklch(0 0 0 / 0.65);
+  --shadow-lift: 0 2px 4px oklch(0 0 0 / 0.4), 0 20px 44px -24px oklch(0 0 0 / 0.7);
+  --shadow-pop: 0 0 0 1px oklch(0 0 0 / 0.2), 0 24px 60px -24px oklch(0 0 0 / 0.8);
 }
 
 .dark {
-  --background: oklch(0.135 0.007 264);
-  --foreground: oklch(0.955 0.005 264);
+  --background: oklch(0.14 0.014 262);
+  --foreground: oklch(0.975 0.004 255);
 }
 
 @layer base {
@@ -138,15 +135,21 @@
 
   html {
     color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     background-color: var(--color-background);
+    background-image:
+      radial-gradient(1200px 600px at 85% -10%, oklch(0.3 0.05 262 / 0.25), transparent 60%),
+      radial-gradient(800px 400px at -10% 110%, oklch(0.26 0.05 262 / 0.18), transparent 55%);
+    background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overflow-x: clip;
     overscroll-behavior-x: none;
+    text-rendering: optimizeLegibility;
   }
 
   h1,
@@ -154,114 +157,37 @@
   h3,
   h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
-  }
-
-  /* Browser surfaces belong to the design system. */
-  ::selection {
-    background-color: color-mix(in oklch, var(--color-primary) 32%, transparent);
-    color: var(--color-foreground);
-  }
-
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background-color: var(--color-secondary);
-    border-radius: 999px;
-    border: 2px solid var(--color-background);
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-muted-foreground);
-  }
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-secondary) transparent;
-  }
-
-  input,
-  textarea,
-  select {
-    caret-color: var(--color-primary);
+    letter-spacing: -0.015em;
   }
 
   :focus-visible {
-    outline: 2px solid color-mix(in oklch, var(--color-ring) 80%, transparent);
+    outline: 2px solid var(--color-ring);
     outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--color-primary) 35%, transparent);
   }
 }
 
 @utility panel {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
   background-color: var(--color-card);
-  box-shadow: 0 1px 0 rgb(0 0 0 / 0.14);
-}
-
-/* Terminal ticket: an incoming reading cell on the desk */
-@utility ticket {
-  position: relative;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background-color: var(--color-card);
+  box-shadow: var(--shadow-card);
 }
 
-/* Terminal ticket for the outbox/transmissions: carries the single action tint */
-@utility ticket-out {
-  position: relative;
-  border: 1px solid color-mix(in oklch, var(--color-primary) 38%, transparent);
-  border-radius: var(--radius-lg);
-  background-color: color-mix(in oklch, var(--color-primary) 9%, var(--color-card));
-}
-
-/* Instrument rail row: a nav entry on the desk */
-@utility inst-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  border-radius: var(--radius-md);
-  padding: 0.5rem 0.625rem;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-
-/* The tape column: a readable track for the day's movement */
-@utility stream {
-  max-width: 46rem;
-}
-
-/* Pipeline stages as mono tickets */
-@utility pipeline-step {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  border-radius: 999px;
+@utility panel-glass {
+  background: color-mix(in oklch, var(--color-card) 78%, transparent);
   border: 1px solid var(--color-border);
-  background-color: var(--color-surface);
-  padding: 0.25rem 0.625rem;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  color: var(--color-muted-foreground);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
-@utility pipeline-step-live {
-  border-color: color-mix(in oklch, var(--color-primary) 50%, transparent);
-  color: var(--color-primary);
-}
-
-/* Terminal section labels (panel headers, not kickers above headings) */
 @utility text-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   line-height: 1rem;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-subtle-foreground);
 }
@@ -272,36 +198,29 @@
 
 @utility animate-grow-x {
   transform-origin: left;
-  animation: grow-x 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: grow-x 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @utility animate-pulse-dot {
   animation: pulse-dot 1.8s ease-out infinite;
 }
 
-/* The signature movement: a status sweep along the pipeline. Indeterminate,
-   driven by real pending/processing state. */
-@utility pipeline-surge {
-  position: relative;
-  overflow: hidden;
-}
-.pipeline-surge::after {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  width: 40%;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--color-primary),
-    transparent
-  );
-  animation: surge 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+@utility pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px));
 }
 
-@utility animate-send {
-  animation: send 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+@utility glass-app-bar {
+  background: color-mix(in oklch, var(--color-background) 78%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+@utility glass-nav {
+  background: color-mix(in oklch, var(--color-surface) 86%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  border-top: 1px solid var(--color-border);
 }
 
 @keyframes rise {
@@ -331,26 +250,6 @@
   }
   70% {
     box-shadow: 0 0 0 5px transparent;
-  }
-}
-
-@keyframes surge {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(320%);
-  }
-}
-
-@keyframes send {
-  from {
-    opacity: 0;
-    transform: translateX(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 

@@ -49,7 +49,7 @@ export function AssistantChat({ context }: { context?: string }) {
         onClick={() => setOpen((value) => !value)}
         aria-label={open ? "Fechar assistente" : "Abrir assistente"}
         className={cn(
-          "fixed right-4 bottom-4 z-50 grid size-12 place-items-center rounded-full border shadow-lg transition-all duration-300",
+          "fixed right-4 bottom-20 lg:bottom-4 z-50 grid size-12 place-items-center rounded-full border shadow-lg transition-all duration-300",
           open
             ? "border-border bg-secondary text-foreground hover:bg-secondary/80"
             : "border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-primary/25",
@@ -59,7 +59,7 @@ export function AssistantChat({ context }: { context?: string }) {
       </button>
 
       {open ? (
-        <div className="fixed right-4 bottom-20 z-50 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-rise">
+        <div className="fixed right-4 bottom-36 z-50 w-[min(24rem,calc(100vw-2rem))] lg:bottom-24 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-rise">
           <header className="flex items-center justify-between gap-3 border-b border-border bg-secondary/40 px-4 py-3">
             <div className="flex items-center gap-2.5">
               <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">

@@ -173,7 +173,7 @@ function DestinationsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           {deleting && usedByMonitors.length > 0 ? (
-            <p className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-600">
+            <p className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
               <TriangleAlert className="mt-0.5 size-4 shrink-0" />
               <span>
                 Este destino é usado por {usedByMonitors.map((monitor) => monitor.name).join(", ")}.{" "}
@@ -446,7 +446,7 @@ function CredentialsLine({
 
   const token = config.token;
   return (
-    <p className={cn("text-xs", token && target ? "text-muted-foreground" : "text-amber-600")}>
+    <p className={cn("text-xs", token && target ? "text-muted-foreground" : "text-warning")}>
       {token ? `Bot: ••••${token.slice(-4)}` : "Sem token do bot"}
       {target ? ` · Publica em: ${target}` : " · Canal não informado"}
     </p>

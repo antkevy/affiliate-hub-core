@@ -365,7 +365,7 @@ function BannerStudio({
                 className="cursor-pointer text-xs font-medium flex items-center gap-1"
               >
                 <Star
-                  className={`size-3.5 ${draft.isDefault ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`}
+                  className={`size-3.5 ${draft.isDefault ? "fill-warning text-warning" : "text-muted-foreground"}`}
                 />
                 Banner Padrão
               </Label>

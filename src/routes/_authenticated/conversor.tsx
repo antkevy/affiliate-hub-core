@@ -421,7 +421,7 @@ function PostIATab() {
           {result ? (
             <>
               {result.note ? (
-                <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600">
+                <p className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
                   {result.note}
                 </p>
               ) : null}
@@ -613,11 +613,11 @@ function ConvertResult({ result }: { result: ConvertedMessageResult }) {
   return (
     <div className="space-y-4">
       {result.queued ? (
-        <Card className="border-amber-500/40">
+        <Card className="border-warning/40">
           <CardContent className="flex items-start gap-3 pt-4">
-            <Inbox className="mt-0.5 size-4 shrink-0 text-amber-500" />
+            <Inbox className="mt-0.5 size-4 shrink-0 text-warning" />
             <div className="text-xs">
-              <p className="font-medium text-amber-500">
+              <p className="font-medium text-warning">
                 Cookie expirado — mensagem enviada para a fila de espera.
               </p>
               <p className="mt-1 text-muted-foreground">
@@ -950,7 +950,7 @@ function QueueTab() {
               <div className="flex gap-1.5">
                 <Badge
                   variant="secondary"
-                  className="bg-amber-500/15 px-2 text-[11px] text-amber-500"
+                  className="bg-warning/15 px-2 text-[11px] text-warning"
                 >
                   {waiting.length} aguardando
                 </Badge>
@@ -973,7 +973,7 @@ function QueueTab() {
             </div>
           </div>
           {!sessionActive ? (
-            <p className="text-xs text-amber-500">
+            <p className="text-xs text-warning">
               Sessão não ativa. Cole um cookie atualizado na aba “Sessão” para liberar a
               reprocessamento da fila.
             </p>
@@ -1040,7 +1040,7 @@ function QueueRowCard({ row, onRefetch }: { row: QueueRow; onRefetch?: () => voi
   const badge = (() => {
     if (row.status === "waiting")
       return (
-        <Badge variant="secondary" className="gap-1 bg-amber-500/15 text-[11px] text-amber-500">
+        <Badge variant="secondary" className="gap-1 bg-warning/15 text-[11px] text-warning">
           <Clock className="size-3" /> aguardando link / cookie
         </Badge>
       );
