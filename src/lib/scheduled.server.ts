@@ -20,6 +20,10 @@ import {
   ALIEXPRESS_DEFAULT_TRACKING_ID,
   generateAliExpressAffiliateLink,
 } from "@/lib/aliexpress-affiliate.server";
+import {
+  captureShopeeOffers,
+  generateShopeeShortLink,
+} from "@/lib/shopee-affiliate.server";
 import { isPublicationDuplicate } from "@/lib/duplicate-prevention";
 import {
   buildOfferBannerConfigServer,
@@ -293,7 +297,7 @@ async function ensureAliExpressAffiliateUrl(
   await db.from("offers").update({ affiliate_url: link }).eq("id", offer.id);
 }
 
-type AffiliateKind = "mercadolivre" | "aliexpress";
+type AffiliateKind = "mercadolivre" | "aliexpress" | "shopee";
 
 function affiliateKindOf(
   offer: Offer,
@@ -309,12 +313,72 @@ function affiliateKindOf(
   if (/aliexpress|alicdn\.com|a\.aliexpress|s\.click\.aliexpress/i.test(url)) {
     return "aliexpress";
   }
+  if (/shopee\.com\.br|shopee\.com[^a-z]|shope\.ee/i.test(url)) {
+    return "shopee";
+  }
   return null;
 }
 
 function hasValidAffiliateLink(offer: Offer, kind: AffiliateKind): boolean {
   const link = offer.affiliate_url ?? "";
-  return kind === "mercadolivre" ? link.includes("meli.la") : link.length > 0;
+  if (kind === "mercadolivre") return link.includes("meli.la");
+  if (kind === "shopee") return link.includes("shope.ee");
+  return link.length > 0;
+}
+
+function buildShopeeAccounts(
+  rows: unknown[],
+  shopeeMarketplaceId: string | null,
+): Map<string, { app_id: string; app_secret: string }> {
+  const accounts = new Map<string, { app_id: string; app_secret: string }>();
+  if (!shopeeMarketplaceId) return accounts;
+  for (const row of rows) {
+    const record = row as {
+      user_id?: string;
+      marketplace_id?: string | null;
+      status?: string;
+      configuration?: unknown;
+    } | null;
+    if (!record?.user_id || record.status !== "connected") continue;
+    if (record.marketplace_id !== shopeeMarketplaceId) continue;
+    const configuration = record.configuration;
+    if (!configuration || typeof configuration !== "object") continue;
+    const config = configuration as Record<string, unknown>;
+    const app_id =
+      typeof config["app_id"] === "string" && config["app_id"].trim()
+        ? config["app_id"].trim()
+        : null;
+    const app_secret =
+      typeof config["app_secret"] === "string" && config["app_secret"].trim()
+        ? config["app_secret"].trim()
+        : null;
+    if (!app_id || !app_secret) continue;
+    accounts.set(record.user_id, { app_id, app_secret });
+  }
+  return accounts;
+}
+
+async function ensureShopeeAffiliateUrl(
+  db: Db,
+  offer: Offer,
+  shopeeAccountsByUser: Map<string, { app_id: string; app_secret: string }>,
+): Promise<void> {
+  if (!offer.original_url || offer.affiliate_url?.includes("shope.ee")) return;
+  const credentials = shopeeAccountsByUser.get(offer.user_id ?? "");
+  if (!credentials) return;
+  try {
+    const shortLink = await generateShopeeShortLink(
+      credentials.app_id,
+      credentials.app_secret,
+      offer.original_url,
+    );
+    if (shortLink) {
+      offer.affiliate_url = shortLink;
+      await db.from("offers").update({ affiliate_url: shortLink }).eq("id", offer.id);
+    }
+  } catch {
+    // conversão nunca derruba o ciclo
+  }
 }
 
 async function pushToMercadoLivreQueue(db: Db, offer: Offer): Promise<void> {
@@ -411,6 +475,11 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
     (marketplacesRes.data ?? []).find(
       (item: { slug?: string }) => (item.slug ?? "").toLowerCase() === "mercado-livre",
     )?.id ?? null;
+  const shopeeMarketplaceId =
+    (marketplacesRes.data ?? []).find(
+      (item: { slug?: string }) => (item.slug ?? "").toLowerCase() === "shopee",
+    )?.id ?? null;
+  const shopeeAccountsByUser = buildShopeeAccounts(accountsRes.data ?? [], shopeeMarketplaceId);
 
   const activeSourcesById = new Map<string, Source>(
     sources.filter((source) => source.status === "active").map((source) => [source.id, source]),
@@ -484,6 +553,19 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
 
     if (source.type === "amazon") {
       const captured = await captureAmazonOffers(db, {
+        identifier: source.identifier,
+        sourceId: source.id,
+        userId: source.user_id,
+      });
+      report.offersCaptured += captured.offersCaptured;
+      report.offersIgnored += captured.offersIgnored;
+      report.offersFailed += captured.offersFailed;
+      report.errors.push(...captured.errors);
+      continue;
+    }
+
+    if (source.type === "shopee") {
+      const captured = await captureShopeeOffers(db, {
         identifier: source.identifier,
         sourceId: source.id,
         userId: source.user_id,
@@ -598,6 +680,7 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
       aliExpressAccountsByUser,
       mercadolivreAccountsByUser,
       mercadolivreMarketplaceId,
+      shopeeAccountsByUser,
       startTime,
       MAX_EXECUTION_MS,
     );
@@ -663,6 +746,11 @@ export async function runScheduledPublishing(): Promise<ScheduledRunReport> {
           mercadolivreMarketplaceId,
         ),
         25000,
+        undefined,
+      );
+      await withSoftTimeout(
+        ensureShopeeAffiliateUrl(db, offer, shopeeAccountsByUser),
+        15000,
         undefined,
       );
 
@@ -735,6 +823,7 @@ async function publishForMonitor(
   aliExpressAccountsByUser: Map<string, AliExpressAccount>,
   mercadolivreAccountsByUser: Map<string, MercadoLivreAccount>,
   mercadolivreMarketplaceId: string | null,
+  shopeeAccountsByUser: Map<string, { app_id: string; app_secret: string }>,
   startTime?: number,
   maxMs?: number,
 ): Promise<boolean> {
@@ -810,6 +899,11 @@ async function publishForMonitor(
         mercadolivreMarketplaceId,
       ),
       25000,
+      undefined,
+    );
+    await withSoftTimeout(
+      ensureShopeeAffiliateUrl(db, offer, shopeeAccountsByUser),
+      15000,
       undefined,
     );
 
@@ -1241,7 +1335,9 @@ function passesFilters(offer: Offer, config: ReturnType<typeof configurationOf>)
 }
 
 function isScrapable(type: string): boolean {
-  return type === "feed" || type === "api" || type === "telegram" || type === "amazon";
+  return (
+    type === "feed" || type === "api" || type === "telegram" || type === "amazon" || type === "shopee"
+  );
 }
 
 interface ServerCandidate {
