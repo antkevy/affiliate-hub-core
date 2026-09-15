@@ -106,7 +106,7 @@ function OffersPage() {
         title="Ofertas"
         description="Todas as ofertas capturadas pelas suas fontes e automações."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -144,24 +144,24 @@ function OffersPage() {
         }
       />
 
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-        <span className="text-foreground">Posição do tape</span>
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="text-foreground">Resumo</span>
         <span className="flex items-center gap-1.5">
           todas
-          <span className="text-foreground tabular-nums">{offers.length}</span>
+          <span className="font-semibold text-foreground tabular-nums">{offers.length}</span>
         </span>
         <span className="flex items-center gap-1.5">
           com cupom
-          <span className="text-foreground tabular-nums">{withCoupon}</span>
+          <span className="font-semibold text-foreground tabular-nums">{withCoupon}</span>
         </span>
         <span className="flex items-center gap-1.5">
           desconto médio
-          <span className="text-foreground tabular-nums">{avgDiscount}%</span>
+          <span className="font-semibold text-foreground tabular-nums">{avgDiscount}%</span>
         </span>
         <span className="flex items-center gap-1.5 text-warning">
           <span className="size-1.5 rounded-full bg-warning" />
           pendentes
-          <span className="text-foreground tabular-nums">{pending}</span>
+          <span className="font-semibold text-foreground tabular-nums">{pending}</span>
         </span>
       </p>
 
@@ -199,105 +199,84 @@ function OffersPage() {
           />
         }
       >
-        <div className="panel overflow-x-auto animate-rise" style={{ animationDelay: "160ms" }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-secondary/40 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-2.5">Imagem & Oferta</th>
-                <th className="px-4 py-2.5">Preço</th>
-                <th className="px-4 py-2.5">Desconto</th>
-                <th className="px-4 py-2.5">Status</th>
-                <th className="px-4 py-2.5">Capturada</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {offers.map((offer) => (
-                <tr
-                  key={offer.id}
-                  onClick={() => setSelectedOffer(offer)}
-                  className="group cursor-pointer transition-colors hover:bg-secondary/40"
+        <div className="panel overflow-hidden animate-rise" style={{ animationDelay: "160ms" }}>
+          <ul className="divide-y divide-border">
+            {offers.map((offer) => (
+              <li
+                key={offer.id}
+                onClick={() => setSelectedOffer(offer)}
+                className="group flex cursor-pointer flex-wrap items-center gap-3 p-3.5 sm:p-4 lg:hover:bg-secondary/40"
+              >
+                <div
+                  className={cn(
+                    "relative size-12 shrink-0 overflow-hidden rounded-lg border bg-muted/40",
+                    offer.status === "error"
+                      ? "border-destructive/30"
+                      : offer.status === "published" || offer.status === "approved"
+                        ? "border-success/30"
+                        : "border-border",
+                  )}
                 >
-                  <td className="max-w-md px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "relative size-12 shrink-0 overflow-hidden rounded-lg border",
-                          offer.status === "error"
-                            ? "border-destructive/30"
-                            : offer.status === "published" || offer.status === "approved"
-                              ? "border-success/30"
-                              : "border-border",
-                          "bg-muted/40",
-                        )}
-                      >
-                        {offer.image_url ? (
-                          <img
-                            src={offer.image_url}
-                            alt={offer.title}
-                            className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex size-full items-center justify-center">
-                            <ShoppingBag className="size-5 text-muted-foreground/60" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-foreground group-hover:text-primary">
-                          {offer.title}
-                        </p>
-                        <div className="mt-0.5 flex items-center gap-2">
-                          {offer.coupon ? (
-                            <button
-                              type="button"
-                              onClick={(e) => copyCoupon(offer.coupon, e)}
-                              className="inline-flex items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary transition-colors hover:bg-primary/20"
-                              title="Clique para copiar o cupom"
-                            >
-                              <span>Cupom: {offer.coupon}</span>
-                              <Copy className="size-2.5" />
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
+                  {offer.image_url ? (
+                    <img
+                      src={offer.image_url}
+                      alt={offer.title}
+                      className="size-full object-cover transition-transform duration-200 lg:group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex size-full items-center justify-center">
+                      <ShoppingBag className="size-5 text-muted-foreground/60" aria-hidden="true" />
                     </div>
-                  </td>
-                  <td className="px-4 py-3 font-mono font-semibold tabular-nums">
-                    {money(offer.sale_price)}
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-foreground lg:group-hover:text-primary">
+                    {offer.title}
+                  </p>
+                  {offer.coupon ? (
+                    <button
+                      type="button"
+                      onClick={(event) => copyCoupon(offer.coupon, event)}
+                      className="mt-1 inline-flex items-center gap-1 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary lg:hover:bg-primary/20"
+                      title="Clique para copiar o cupom"
+                    >
+                      <span>Cupom: {offer.coupon}</span>
+                      <Copy className="size-2.5" aria-hidden="true" />
+                    </button>
+                  ) : null}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                      {money(offer.sale_price)}
+                    </span>
                     {offer.original_price && offer.original_price > (offer.sale_price ?? 0) ? (
-                      <span className="block text-[11px] font-normal text-muted-foreground line-through">
+                      <span className="text-[11px] text-muted-foreground line-through">
                         {money(offer.original_price)}
                       </span>
                     ) : null}
-                  </td>
-                  <td className="px-4 py-3 font-mono tabular-nums">
                     {offer.discount_percentage ? (
-                      <Badge
-                        variant="secondary"
-                        className="border border-success/25 bg-success/10 text-xs font-bold text-success"
-                      >
-                        {offer.discount_percentage}% OFF
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusPill tone={entityTone(offer.status)}>
-                      <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
-                      {OFFER_STATUS_LABEL[offer.status]}
-                    </StatusPill>
-                  </td>
-                  <td
-                    className="px-4 py-3 text-xs text-muted-foreground"
+                      <span className="rounded-md border border-success/25 bg-success/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-success">
+                        -{offer.discount_percentage}%
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="ml-auto flex shrink-0 flex-col items-end gap-1">
+                  <StatusPill tone={entityTone(offer.status)}>
+                    <span className="mr-1.5 inline-block size-1.5 rounded-full bg-current align-middle" />
+                    {OFFER_STATUS_LABEL[offer.status]}
+                  </StatusPill>
+                  <span
+                    className="text-[11px] text-muted-foreground"
                     title={new Date(offer.captured_at).toLocaleString("pt-BR")}
                   >
                     {timeAgo(offer.captured_at)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </DataState>
 
