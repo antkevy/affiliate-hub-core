@@ -537,10 +537,7 @@ function DashboardPage() {
                           <span>{timeAgo(offer.created_at)}</span>
                         </p>
                       </div>
-                      <div
-                        className="flex shrink-0 flex-wrap items-center gap-2"
-                        style={{ marginInlineStart: "auto" }}
-                      >
+                      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
                         {offer.discount_percentage && offer.discount_percentage > 0 ? (
                           <span className="rounded-md border border-chart-3/20 bg-chart-3/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-chart-3">
                             -{Math.round(offer.discount_percentage)}%
