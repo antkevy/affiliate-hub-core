@@ -1,5 +1,6 @@
 name: Publicação Automática
 
+# re-register schedule
 on:
   schedule:
     # A cada 10 minutos (UTC). Roda no branch padrão (main).
