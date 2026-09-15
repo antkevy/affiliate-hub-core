@@ -157,21 +157,14 @@ function MobileTabContent({
 }) {
   return (
     <span
-      aria-current={active ? "page" : undefined}
       className={cn(
-        "flex min-h-[52px] flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl transition-colors",
-        active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+        "flex h-full w-full min-w-0 flex-col items-center justify-center gap-1 overflow-hidden select-none",
+        active ? "text-primary" : "text-muted-foreground",
       )}
     >
       <Icon className="size-5" aria-hidden="true" />
-      <span className="text-[10px] font-medium tracking-tight">{label}</span>
-      <span
-        className={cn(
-          "h-0.5 w-4 rounded-full transition-opacity",
-          active ? "bg-primary opacity-100" : "opacity-0",
-        )}
-        aria-hidden="true"
-      />
+      <span className="truncate text-[10px] font-medium tracking-tight">{label}</span>
+      <span className={cn("h-0.5 w-4 rounded-full", active ? "bg-primary" : "bg-transparent")} />
     </span>
   );
 }
@@ -184,28 +177,38 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
       aria-label="Navegação inferior"
       className="glass-nav fixed inset-x-0 bottom-0 z-40 pb-safe lg:hidden"
     >
-      <div className="flex items-center gap-1 border-t border-transparent px-2 pt-1.5">
-        {MOBILE_TABS.map((tab) =>
-          tab.more ? (
-            <button
-              key={tab.label}
-              type="button"
-              onClick={onOpenMenu}
-              aria-label="Abrir menu completo"
-              className="flex min-w-0 flex-1"
+      <div className="grid w-full grid-cols-5 gap-0.5 border-t border-transparent px-1.5 pt-1">
+        {MOBILE_TABS.map((tab) => {
+          if (tab.more) {
+            return (
+              <button
+                key={tab.label}
+                type="button"
+                onClick={onOpenMenu}
+                aria-label={`Abrir ${tab.label}`}
+                className="flex h-16 min-h-[56px] min-w-0 items-center justify-center border-0 bg-transparent rounded-xl touch-manipulation"
+              >
+                <MobileTabContent label={tab.label} icon={tab.icon} />
+              </button>
+            );
+          }
+          return (
+            <Link
+              key={tab.to}
+              to={tab.to!}
+              aria-current={
+                pathname === tab.to || pathname.startsWith(`${tab.to}/`) ? "page" : undefined
+              }
+              className="flex h-16 min-h-[56px] min-w-0 items-center justify-center rounded-xl touch-manipulation"
             >
-              <MobileTabContent label={tab.label} icon={tab.icon} />
-            </button>
-          ) : (
-            <Link key={tab.to} to={tab.to!} className="flex min-w-0 flex-1">
               <MobileTabContent
                 label={tab.label}
                 icon={tab.icon}
                 active={pathname === tab.to || pathname.startsWith(`${tab.to}/`)}
               />
             </Link>
-          ),
-        )}
+          );
+        })}
       </div>
     </nav>
   );
