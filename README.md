@@ -1524,6 +1524,30 @@ Antes de finalizar:
 
 10. Verifique se não existem erros de build.
 
+## Publicação automática (100% no servidor, sem depender do navegador)
+
+O pipeline de captura → IA → publicação roda no servidor via
+`/api/scheduled/run` (src/server.ts). O cron dispara esse endpoint e a
+automação funciona 24/7 sem precisar de PC ou celular abertos.
+
+**Como habilitar (uma vez):**
+
+1. **Lovable Cloud → Environment** — defina as chaves de servidor:
+   - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (chave *service role* do Supabase)
+   - `PUBLISH_CRON_SECRET` (valor forte, ex.: `openssl rand -hex 32`)
+   - `GROQ_API_KEY` (se usar IA nas automações)
+2. **GitHub → Settings → Secrets and variables → Actions**:
+   - Secret `PUBLISH_CRON_SECRET` = o **mesmo valor** do passo acima
+   - (Opcional) Variable `PUBLISH_URL` = URL do app; o padrão é
+     `https://afiliadohub-br.lovable.app/api/scheduled/run`
+3. A partir da próxima execução do cron (a cada 10 min), o workflow
+   `.github/workflows/publicacao-automatica.yml` chama o endpoint e publica.
+
+> Alternativa: criar no Lovable um cron gerenciado na mesma URL — nesse caso
+> o Lovable injeta `LOVABLE_CRON_SECRET` automaticamente e nada precisa ser
+> configurado manualmente além dos segredos do Supabase/Groq acima.
+
 This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
